@@ -1,24 +1,19 @@
-# dependencies
-/node_modules
+# Dependências e builds (front-end e back-end)
+node_modules/
+.next/
+dist/
+build/
+out/
 
-# next.js
-/.next/
-/out/
-
-# production
-/build
-
-# local environment files
+# Variáveis de ambiente
 .env*
 !.env.example
 
-# logs
-npm-debug.log*
-yarn-debug.log*
-yarn-error.log*
-pnpm-debug.log*
+# Logs
+*.log
 
-# system and editor files
+# Sistema e editores
 .DS_Store
 Thumbs.db
 *.tsbuildinfo
+
