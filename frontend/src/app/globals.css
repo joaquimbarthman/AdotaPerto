@@ -1,55 +1,77 @@
-:root {
-  --background: #f7f8f2;
-  --foreground: #193229;
-  --accent: #e76f51;
+@import "tailwindcss";
+@import "@fontsource-variable/manrope";
+
+@theme inline {
+  --font-sans: "Manrope Variable", sans-serif;
 }
 
 * {
   box-sizing: border-box;
 }
 
-html,
-body {
-  min-height: 100%;
+html {
+  scroll-behavior: smooth;
 }
 
 body {
   margin: 0;
-  background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  font-family: "Manrope Variable", sans-serif;
 }
 
-.home {
-  display: grid;
-  min-height: 100vh;
-  place-items: center;
-  padding: 2rem;
+main {
+  animation: page-enter 350ms ease-out both;
 }
 
-.hero {
-  max-width: 48rem;
-  text-align: center;
+@keyframes page-enter {
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
 }
 
-.eyebrow {
-  color: var(--accent);
-  font-size: 0.8rem;
-  font-weight: 700;
-  letter-spacing: 0.12em;
-  text-transform: uppercase;
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    scroll-behavior: auto !important;
+    animation-duration: 0.01ms !important;
+    transition-duration: 0.01ms !important;
+  }
 }
 
-h1 {
-  margin: 0.75rem 0;
-  font-size: clamp(3rem, 10vw, 6rem);
-  letter-spacing: -0.06em;
+a,
+button {
+  cursor: pointer;
 }
 
-p {
-  margin: 0 auto;
-  max-width: 40rem;
-  color: #52645d;
-  font-size: 1.125rem;
-  line-height: 1.7;
+.filter-range {
+  height: 6px;
+  appearance: none;
+  border-radius: 9999px;
+  outline: none;
+}
+
+.filter-range::-webkit-slider-thumb {
+  width: 18px;
+  height: 18px;
+  appearance: none;
+  border: 3px solid #fff;
+  border-radius: 50%;
+  background: #256441;
+  box-shadow: 0 1px 4px rgb(38 51 43 / 20%);
+  cursor: pointer;
+}
+
+.filter-range::-moz-range-thumb {
+  width: 14px;
+  height: 14px;
+  border: 3px solid #fff;
+  border-radius: 50%;
+  background: #256441;
+  box-shadow: 0 1px 4px rgb(38 51 43 / 20%);
+  cursor: pointer;
 }
