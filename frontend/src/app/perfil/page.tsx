@@ -7,6 +7,7 @@ import { SiteHeader } from "@/components/site-header";
 
 const tabs = [
   { id: "adocoes", label: "Minhas Adoções", icon: "/icons/adoptions.svg" },
+  { id: "dados", label: "Dados pessoais", icon: "/icons/user.svg" },
   { id: "doacoes", label: "Minhas Doações", icon: "/icons/donations-profile.svg" },
   { id: "favoritos", label: "Favoritos", icon: "/icons/favorites.svg" },
   { id: "configuracoes", label: "Configurações", icon: "/icons/settings.svg" },
@@ -36,11 +37,11 @@ export default function ProfilePage() {
 
         <div className="mt-10 grid items-start gap-8 lg:grid-cols-[220px_1fr] lg:gap-12">
           <nav className="flex gap-2 overflow-x-auto pb-2 lg:sticky lg:top-28 lg:flex-col lg:overflow-visible" aria-label="Áreas do perfil">
-            {tabs.map((item, index) => <button key={item.id} onClick={() => setTab(item.id)} className={`flex shrink-0 items-center gap-3 rounded-lg px-4 py-3 text-sm font-semibold tracking-[0.04em] transition ${tab === item.id ? "bg-[#3f7d58] text-white shadow-sm" : "text-[#404942] hover:bg-white/70 hover:text-[#256441]"} ${index === 3 ? "lg:mt-3 lg:border-t lg:border-[#c0c9bf] lg:pt-5" : ""}`}><Image src={item.icon} alt="" width={20} height={20} className={tab === item.id ? "brightness-0 invert" : ""} />{item.label}</button>)}
+            {tabs.map((item, index) => <button key={item.id} onClick={() => setTab(item.id)} className={`flex shrink-0 items-center gap-3 rounded-lg px-4 py-3 text-sm font-semibold tracking-[0.04em] transition ${tab === item.id ? "bg-[#3f7d58] text-white shadow-sm" : "text-[#404942] hover:bg-white/70 hover:text-[#256441]"} ${index === 4 ? "lg:mt-3 lg:border-t lg:border-[#c0c9bf] lg:pt-5" : ""}`}><Image src={item.icon} alt="" width={20} height={20} className={tab === item.id ? "brightness-0 invert" : ""} />{item.label}</button>)}
           </nav>
 
           <section className="min-w-0">
-            {tab === "adocoes" ? <Adoptions /> : <EmptyTab title={tabs.find((item) => item.id === tab)?.label ?? "Perfil"} />}
+            {tab === "adocoes" ? <Adoptions /> : tab === "dados" ? <PersonalData /> : <EmptyTab title={tabs.find((item) => item.id === tab)?.label ?? "Perfil"} />}
           </section>
         </div>
       </main>
@@ -51,6 +52,94 @@ export default function ProfilePage() {
 
 function Adoptions() {
   return <><header className="mb-6 flex items-end justify-between gap-4"><h2 className="text-2xl font-semibold">Processos de Adoção</h2><span className="text-sm font-semibold tracking-[0.04em] text-[#707971]">3 solicitações</span></header><div className="space-y-5">{requests.map((request) => <article key={request.name} className="group grid overflow-hidden rounded-xl bg-white shadow-[0_4px_12px_rgba(38,51,43,0.05)] transition-all hover:-translate-y-0.5 hover:shadow-lg sm:grid-cols-[180px_1fr]"><div className="relative h-52 overflow-hidden sm:h-full sm:min-h-[210px]"><Image src={request.image} alt={request.name} fill className="object-cover transition-transform duration-500 group-hover:scale-105" sizes="(max-width:640px) 100vw,180px" /></div><div className="flex flex-col p-5 sm:p-6"><div className="flex flex-wrap items-start justify-between gap-3"><h3 className="text-2xl font-semibold">{request.name}</h3><span className={`rounded-full px-3 py-1.5 text-xs font-semibold ${request.statusClass}`}>{request.status}</span></div><div className="mt-2 flex flex-wrap gap-2">{request.tags.map((tag) => <span key={tag} className="rounded-full bg-[#e3f2e6] px-3 py-1.5 text-xs font-semibold text-[#404942]">{tag}</span>)}</div><p className="mt-3 flex items-center gap-2 text-sm text-[#404942] sm:text-base"><Image src="/icons/date.svg" alt="" width={15} height={15} />Solicitado em {request.date}</p>{request.notice && <p className="mt-3 rounded-lg border border-[#c0c9bf]/30 bg-[#e8f7eb] p-3 text-sm text-[#404942]">ⓘ &nbsp;{request.notice}</p>}<div className="mt-auto flex justify-end border-t border-[#c0c9bf]/30 pt-4"><button className={`rounded-xl px-5 py-2.5 text-sm font-semibold tracking-[0.04em] transition active:scale-[0.98] ${request.primary ? "bg-[#256441] text-white hover:bg-[#194b30]" : "border-2 border-[#256441] text-[#256441] hover:bg-[#256441] hover:text-white"}`}>{request.action}</button></div></div></article>)}</div></>;
+}
+
+function PersonalData() {
+  return (
+    <form onSubmit={(event) => event.preventDefault()} className="overflow-hidden rounded-xl bg-white shadow-[0_4px_12px_rgba(38,51,43,0.05)]">
+      <header className="border-b border-[#d7e6da] px-5 py-5 sm:px-7">
+        <h2 className="text-2xl font-semibold">Dados pessoais</h2>
+        <p className="mt-1 text-sm leading-6 text-[#5b675f]">Mantenha suas informações de cadastro e contato atualizadas.</p>
+      </header>
+
+      <div className="space-y-8 p-5 sm:p-7">
+        <section aria-labelledby="profile-photo-title">
+          <h3 id="profile-photo-title" className="mb-4 text-sm font-bold uppercase tracking-[0.08em] text-[#256441]">Foto de perfil</h3>
+          <div className="flex flex-col items-center gap-4 rounded-xl border border-[#d7e6da] bg-[#f7fcf8] p-4 min-[480px]:flex-row">
+            <div className="relative size-20 shrink-0 overflow-hidden rounded-full border-4 border-white shadow-sm">
+              <Image src="/images/ana-profile.png" alt="Foto atual de Ana Silva" fill className="object-cover" />
+            </div>
+            <div className="text-center min-[480px]:text-left">
+              <p className="text-sm font-semibold">Escolha uma nova foto</p>
+              <p className="mt-1 text-xs leading-5 text-[#5b675f]">Formatos JPG, PNG ou WebP.</p>
+              <label className="mt-3 inline-flex cursor-pointer items-center gap-2 rounded-lg border border-[#86a590] px-4 py-2 text-sm font-semibold text-[#256441] transition hover:bg-[#e8f7eb]">
+                <Image src="/icons/edit.svg" alt="" width={14} height={14} />Alterar foto
+                <input type="file" accept="image/png,image/jpeg,image/webp" className="sr-only" />
+              </label>
+            </div>
+          </div>
+        </section>
+
+        <section aria-labelledby="account-title">
+          <h3 id="account-title" className="mb-4 text-sm font-bold uppercase tracking-[0.08em] text-[#256441]">Acesso à conta</h3>
+          <div className="grid gap-4 sm:grid-cols-2">
+            <ProfileField label="Nome" name="nome" defaultValue="Ana Silva" autoComplete="name" />
+            <ProfileField label="E-mail" name="email" type="email" defaultValue="ana.silva@email.com" autoComplete="email" />
+            <div className="sm:col-span-2">
+              <div className="grid gap-4 sm:grid-cols-2">
+                <ProfileField label="Senha atual" name="senhaAtual" type="password" placeholder="Digite sua senha atual" autoComplete="current-password" />
+                <ProfileField label="Nova senha" name="novaSenha" type="password" placeholder="Digite a nova senha" autoComplete="new-password" />
+                <div className="sm:col-start-2">
+                  <ProfileField label="Confirmar nova senha" name="confirmarSenha" type="password" placeholder="Digite a nova senha novamente" autoComplete="new-password" />
+                </div>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <div className="border-t border-[#d7e6da]" />
+
+        <section aria-labelledby="personal-title">
+          <h3 id="personal-title" className="mb-4 text-sm font-bold uppercase tracking-[0.08em] text-[#256441]">Informações pessoais</h3>
+          <div className="grid gap-4 sm:grid-cols-2">
+            <ProfileField label="Data de nascimento" name="nascimento" type="date" defaultValue="1998-05-14" />
+            <ProfileField label="Telefone / WhatsApp" name="telefone" type="tel" defaultValue="(11) 99999-9999" autoComplete="tel" />
+            <ProfileField label="Instagram" name="instagram" defaultValue="@anasilva" placeholder="@seuusuario" />
+            <ProfileField label="CEP" name="cep" inputMode="numeric" defaultValue="01310-100" autoComplete="postal-code" />
+            <ProfileField label="Cidade" name="cidade" defaultValue="São Paulo" autoComplete="address-level2" />
+            <ProfileField label="Estado (UF)" name="estado" defaultValue="SP" maxLength={2} autoComplete="address-level1" />
+            <label className="sm:col-span-2">
+              <span className="mb-2 block text-sm font-semibold text-[#253129]">Bio</span>
+              <textarea name="bio" rows={4} defaultValue="Apaixonada por animais e sempre disposta a ajudar. Buscando um novo membro peludo para alegrar a casa!" className="w-full resize-y rounded-lg border border-[#c0c9bf] bg-[#f7fcf8] px-4 py-3 text-sm leading-6 text-[#121e17] outline-none transition placeholder:text-[#879188] focus:border-[#3f7d58] focus:ring-2 focus:ring-[#3f7d58]/15" />
+            </label>
+          </div>
+        </section>
+      </div>
+
+      <footer className="flex flex-col-reverse gap-3 border-t border-[#d7e6da] bg-[#f7fcf8] px-5 py-4 sm:flex-row sm:justify-end sm:px-7">
+        <button type="reset" className="rounded-xl border border-[#86a590] px-6 py-3 text-sm font-semibold text-[#256441] transition hover:bg-[#e8f7eb]">Cancelar alterações</button>
+        <button type="submit" className="rounded-xl bg-[#256441] px-7 py-3 text-sm font-semibold text-white shadow-sm transition hover:bg-[#194b30] active:scale-[0.98]">Salvar alterações</button>
+      </footer>
+    </form>
+  );
+}
+
+function ProfileField({ label, ...props }: {
+  label: string;
+  name: string;
+  type?: string;
+  defaultValue?: string;
+  placeholder?: string;
+  autoComplete?: string;
+  inputMode?: "numeric" | "text" | "tel" | "email" | "url";
+  maxLength?: number;
+}) {
+  return (
+    <label>
+      <span className="mb-2 block text-sm font-semibold text-[#253129]">{label}</span>
+      <input {...props} className="h-12 w-full rounded-lg border border-[#c0c9bf] bg-[#f7fcf8] px-4 text-sm text-[#121e17] outline-none transition placeholder:text-[#879188] focus:border-[#3f7d58] focus:ring-2 focus:ring-[#3f7d58]/15" />
+    </label>
+  );
 }
 
 function EmptyTab({ title }: { title: string }) {
