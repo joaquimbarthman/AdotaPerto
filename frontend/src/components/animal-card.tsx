@@ -5,7 +5,7 @@ import Link from "next/link";
 import { useState } from "react";
 import type { Animal } from "@/data/animals";
 
-export function AnimalCard({ animal }: { animal: Animal; variant?: "home" | "adoption" }) {
+export function AnimalCard({ animal }: { animal: Animal }) {
   const [favorite, setFavorite] = useState(false);
 
   return (
@@ -46,16 +46,15 @@ export function AnimalCard({ animal }: { animal: Animal; variant?: "home" | "ado
         <div className="mt-4 flex min-h-14 flex-wrap content-start gap-2">
           <Tag>Porte {animal.size}</Tag>
           {animal.traits.slice(0, 2).map((trait) => <Tag key={trait}>{trait}</Tag>)}
-          {animal.traits.length === 0 && animal.weight && <Tag>{animal.weight}</Tag>}
         </div>
 
-        <div className="mt-auto flex min-h-12 items-start gap-2 border-t border-[#d7e6da] pt-3 text-xs font-medium leading-4 text-[#4d5b53]">
+        <div className="mb-4 mt-1 flex items-center gap-2 border-t border-[#d7e6da] pt-3 text-xs font-medium text-[#4d5b53]">
           <Image src="/icons/location.svg" alt="" width={14} height={17} className="shrink-0" />
-          <span>{animal.organization} • {animal.distance}</span>
+          <span>A aproximadamente {animal.distance} de você</span>
         </div>
 
-        <Link href={`/adocao/${animal.id}`} className="mt-4 flex w-full items-center justify-center rounded-full border-2 border-[#256441] px-3 py-2.5 text-sm font-semibold tracking-[0.05em] text-[#256441] transition-all duration-200 hover:bg-[#256441] hover:text-white active:scale-[0.98]">
-          Ver Perfil
+        <Link href={`/adocao/${animal.id}`} className="mt-auto flex w-full items-center justify-center rounded-full border-2 border-[#256441] px-3 py-2.5 text-sm font-semibold tracking-[0.05em] text-[#256441] transition-all duration-200 hover:bg-[#256441] hover:text-white active:scale-[0.98]">
+          Ver detalhes
         </Link>
       </div>
     </article>
