@@ -46,7 +46,7 @@ export default function DonationsPage() {
             <span className="grid size-20 place-items-center rounded-full bg-[#e3f2e6] text-[#985700]"><BoxIcon /></span>
             <h2 className="mt-7 text-2xl font-semibold">Itens e recursos</h2>
             <p className="mt-2 max-w-[245px] leading-6 text-[#404942]">Doe ração, caminhas, medicamentos e outros suprimentos essenciais.</p>
-            <span className="mt-6 rounded-full bg-[#f5f2eb] px-3 py-1 text-xs font-bold uppercase tracking-wider text-[#6c6457]">Em breve</span>
+            <span className="mt-6 rounded-lg bg-[#f5f2eb] px-3 py-1 text-xs font-bold uppercase tracking-wider text-[#6c6457]">Em breve</span>
           </div>
         </div>
       </main>

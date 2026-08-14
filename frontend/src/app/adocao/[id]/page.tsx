@@ -3,6 +3,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { SiteFooter } from "@/components/site-footer";
 import { SiteHeader } from "@/components/site-header";
+import { PhotoGallery } from "@/components/photo-gallery";
 import { adoptionAnimals, homeAnimals } from "@/data/animals";
 
 const allAnimals = [...adoptionAnimals, ...homeAnimals];
@@ -31,14 +32,10 @@ export default async function PetDetailsPage({ params }: { params: Promise<{ id:
 
         <div className="grid items-start gap-6 lg:grid-cols-[2fr_1fr]">
           <div className="space-y-6">
-            <section className="grid h-[360px] grid-cols-3 grid-rows-2 gap-3 sm:h-[500px]" aria-label={`Fotos de ${animal.name}`}>
-              <div className="relative col-span-2 row-span-2 overflow-hidden rounded-xl shadow-sm"><Image src={photos[0]} alt={`${animal.name} em destaque`} fill className="object-cover transition-transform duration-500 hover:scale-[1.02]" sizes="(max-width:1024px) 66vw,550px" priority /></div>
-              <div className="relative overflow-hidden rounded-xl shadow-sm"><Image src={photos[1]} alt={`${animal.name} brincando`} fill className="object-cover transition-transform duration-500 hover:scale-105" sizes="(max-width:1024px) 33vw,250px" /></div>
-              <div className="group relative overflow-hidden rounded-xl shadow-sm"><Image src={photos[2]} alt={`${animal.name} descansando`} fill className="object-cover transition-transform duration-500 group-hover:scale-105" sizes="(max-width:1024px) 33vw,250px" /><div className="absolute inset-0 flex items-center justify-center bg-[#256441]/0 opacity-0 transition duration-300 group-hover:bg-[#256441]/40 group-hover:opacity-100"><span className="flex items-center gap-2 font-semibold text-white"><Image src="/icons/gallery.svg" alt="" width={20} height={20} /> Ver todas</span></div></div>
-            </section>
+            <PhotoGallery animalName={animal.name} photos={photos} />
 
             <section className="rounded-xl bg-white p-6 shadow-[0_4px_6px_rgba(38,51,43,0.05)] sm:p-10 lg:p-12">
-              <div className="flex flex-col justify-between gap-5 sm:flex-row sm:items-center"><div><div className="flex items-center gap-3"><h1 className="text-4xl font-extrabold tracking-[-0.02em] sm:text-[40px]">{animal.name}</h1>{animal.sex === "Fêmea" && <Image src="/icons/female.svg" alt="Fêmea" width={11} height={17} />}</div><p className="mt-1 text-lg text-[#404942]">{animal.breed === "SRD" ? "Vira-lata (SRD)" : animal.breed} • Porte {sizeName(animal.size)}</p></div><span className="flex w-fit items-center gap-2 rounded-full border border-[#aff1c4] bg-[#e8f7eb] px-4 py-2 text-sm font-semibold text-[#256441]"><Image src="/icons/available-detail.svg" alt="" width={17} height={17} />{animal.status === "Disponível" ? "Disponível para Adoção" : animal.status}</span></div>
+              <div className="flex flex-col justify-between gap-5 sm:flex-row sm:items-center"><div><div className="flex items-center gap-3"><h1 className="text-4xl font-extrabold tracking-[-0.02em] sm:text-[40px]">{animal.name}</h1>{animal.sex === "Fêmea" && <Image src="/icons/female.svg" alt="Fêmea" width={11} height={17} />}</div><p className="mt-1 text-lg text-[#404942]">{animal.breed === "SRD" ? "Vira-lata (SRD)" : animal.breed} • Porte {sizeName(animal.size)}</p></div><span className="flex w-fit items-center gap-2 rounded-xl border border-[#aff1c4] bg-[#e8f7eb] px-4 py-2 text-sm font-semibold text-[#256441]"><Image src="/icons/available-detail.svg" alt="" width={17} height={17} />{animal.status === "Disponível" ? "Disponível para Adoção" : animal.status}</span></div>
               <div className="mt-6 grid gap-5 border-t border-[#c0c9bf] pt-6 min-[460px]:grid-cols-3"><Stat icon="/icons/age.svg" label="Idade aproximada" value={animal.age} /><Stat icon="/icons/weight.svg" label="Porte" value={sizeName(animal.size)} /><Stat icon="/icons/female.svg" label="Sexo" value={animal.sex} /></div>
             </section>
 

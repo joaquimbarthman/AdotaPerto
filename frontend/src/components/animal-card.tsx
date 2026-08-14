@@ -18,7 +18,7 @@ export function AnimalCard({ animal }: { animal: Animal }) {
           className="object-cover transition-transform duration-500 group-hover:scale-105"
           sizes="(max-width:640px) 100vw,(max-width:1024px) 50vw,270px"
         />
-        <span className="absolute left-3 top-3 flex items-center gap-1 rounded-full bg-[#eefdf1] px-2.5 py-1 text-xs font-medium text-[#256441] shadow-sm">
+        <span className="absolute left-3 top-3 flex items-center gap-1.5 rounded-lg bg-[#eefdf1] px-3 py-1.5 text-xs font-semibold text-[#256441] shadow-sm">
           <i className="size-2 rounded-full bg-[#256441]" />
           {animal.status}
         </span>
@@ -53,14 +53,11 @@ export function AnimalCard({ animal }: { animal: Animal }) {
           <span>A aproximadamente {animal.distance} de você</span>
         </div>
 
-        <Link href={`/adocao/${animal.id}`} className="mt-auto flex w-full items-center justify-center rounded-full border-2 border-[#256441] px-3 py-2.5 text-sm font-semibold tracking-[0.05em] text-[#256441] transition-all duration-200 hover:bg-[#256441] hover:text-white active:scale-[0.98]">
-          Ver detalhes
-        </Link>
       </div>
     </article>
   );
 }
 
 function Tag({ children }: { children: React.ReactNode }) {
-  return <span className="h-fit rounded-full bg-[#eefdf1] px-2.5 py-1 text-xs font-medium text-[#256441]">{children}</span>;
+  return <span className="h-fit rounded-lg bg-[#eefdf1] px-3 py-1.5 text-xs font-semibold text-[#256441]">{children}</span>;
 }

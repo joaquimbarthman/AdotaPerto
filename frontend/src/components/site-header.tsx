@@ -4,11 +4,12 @@ import Image from "next/image";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useState } from "react";
+import { ThemeToggle } from "@/components/theme-toggle";
 
 const links = [
   { label: "Início", href: "/" },
   { label: "Adotar", href: "/adocao" },
-  { label: "Doações", href: "/doacoes" },
+  { label: "Doar", href: "/doacoes" },
   { label: "Mapa", href: "#" },
 ];
 
@@ -30,6 +31,7 @@ export function SiteHeader() {
         </nav>
         <div className="hidden items-center gap-2 lg:flex">
           <button className="grid size-9 place-items-center rounded-full transition hover:bg-[#e1f2e5]" aria-label="Notificações"><Image src="/icons/notificacoes.svg" alt="" width={16} height={20} /></button>
+          <ThemeToggle />
           <Link href="/perfil" className="grid size-9 place-items-center rounded-full transition hover:bg-[#e1f2e5]" aria-label="Abrir perfil"><Image src="/icons/perfil.svg" alt="" width={16} height={16} /></Link>
           <Link href="/login" className="rounded-lg px-4 py-2 text-sm font-semibold tracking-[0.05em] text-[#256441] transition hover:bg-[#e8f7eb]">Entrar</Link>
         </div>
@@ -43,6 +45,7 @@ export function SiteHeader() {
             {links.map((link) => <Link key={link.label} href={link.href} onClick={() => setOpen(false)} className={`rounded-lg px-4 py-3 text-sm font-semibold tracking-[0.05em] transition ${pathname === link.href || (link.href !== "/" && pathname.startsWith(`${link.href}/`)) ? "bg-[#e8f7eb] text-[#256441]" : "text-[#404942] hover:bg-[#eefdf1]"}`}>{link.label}</Link>)}
           </nav>
           <Link href="/perfil" onClick={() => setOpen(false)} className="mt-2 flex items-center gap-3 rounded-lg bg-[#f7fcf8] px-4 py-3 text-sm font-semibold text-[#256441]"><Image src="/icons/perfil.svg" alt="" width={16} height={16} />Meu perfil</Link>
+          <ThemeToggle mobile />
           <div className="mt-3 border-t border-[#d7e6da] pt-4">
             <Link href="/login" onClick={() => setOpen(false)} className="block w-full rounded-lg bg-[#256441] px-3 py-2.5 text-center text-sm font-semibold text-white transition hover:bg-[#194b30]">Entrar</Link>
           </div>

@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import Image from "next/image";
 import { FormEvent, ReactNode, useState } from "react";
 import { SiteFooter } from "@/components/site-footer";
 import { SiteHeader } from "@/components/site-header";
@@ -31,17 +32,20 @@ function YesNoUnknown({ name, unknown = true }: { name: string; unknown?: boolea
   return <div className="flex min-h-12 flex-wrap items-center gap-x-5 gap-y-2 rounded-lg border border-[#c5cec7] px-3.5">{["Sim", "Não", ...(unknown ? ["Não sei"] : [])].map((value) => <label key={value} className="inline-flex items-center gap-2 font-normal"><input type="radio" name={name} value={value} required className="size-4 accent-[#256441]" />{value}</label>)}</div>;
 }
 
-function PawIcon() { return <span aria-hidden="true" className="text-2xl">🐾</span>; }
+function PawIcon() {
+  return <Image src="/icons/adocao.svg" alt="" width={24} height={24} className="size-5.5 object-contain" />;
+}
 function HealthIcon() { return <svg viewBox="0 0 24 24" className="size-6" fill="none" stroke="currentColor" strokeWidth="1.8"><path d="M9 3h6v4h4v14H5V7h4V3Zm1 12h4m-2-2v4" /></svg>; }
 function HeartIcon() { return <svg viewBox="0 0 24 24" className="size-6" fill="none" stroke="currentColor" strokeWidth="1.8"><path d="M20.8 5.8a5 5 0 0 0-7.1 0L12 7.5l-1.7-1.7a5 5 0 0 0-7.1 7.1L12 21l8.8-8.1a5 5 0 0 0 0-7.1Z" /></svg>; }
 function CameraIcon() { return <svg viewBox="0 0 24 24" className="size-6" fill="none" stroke="currentColor" strokeWidth="1.8"><path d="M4 7h4l2-3h4l2 3h4v13H4V7Z" /><circle cx="12" cy="13" r="4" /></svg>; }
+function StoryIcon() { return <svg viewBox="0 0 24 24" className="size-5" fill="none" stroke="currentColor" strokeWidth="1.8"><path d="M5 4h11a3 3 0 0 1 3 3v13H7a3 3 0 0 1-3-3V5a1 1 0 0 1 1-1Z" /><path d="M7 16h12M8 8h7M8 11h5" strokeLinecap="round" /></svg>; }
 
 export default function AnimalDonationPage() {
   const [sent, setSent] = useState(false);
   function submit(event: FormEvent<HTMLFormElement>) { event.preventDefault(); setSent(true); window.scrollTo({ top: 0, behavior: "smooth" }); }
 
   return (
-    <div className="min-h-screen bg-[#faf8f3] text-[#121e17]">
+    <div className="min-h-screen bg-[#eefdf1] text-[#121e17]">
       <SiteHeader />
       <main className="mx-auto max-w-[1280px] px-5 py-10 sm:px-8 sm:py-12">
         <Link href="/doacoes" className="mb-7 inline-flex items-center gap-2 rounded-lg px-2 py-1 text-sm font-semibold text-[#256441] transition hover:bg-[#e8f7eb]"><span aria-hidden="true">‹</span> Voltar às opções</Link>
@@ -95,27 +99,29 @@ export default function AnimalDonationPage() {
 
             <Section icon={<CameraIcon />} title="Fotos" description="Adicione imagens claras e atuais. A primeira será usada como foto principal.">
               <div className="grid gap-5 sm:grid-cols-2">
-                <Field label="Foto principal"><input name="fotoPrincipal" type="file" accept="image/png,image/jpeg,image/webp" required className="block w-full rounded-lg border border-dashed border-[#86a590] bg-[#f7fcf8] p-4 text-sm file:mr-3 file:rounded-full file:border-0 file:bg-[#256441] file:px-4 file:py-2 file:font-semibold file:text-white" /></Field>
-                <Field label="Outras fotos" optional><input name="fotos" type="file" accept="image/png,image/jpeg,image/webp" multiple className="block w-full rounded-lg border border-dashed border-[#86a590] bg-[#f7fcf8] p-4 text-sm file:mr-3 file:rounded-full file:border-0 file:bg-[#e3f2e6] file:px-4 file:py-2 file:font-semibold file:text-[#256441]" /></Field>
+                <Field label="Foto principal"><input name="fotoPrincipal" type="file" accept="image/png,image/jpeg,image/webp" required className="block w-full rounded-lg border border-dashed border-[#86a590] bg-[#f7fcf8] p-4 text-sm file:mr-3 file:rounded-lg file:border-0 file:bg-[#256441] file:px-4 file:py-2 file:font-semibold file:text-white" /></Field>
+                <Field label="Outras fotos" optional><input name="fotos" type="file" accept="image/png,image/jpeg,image/webp" multiple className="block w-full rounded-lg border border-dashed border-[#86a590] bg-[#f7fcf8] p-4 text-sm file:mr-3 file:rounded-lg file:border-0 file:bg-[#e3f2e6] file:px-4 file:py-2 file:font-semibold file:text-[#256441]" /></Field>
               </div>
             </Section>
 
             <section className="rounded-2xl border border-[#d7e6da] bg-white p-5 sm:p-7">
               <label className="flex cursor-pointer items-start gap-3 text-sm leading-6 text-[#343e37]"><input type="checkbox" name="declaracao" required className="mt-1 size-5 shrink-0 accent-[#256441]" /><span>Declaro que sou responsável pelas informações fornecidas, que elas são verdadeiras e que agirei com transparência e responsabilidade durante o processo de adoção.</span></label>
             </section>
-            <div className="flex flex-col-reverse justify-end gap-3 pt-2 sm:flex-row">
-              <Link href="/doacoes" className="rounded-full border-2 border-[#256441] px-8 py-3 text-center text-sm font-semibold text-[#256441] transition hover:bg-[#e8f7eb]">Cancelar</Link>
-              <button type="submit" className="rounded-full bg-[#0f5d39] px-9 py-3.5 text-sm font-semibold text-white shadow-md transition hover:-translate-y-0.5 hover:bg-[#194b30] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#256441]">Finalizar cadastro</button>
+            <div className="grid gap-3 border-t border-[#d7e6da] pt-6 sm:grid-cols-[0.8fr_1.2fr]">
+              <Link href="/doacoes" className="flex min-h-[52px] w-full items-center justify-center rounded-xl border border-[#256441] bg-white px-6 py-3 text-center text-sm font-semibold text-[#256441] transition hover:bg-[#e8f7eb] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#256441]">Cancelar</Link>
+              <button type="submit" className="flex min-h-[52px] w-full items-center justify-center gap-2 rounded-xl bg-[#0f5d39] px-6 py-3 text-sm font-semibold text-white shadow-[0_4px_12px_rgba(15,93,57,0.18)] transition hover:-translate-y-0.5 hover:bg-[#194b30] hover:shadow-[0_7px_16px_rgba(15,93,57,0.22)] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#256441]"><svg viewBox="0 0 20 20" className="size-4" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden="true"><path d="m5 10 3.2 3.2L15 6.5" strokeLinecap="round" strokeLinejoin="round" /></svg>Finalizar cadastro</button>
             </div>
           </div>
 
-          <aside className="rounded-2xl border border-[#86d6a1] bg-[#e9f8ed] p-6 lg:sticky lg:top-28">
-            <h2 className="text-xl font-bold text-[#0f5d39]">Dicas para um bom anúncio</h2>
-            <ul className="mt-5 space-y-5 text-sm leading-5 text-[#404942]">
-              <li><strong className="block text-[#121e17]">Boas fotos</strong>Use iluminação natural e mostre o animal de diferentes ângulos.</li>
-              <li><strong className="block text-[#121e17]">Seja honesto</strong>Descreva a personalidade e os cuidados reais para evitar devoluções.</li>
-              <li><strong className="block text-[#121e17]">Seus dados ficam protegidos</strong>Contato e endereço são obtidos do perfil e só serão liberados depois da aprovação.</li>
-              <li><strong className="block text-[#121e17]">Conte a história</strong>Um relato verdadeiro cria conexão com possíveis adotantes.</li>
+          <aside className="lg:sticky lg:top-28">
+            <div className="mb-3 rounded-2xl border border-[#d7e6da] bg-white px-5 py-4 shadow-[0_4px_14px_rgba(38,51,43,0.04)]">
+              <h2 className="text-lg font-bold text-[#194b30]">Dicas para um bom anúncio</h2>
+              <p className="mt-1 text-sm leading-5 text-[#526057]">Pequenos cuidados aumentam as chances de adoção.</p>
+            </div>
+            <ul className="divide-y divide-[#e6eee8] rounded-2xl border border-[#d7e6da] bg-white px-5 text-sm leading-5 text-[#526057] shadow-[0_4px_14px_rgba(38,51,43,0.04)]">
+              <li className="flex items-start gap-3 py-4"><span className="mt-0.5 shrink-0 text-[#256441]"><CameraIcon /></span><span><strong className="mb-0.5 block text-[#253129]">Boas fotos</strong>Use iluminação natural e mostre diferentes ângulos.</span></li>
+              <li className="flex items-start gap-3 py-4"><span className="mt-0.5 shrink-0 text-[#256441]"><HeartIcon /></span><span><strong className="mb-0.5 block text-[#253129]">Seja honesto</strong>Descreva a personalidade e os cuidados reais para evitar devoluções.</span></li>
+              <li className="flex items-start gap-3 py-4"><span className="mt-0.5 shrink-0 text-[#256441]"><StoryIcon /></span><span><strong className="mb-0.5 block text-[#253129]">Conte a história</strong>Um relato verdadeiro cria conexão com possíveis adotantes.</span></li>
             </ul>
           </aside>
         </form>

@@ -16,6 +16,108 @@ html {
 body {
   margin: 0;
   font-family: "Manrope Variable", sans-serif;
+  transition: background-color 200ms ease, color 200ms ease;
+}
+
+html[data-theme="dark"] {
+  color-scheme: dark;
+}
+
+html[data-theme="dark"] body {
+  background: #0f1712;
+  color: #f1f7f3;
+}
+
+html[data-theme="dark"] :is(.bg-\[\#eefdf1\], .bg-\[\#eefdf1\]\/95, .bg-\[\#faf8f3\], .bg-\[\#f4f7f2\]) {
+  background-color: #0f1712 !important;
+}
+
+html[data-theme="dark"] :is(.bg-white, .bg-white\/95) {
+  background-color: #1b2920 !important;
+}
+
+html[data-theme="dark"] :is(.bg-\[\#f7fcf8\], .bg-\[\#fbfdfb\], .bg-\[\#e8f7eb\], .bg-\[\#e3f2e6\], .bg-\[\#ddece0\], .bg-\[\#f5f2eb\]) {
+  background-color: #213127 !important;
+}
+
+html[data-theme="dark"] :is(.bg-\[\#d7e6da\], .bg-\[\#d6e6db\], .bg-\[\#e7eee9\]) {
+  background-color: #152019 !important;
+}
+
+html[data-theme="dark"] :is(.bg-\[\#fff2e5\], .bg-\[\#ffdcbf\], .bg-\[\#ffdcbf\]\/30) {
+  background-color: #49321f !important;
+}
+
+html[data-theme="dark"] :is(.bg-\[\#aff1c4\], .bg-\[\#aff1c4\]\/20, .bg-\[\#aff1c4\]\/25, .bg-\[\#94d5aa\]) {
+  background-color: #263e2e !important;
+}
+
+html[data-theme="dark"] :is(.text-\[\#121e17\], .text-\[\#253129\], .text-\[\#243129\], .text-\[\#26332b\], .text-\[\#343e37\]) {
+  color: #f1f7f3 !important;
+}
+
+html[data-theme="dark"] :is(.text-\[\#404942\], .text-\[\#4d5b53\], .text-\[\#526057\], .text-\[\#5b675f\], .text-\[\#5a655e\], .text-\[\#68726b\], .text-\[\#707971\], .text-\[\#7b8980\], .text-\[\#7d8580\], .text-\[\#7b857e\], .text-\[\#6c6457\]) {
+  color: #b8c7bd !important;
+}
+
+html[data-theme="dark"] :is(.text-\[\#256441\], .text-\[\#0f5d39\], .text-\[\#194b30\], .text-\[\#0d5130\], .text-\[\#31523e\]) {
+  color: #72c58e !important;
+}
+
+html[data-theme="dark"] :is(.text-\[\#764200\], .text-\[\#985700\], .text-\[\#6a3b00\]) {
+  color: #f3a75e !important;
+}
+
+html[data-theme="dark"] :is(.border-\[\#d7e6da\], .border-\[\#bfc9bf\], .border-\[\#c0c9bf\], .border-\[\#d6e6db\], .border-\[\#e7eee9\], .border-\[\#e1e8e2\], .border-\[\#e3f2e6\], .border-\[\#c6d5ca\], .border-\[\#c5cec7\], .border-\[\#c8d2ca\], .border-\[\#86a590\], .border-\[\#8b958e\]) {
+  border-color: #31483a !important;
+}
+
+html[data-theme="dark"] .border-\[\#256441\] {
+  border-color: #72c58e !important;
+}
+
+html[data-theme="dark"] :is(.divide-\[\#e6eee8\], .divide-\[\#e7eee9\]) > :not(:last-child) {
+  border-color: #31483a !important;
+}
+
+html[data-theme="dark"] :is(.hover\:bg-\[\#eefdf1\]:hover, .hover\:bg-\[\#e8f7eb\]:hover, .hover\:bg-\[\#e1f2e5\]:hover, .hover\:bg-\[\#d7eeda\]:hover, .hover\:bg-white\/70:hover) {
+  background-color: #263e2e !important;
+}
+
+html[data-theme="dark"] :is(.hover\:text-\[\#256441\]:hover, .group:hover .group-hover\:text-\[\#256441\]) {
+  color: #8ad7a4 !important;
+}
+
+html[data-theme="dark"] img[src^="/icons/"]:not([class*="invert"]) {
+  filter: brightness(0) saturate(100%) invert(72%) sepia(28%) saturate(703%) hue-rotate(88deg) brightness(96%);
+}
+
+html[data-theme="dark"] .after\:bg-\[\#256441\]::after {
+  background-color: #72c58e !important;
+}
+
+html[data-theme="dark"] input[type="checkbox"],
+html[data-theme="dark"] input[type="radio"] {
+  accent-color: #72c58e;
+}
+
+html[data-theme="dark"] .filter-range::-webkit-slider-thumb,
+html[data-theme="dark"] .filter-range::-moz-range-thumb {
+  background: #72c58e;
+  border-color: #1b2920;
+}
+
+html[data-theme="dark"] input,
+html[data-theme="dark"] select,
+html[data-theme="dark"] textarea {
+  border-color: #405848 !important;
+  background-color: #213127 !important;
+  color: #f1f7f3 !important;
+}
+
+html[data-theme="dark"] input::placeholder,
+html[data-theme="dark"] textarea::placeholder {
+  color: #84958a !important;
 }
 
 main {
