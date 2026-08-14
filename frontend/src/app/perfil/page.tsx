@@ -10,7 +10,7 @@ const tabs = [
   { id: "dados", label: "Dados pessoais", icon: "/icons/user.svg" },
   { id: "doacoes", label: "Minhas Doações", icon: "/icons/donations-profile.svg" },
   { id: "favoritos", label: "Favoritos", icon: "/icons/favorites.svg" },
-  { id: "configuracoes", label: "Configurações", icon: "/icons/settings.svg" },
+  { id: "seguranca", label: "Segurança", icon: "/icons/password.svg" },
 ] as const;
 
 const requests = [
@@ -31,7 +31,6 @@ export default function ProfilePage() {
           <div className="relative flex flex-col items-center gap-5 sm:flex-row sm:items-start">
             <div className="relative size-28 shrink-0 overflow-hidden rounded-full border-4 border-[#d7e6da] p-1 sm:size-32"><Image src="/images/ana-profile.png" alt="Ana Silva" fill className="rounded-full object-cover" priority /></div>
             <div className="flex-1 text-center sm:text-left"><h1 className="text-[32px] font-bold leading-10 tracking-[-0.01em]">Ana Silva</h1><div className="mt-1 flex flex-wrap justify-center gap-x-4 gap-y-1 text-sm text-[#404942] sm:justify-start sm:text-base"><span className="flex items-center gap-1"><Image src="/icons/location.svg" alt="" width={14} height={17} />São Paulo, SP</span><span className="hidden size-1 self-center rounded-full bg-[#707971] sm:block" /><span className="flex items-center gap-1"><Image src="/icons/member-since.svg" alt="" width={18} height={20} />Membro desde Ago 2023</span></div><p className="mt-3 max-w-2xl text-sm leading-6 text-[#404942] sm:text-base">Apaixonada por animais e sempre disposta a ajudar. Buscando um novo membro peludo para alegrar a casa!</p></div>
-            <button className="inline-flex shrink-0 items-center gap-2 rounded-xl border-2 border-[#c0c9bf] px-5 py-2.5 text-sm font-semibold text-[#256441] transition hover:border-[#256441] hover:bg-[#eefdf1]"><Image src="/icons/edit.svg" alt="" width={14} height={14} />Editar perfil</button>
           </div>
         </section>
 
@@ -41,7 +40,7 @@ export default function ProfilePage() {
           </nav>
 
           <section className="min-w-0">
-            {tab === "adocoes" ? <Adoptions /> : tab === "dados" ? <PersonalData /> : <EmptyTab title={tabs.find((item) => item.id === tab)?.label ?? "Perfil"} />}
+            {tab === "adocoes" ? <Adoptions /> : tab === "dados" ? <PersonalData /> : tab === "seguranca" ? <Security /> : <EmptyTab title={tabs.find((item) => item.id === tab)?.label ?? "Perfil"} />}
           </section>
         </div>
       </main>
@@ -58,8 +57,15 @@ function PersonalData() {
   return (
     <form onSubmit={(event) => event.preventDefault()} className="overflow-hidden rounded-xl bg-white shadow-[0_4px_12px_rgba(38,51,43,0.05)]">
       <header className="border-b border-[#d7e6da] px-5 py-5 sm:px-7">
-        <h2 className="text-2xl font-semibold">Dados pessoais</h2>
-        <p className="mt-1 text-sm leading-6 text-[#5b675f]">Mantenha suas informações de cadastro e contato atualizadas.</p>
+        <div className="flex items-start gap-3">
+          <div className="flex size-10 shrink-0 items-center justify-center rounded-xl bg-[#e8f7eb]">
+            <Image src="/icons/user.svg" alt="" width={19} height={19} />
+          </div>
+          <div>
+            <h2 className="text-2xl font-semibold">Dados pessoais</h2>
+            <p className="mt-1 text-sm leading-6 text-[#5b675f]">Mantenha suas informações de cadastro e contato atualizadas.</p>
+          </div>
+        </div>
       </header>
 
       <div className="space-y-8 p-5 sm:p-7">
@@ -85,15 +91,6 @@ function PersonalData() {
           <div className="grid gap-4 sm:grid-cols-2">
             <ProfileField label="Nome" name="nome" defaultValue="Ana Silva" autoComplete="name" />
             <ProfileField label="E-mail" name="email" type="email" defaultValue="ana.silva@email.com" autoComplete="email" />
-            <div className="sm:col-span-2">
-              <div className="grid gap-4 sm:grid-cols-2">
-                <ProfileField label="Senha atual" name="senhaAtual" type="password" placeholder="Digite sua senha atual" autoComplete="current-password" />
-                <ProfileField label="Nova senha" name="novaSenha" type="password" placeholder="Digite a nova senha" autoComplete="new-password" />
-                <div className="sm:col-start-2">
-                  <ProfileField label="Confirmar nova senha" name="confirmarSenha" type="password" placeholder="Digite a nova senha novamente" autoComplete="new-password" />
-                </div>
-              </div>
-            </div>
           </div>
         </section>
 
@@ -119,6 +116,43 @@ function PersonalData() {
       <footer className="flex flex-col-reverse gap-3 border-t border-[#d7e6da] bg-[#f7fcf8] px-5 py-4 sm:flex-row sm:justify-end sm:px-7">
         <button type="reset" className="rounded-xl border border-[#86a590] px-6 py-3 text-sm font-semibold text-[#256441] transition hover:bg-[#e8f7eb]">Cancelar alterações</button>
         <button type="submit" className="rounded-xl bg-[#256441] px-7 py-3 text-sm font-semibold text-white shadow-sm transition hover:bg-[#194b30] active:scale-[0.98]">Salvar alterações</button>
+      </footer>
+    </form>
+  );
+}
+
+function Security() {
+  return (
+    <form onSubmit={(event) => event.preventDefault()} className="overflow-hidden rounded-xl bg-white shadow-[0_4px_12px_rgba(38,51,43,0.05)]">
+      <header className="border-b border-[#d7e6da] px-5 py-5 sm:px-7">
+        <div className="flex items-start gap-3">
+          <div className="flex size-10 shrink-0 items-center justify-center rounded-xl bg-[#e8f7eb]">
+            <Image src="/icons/password.svg" alt="" width={19} height={19} />
+          </div>
+          <div>
+            <h2 className="text-2xl font-semibold">Segurança</h2>
+            <p className="mt-1 text-sm leading-6 text-[#5b675f]">Atualize sua senha para manter sua conta protegida.</p>
+          </div>
+        </div>
+      </header>
+
+      <div className="p-5 sm:p-7">
+        <section aria-labelledby="password-title" className="max-w-2xl">
+          <h3 id="password-title" className="mb-1 text-sm font-bold uppercase tracking-[0.08em] text-[#256441]">Alterar senha</h3>
+          <p className="mb-5 text-sm leading-6 text-[#5b675f]">Use pelo menos 8 caracteres e evite uma senha utilizada em outros serviços.</p>
+          <div className="grid gap-4 sm:grid-cols-2">
+            <div className="sm:col-span-2 sm:max-w-[calc(50%-0.5rem)]">
+              <ProfileField label="Senha atual" name="senhaAtual" type="password" placeholder="Digite sua senha atual" autoComplete="current-password" />
+            </div>
+            <ProfileField label="Nova senha" name="novaSenha" type="password" placeholder="Digite a nova senha" autoComplete="new-password" />
+            <ProfileField label="Confirmar nova senha" name="confirmarSenha" type="password" placeholder="Digite a nova senha novamente" autoComplete="new-password" />
+          </div>
+        </section>
+      </div>
+
+      <footer className="flex flex-col-reverse gap-3 border-t border-[#d7e6da] bg-[#f7fcf8] px-5 py-4 sm:flex-row sm:justify-end sm:px-7">
+        <button type="reset" className="rounded-xl border border-[#86a590] px-6 py-3 text-sm font-semibold text-[#256441] transition hover:bg-[#e8f7eb]">Cancelar</button>
+        <button type="submit" className="rounded-xl bg-[#256441] px-7 py-3 text-sm font-semibold text-white shadow-sm transition hover:bg-[#194b30] active:scale-[0.98]">Atualizar senha</button>
       </footer>
     </form>
   );
