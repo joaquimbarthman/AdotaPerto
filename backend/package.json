@@ -6,18 +6,24 @@
   "scripts": {
     "dev": "tsx watch src/index.ts",
     "build": "tsc",
-    "start": "node dist/index.js",
+    "start": "tsx src/index.ts",
     "typecheck": "tsc --noEmit"
   },
   "devDependencies": {
-    "@types/node": "latest",
-    "tsx": "latest",
+    "@types/node": "^26.2.0",
+    "@types/pg": "^8.23.1",
+    "drizzle-kit": "^1.0.0-rc.4",
+    "tsx": "^4.23.12",
     "typescript": "latest"
   },
   "dependencies": {
     "@hono/node-server": "^2.1.0",
     "@hono/zod-validator": "^0.9.0",
+    "better-auth": "^1.6.30",
+    "dotenv": "^17.4.2",
+    "drizzle-orm": "^1.0.0-rc.4",
     "hono": "^4.13.1",
+    "pg": "^8.23.0",
     "zod": "^4.4.3"
   },
   "allowScripts": {
