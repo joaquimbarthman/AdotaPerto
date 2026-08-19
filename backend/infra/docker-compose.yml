@@ -7,6 +7,8 @@ services:
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?POSTGRES_PASSWORD não definida no .env}
     ports:
       - "${POSTGRES_PORT:?POSTGRES_PORT não definida no .env}:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
 
   storage:
     image: quay.io/minio/minio:latest
@@ -17,3 +19,9 @@ services:
     ports:
       - "${MINIO_API_PORT:?MINIO_API_PORT não definida no .env}:9000"
       - "${MINIO_CONSOLE_PORT:?MINIO_CONSOLE_PORT não definida no .env}:9001"
+    volumes:
+      - minio_data:/data
+
+volumes:
+  postgres_data:
+  minio_data:

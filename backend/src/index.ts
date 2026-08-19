@@ -1,18 +1,24 @@
 import { serve } from "@hono/node-server";
+import { cors } from "hono/cors";
 import { Hono } from "hono";
 import { auth } from "../lib/better/auth.ts";
+import { apiRoutes } from "./routes/index.ts";
 
 const app = new Hono();
 
-import appRoute from "./routes/index.js";
+app.use(
+  "*",
+  cors({
+    origin: "http://localhost:3000",
+    allowHeaders: ["Content-Type", "Authorization"],
+    allowMethods: ["POST", "GET", "OPTIONS", "PUT", "DELETE", "PATCH"],
+    credentials: true,
+  })
+);
 
 app.on(["POST", "GET"], "/api/auth/*", (c) => auth.handler(c.req.raw));
 
-app.get("/", (c) => {
-  return c.json({ hello: "joaquim" });
-});
-
-app.route("/home", appRoute);
+app.route("/api", apiRoutes);
 
 serve(
   {
@@ -23,3 +29,4 @@ serve(
     console.log("Servidor Aberto em http://localhost:4000");
   },
 );
+

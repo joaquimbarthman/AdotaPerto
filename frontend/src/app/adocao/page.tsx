@@ -1,29 +1,52 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { AnimalCard } from "@/components/animal-card";
 import { DirectionalChevron } from "@/components/directional-chevron";
 import { SiteFooter } from "@/components/site-footer";
 import { SiteHeader } from "@/components/site-header";
-import { adoptionAnimals, homeAnimals } from "@/data/animals";
+import type { Animal } from "@/data/animals";
+
+const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:4000";
 
 export default function AdoptionPage() {
+  const [dbAnimals, setDbAnimals] = useState<Animal[]>([]);
+  const [loadingAnimals, setLoadingAnimals] = useState(true);
+  const [loadError, setLoadError] = useState(false);
   const [species, setSpecies] = useState<string[]>([]);
   const [age, setAge] = useState<string[]>([]);
   const [sex, setSex] = useState("Qualquer");
   const [size, setSize] = useState("");
   const [distance, setDistance] = useState(10);
-  const [visible, setVisible] = useState(4);
+  const [visible, setVisible] = useState(6);
   const [filtersOpen, setFiltersOpen] = useState(true);
+
+  useEffect(() => {
+    async function loadAnimals() {
+      try {
+        const res = await fetch(`${API_BASE_URL}/api/animals`);
+        if (!res.ok) throw new Error("Falha ao carregar animais");
+        const data = await res.json();
+        setDbAnimals(Array.isArray(data) ? data : []);
+      } catch {
+        setLoadError(true);
+      } finally {
+        setLoadingAnimals(false);
+      }
+    }
+    loadAnimals();
+  }, []);
+
   const activeFilters = species.length + age.length + (sex !== "Qualquer" ? 1 : 0) + (size ? 1 : 0) + (distance !== 10 ? 1 : 0);
 
-  const animals = useMemo(() => [...adoptionAnimals, ...homeAnimals].filter((animal) => {
+  const animals = useMemo(() => dbAnimals.filter((animal) => {
     const matchesSpecies = species.length === 0 || species.includes(animal.species);
     const matchesSex = sex === "Qualquer" || animal.sex === sex;
     const matchesSize = !size || animal.size === size;
     const matchesAge = age.length === 0 || age.includes(ageGroup(animal.age));
     return matchesSpecies && matchesSex && matchesSize && matchesAge;
-  }), [age, sex, size, species]);
+  }), [dbAnimals, age, sex, size, species]);
+
   const clear = () => { setSpecies([]); setAge([]); setSex("Qualquer"); setSize(""); setDistance(10); };
   const toggle = (value: string, values: string[], setter: (values: string[]) => void) => setter(values.includes(value) ? values.filter((item) => item !== value) : [...values, value]);
 
@@ -47,10 +70,10 @@ export default function AdoptionPage() {
           </aside>
           <section>
             <div className="mb-6 flex flex-col justify-between gap-4 sm:flex-row sm:items-center">
-              <div><h1 className="text-3xl font-extrabold tracking-[-0.02em] sm:text-[40px] sm:leading-12">Encontre seu novo amigo</h1><p className="mt-1 text-base text-[#404942]">42 animais aguardando adoção perto de você.</p></div>
+              <div><h1 className="text-3xl font-extrabold tracking-[-0.02em] sm:text-[40px] sm:leading-12">Encontre seu novo amigo</h1><p className="mt-1 text-base text-[#404942]">{animals.length} animais aguardando adoção perto de você.</p></div>
               <label className="flex items-center gap-2 text-xs text-[#404942]">Ordenar por:<select className="rounded-lg border border-[#d6e6db] bg-white px-3 py-2 text-sm outline-none focus:border-[#256441]"><option>Mais próximos</option><option>Mais recentes</option></select></label>
             </div>
-            {animals.length ? <div className="grid gap-6 sm:grid-cols-2 xl:grid-cols-3">{animals.slice(0, visible).map((animal) => <AnimalCard key={animal.id} animal={animal} />)}</div> : <div className="rounded-xl bg-white p-12 text-center text-[#404942]">Nenhum animal encontrado com esses filtros.</div>}
+            {loadingAnimals ? <div className="rounded-xl bg-white p-12 text-center text-[#404942]">Carregando animais...</div> : loadError ? <div className="rounded-xl border border-red-200 bg-red-50 p-12 text-center text-red-700">Não foi possível carregar os animais.</div> : animals.length ? <div className="grid gap-6 sm:grid-cols-2 xl:grid-cols-3">{animals.slice(0, visible).map((animal) => <AnimalCard key={animal.id} animal={animal} />)}</div> : <div className="rounded-xl bg-white p-12 text-center text-[#404942]">Nenhum animal encontrado com esses filtros.</div>}
             {visible < animals.length && <div className="flex justify-center pt-14"><button onClick={() => setVisible((value) => value + 3)} className="group flex min-w-56 items-center justify-center gap-2 rounded-xl border-2 border-[#256441] px-8 py-3.5 text-sm font-semibold tracking-[0.05em] text-[#256441] transition-all duration-200 hover:-translate-y-0.5 hover:bg-[#256441] hover:text-white active:scale-[0.98]">Carregar mais <DirectionalChevron direction="down" className="transition-transform group-hover:-translate-x-0.5" /></button></div>}
           </section>
         </div>
@@ -69,9 +92,10 @@ function FilterPills({ title, options, selected, onSelect }: { title: string; op
 }
 
 function ageGroup(age: string) {
+  if (!age) return "Filhote (0-1 ano)";
   if (age.includes("mes")) return "Filhote (0-1 ano)";
   const years = Number.parseInt(age, 10);
-  if (years <= 1) return "Filhote (0-1 ano)";
+  if (isNaN(years) || years <= 1) return "Filhote (0-1 ano)";
   if (years <= 3) return "Jovem (1-3 anos)";
   if (years <= 8) return "Adulto (3-8 anos)";
   return "Sênior (8+ anos)";

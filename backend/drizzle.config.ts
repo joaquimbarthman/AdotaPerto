@@ -5,9 +5,10 @@ const databaseUrl = (globalThis as any)?.process?.env?.DATABASE_URL ?? "";
 
 export default defineConfig({
   out: "./lib/db/migrations",
-  schema: "./lib/db/schemas/**/*.ts",
+  schema: "./lib/db/schemas/index.ts",
   dialect: "postgresql",
   dbCredentials: {
     url: databaseUrl,
   },
 });
+

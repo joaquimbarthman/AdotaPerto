@@ -4,15 +4,34 @@ import { AnimalCard } from "@/components/animal-card";
 import { DirectionalChevron } from "@/components/directional-chevron";
 import { SiteFooter } from "@/components/site-footer";
 import { SiteHeader } from "@/components/site-header";
-import { homeAnimals } from "@/data/animals";
+import type { Animal } from "@/data/animals";
+
+const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:4000";
 
 const shortcuts = [
   { label: "Adoção", href: "/adocao", icon: "/icons/adocao.svg", background: "bg-[#e8f7eb]" },
-  { label: "Doção", href: "/doacoes", icon: "/icons/doacoes.svg", background: "bg-[#ffdcbf]" },
+  { label: "Doação", href: "/doacoes", icon: "/icons/doacoes.svg", background: "bg-[#ffdcbf]" },
   { label: "Mapa", href: "#", icon: "/icons/mapa.svg", background: "bg-[#94d5aa]" },
 ];
 
-export default function Home() {
+async function getFeaturedAnimals(): Promise<Animal[]> {
+  try {
+    const res = await fetch(`${API_BASE_URL}/api/animals`, { cache: "no-store" });
+    if (res.ok) {
+      const data = await res.json();
+      if (Array.isArray(data) && data.length > 0) {
+        return data.slice(0, 4);
+      }
+    }
+  } catch {
+    // fallback
+  }
+  return [];
+}
+
+export default async function Home() {
+  const animals = await getFeaturedAnimals();
+
   return (
     <div className="min-h-screen bg-[#eefdf1] text-[#121e17]">
       <SiteHeader />
@@ -41,7 +60,11 @@ export default function Home() {
         </section>
         <section className="mx-auto max-w-[1200px] px-5 py-20 sm:px-10 lg:px-20">
           <div className="mb-12 flex items-end justify-between gap-4"><h2 className="text-xl font-bold tracking-[-0.01em] min-[420px]:text-2xl sm:text-[32px] sm:leading-10">Animais próximos de você</h2><Link href="/adocao" className="group inline-flex shrink-0 items-center gap-1 text-sm font-semibold tracking-[0.05em] text-[#256441]">Ver todos <DirectionalChevron direction="right" className="transition-transform group-hover:-translate-x-1" /></Link></div>
-          <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-4">{homeAnimals.map((animal) => <AnimalCard key={animal.id} animal={animal} />)}</div>
+          {animals.length > 0 ? (
+            <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-4">{animals.map((animal) => <AnimalCard key={animal.id} animal={animal} />)}</div>
+          ) : (
+            <div className="rounded-xl bg-white p-10 text-center text-[#526057]">Não foi possível carregar os animais agora.</div>
+          )}
         </section>
       </main>
       <SiteFooter />
