@@ -3,7 +3,7 @@ import { Hono } from "hono";
 import crypto from "node:crypto";
 import { z } from "zod";
 import { db } from "../../lib/db/index.ts";
-import { adoptionRequest, animal } from "../../lib/db/schemas/index.ts";
+import { adoptionRequest, animal, user as userTable } from "../../lib/db/schemas/index.ts";
 import type { AuthContext } from "./index.ts";
 
 export const adoptionRequestRoutes = new Hono<AuthContext>();
@@ -35,6 +35,37 @@ adoptionRequestRoutes.get("/", async (c) => {
     .from(adoptionRequest)
     .innerJoin(animal, eq(adoptionRequest.animalId, animal.id))
     .where(eq(adoptionRequest.userId, currentUser.id))
+    .orderBy(desc(adoptionRequest.createdAt));
+
+  return c.json(list);
+});
+
+adoptionRequestRoutes.get("/received", async (c) => {
+  const currentUser = c.get("user");
+  if (!currentUser) {
+    return c.json({ error: "Não autorizado" }, 401);
+  }
+
+  const list = await db
+    .select({
+      id: adoptionRequest.id,
+      status: adoptionRequest.status,
+      notes: adoptionRequest.notes,
+      createdAt: adoptionRequest.createdAt,
+      updatedAt: adoptionRequest.updatedAt,
+      animal,
+      requester: {
+        id: userTable.id,
+        name: userTable.name,
+        image: userTable.image,
+        city: userTable.city,
+        state: userTable.state,
+      },
+    })
+    .from(adoptionRequest)
+    .innerJoin(animal, eq(adoptionRequest.animalId, animal.id))
+    .innerJoin(userTable, eq(adoptionRequest.userId, userTable.id))
+    .where(eq(animal.userId, currentUser.id))
     .orderBy(desc(adoptionRequest.createdAt));
 
   return c.json(list);
@@ -133,7 +164,11 @@ adoptionRequestRoutes.patch("/:id/status", async (c) => {
   }
 
   const [existing] = await db
-    .select({ ownerId: animal.userId })
+    .select({
+      ownerId: animal.userId,
+      animalId: adoptionRequest.animalId,
+      currentStatus: adoptionRequest.status,
+    })
     .from(adoptionRequest)
     .innerJoin(animal, eq(adoptionRequest.animalId, animal.id))
     .where(eq(adoptionRequest.id, id));
@@ -146,14 +181,40 @@ adoptionRequestRoutes.patch("/:id/status", async (c) => {
     return c.json({ error: "Sem permissão" }, 403);
   }
 
-  const [updated] = await db
-    .update(adoptionRequest)
-    .set({
-      status: parsed.data.status,
-      updatedAt: new Date(),
-    })
-    .where(eq(adoptionRequest.id, id))
-    .returning();
+  const updated = await db.transaction(async (tx) => {
+    const [request] = await tx
+      .update(adoptionRequest)
+      .set({
+        status: parsed.data.status,
+        updatedAt: new Date(),
+      })
+      .where(eq(adoptionRequest.id, id))
+      .returning();
+
+    if (parsed.data.status === "Aprovada") {
+      await tx
+        .update(animal)
+        .set({ status: "Adotado", updatedAt: new Date() })
+        .where(eq(animal.id, existing.animalId));
+
+      await tx
+        .update(adoptionRequest)
+        .set({ status: "Recusada", updatedAt: new Date() })
+        .where(
+          and(
+            eq(adoptionRequest.animalId, existing.animalId),
+            eq(adoptionRequest.status, "Em análise"),
+          ),
+        );
+    } else if (existing.currentStatus === "Aprovada") {
+      await tx
+        .update(animal)
+        .set({ status: "Disponível", updatedAt: new Date() })
+        .where(eq(animal.id, existing.animalId));
+    }
+
+    return request;
+  });
 
   if (!updated) {
     return c.json({ error: "Solicitação não encontrada" }, 404);

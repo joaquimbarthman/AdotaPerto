@@ -33,7 +33,6 @@ export default function RegisterPage() {
       name,
       email,
       password,
-      callbackURL: "/perfil",
     });
 
     setLoading(false);
@@ -43,7 +42,8 @@ export default function RegisterPage() {
       return;
     }
 
-    router.push("/perfil");
+    router.replace("/");
+    router.refresh();
   }
 
   return (

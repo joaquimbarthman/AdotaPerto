@@ -46,6 +46,13 @@ type AdoptionRequestItem = {
   notes?: string | null;
   createdAt: string;
   animal: Animal;
+  requester?: {
+    id: string;
+    name: string;
+    image?: string | null;
+    city?: string | null;
+    state?: string | null;
+  };
 };
 
 type FavoriteItem = {
@@ -68,17 +75,35 @@ export default function ProfilePage() {
   const [activeTab, setActiveTab] = useState<TabId>("dados");
   const [profile, setProfile] = useState<UserProfile | null>(null);
   const [requests, setRequests] = useState<AdoptionRequestItem[]>([]);
+  const [receivedRequests, setReceivedRequests] = useState<AdoptionRequestItem[]>([]);
   const [favorites, setFavorites] = useState<FavoriteItem[]>([]);
   const [loadingProfile, setLoadingProfile] = useState(true);
   const [savingPersonal, setSavingPersonal] = useState(false);
   const [savingAddress, setSavingAddress] = useState(false);
   const [toastMessage, setToastMessage] = useState<{ type: "success" | "error"; text: string } | null>(null);
+  const [minimumLoadingFinished, setMinimumLoadingFinished] = useState(false);
+  const [loadingCountdown, setLoadingCountdown] = useState(3);
 
   const { data: session, isPending: isSessionPending } = useSession();
 
   useEffect(() => {
-    if (!isSessionPending && !session) {
-      router.push("/login");
+    const timer = window.setInterval(() => {
+      setLoadingCountdown((current) => {
+        if (current <= 1) {
+          window.clearInterval(timer);
+          setMinimumLoadingFinished(true);
+          return 0;
+        }
+        return current - 1;
+      });
+    }, 1000);
+
+    return () => window.clearInterval(timer);
+  }, []);
+
+  useEffect(() => {
+    if (minimumLoadingFinished && !isSessionPending && !session) {
+      router.replace("/login?reason=unauthenticated");
       return;
     }
 
@@ -109,10 +134,17 @@ export default function ProfilePage() {
 
       async function loadRequests() {
         try {
-          const res = await fetch(`${API_BASE_URL}/api/adoption-requests`, { credentials: "include" });
-          if (res.ok) {
-            const data = await res.json();
+          const [sentResponse, receivedResponse] = await Promise.all([
+            fetch(`${API_BASE_URL}/api/adoption-requests`, { credentials: "include" }),
+            fetch(`${API_BASE_URL}/api/adoption-requests/received`, { credentials: "include" }),
+          ]);
+          if (sentResponse.ok) {
+            const data = await sentResponse.json();
             if (Array.isArray(data)) setRequests(data);
+          }
+          if (receivedResponse.ok) {
+            const data = await receivedResponse.json();
+            if (Array.isArray(data)) setReceivedRequests(data);
           }
         } catch {
           // ignore
@@ -135,14 +167,17 @@ export default function ProfilePage() {
       loadRequests();
       loadFavorites();
     }
-  }, [isSessionPending, session, router]);
+  }, [isSessionPending, minimumLoadingFinished, session, router]);
 
-  if (isSessionPending || (session && loadingProfile)) {
+  if (!minimumLoadingFinished || isSessionPending || !session || loadingProfile) {
     return (
       <div className="flex min-h-screen items-center justify-center bg-[#eefdf1] text-[#256441]">
-        <div className="flex flex-col items-center gap-3">
-          <div className="size-10 animate-spin rounded-full border-4 border-[#256441] border-t-transparent" />
-          <p className="text-sm font-semibold">Carregando perfil...</p>
+        <div className="flex flex-col items-center gap-4" role="status" aria-live="polite">
+          <div className="relative grid size-16 place-items-center" aria-label={`${loadingCountdown} segundos`}>
+            <div className="absolute inset-0 animate-spin rounded-full border-4 border-[#256441] border-t-transparent" />
+            <span key={loadingCountdown} className="text-2xl font-extrabold text-[#256441]">{loadingCountdown}</span>
+          </div>
+          <p className="text-sm font-semibold">Carregando dados...</p>
         </div>
       </div>
     );
@@ -168,6 +203,23 @@ export default function ProfilePage() {
   const userState = profile?.state || "";
   const userLocation = userCity && userState ? `${userCity}, ${userState}` : userCity || userState || "";
   const memberSince = formatMemberSince(profile?.createdAt || session.user.createdAt);
+
+  async function updateReceivedRequest(id: string, status: "Aprovada" | "Recusada") {
+    const response = await fetch(`${API_BASE_URL}/api/adoption-requests/${id}/status`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      credentials: "include",
+      body: JSON.stringify({ status }),
+    });
+
+    if (!response.ok) {
+      setToastMessage({ type: "error", text: "Não foi possível atualizar a solicitação." });
+      return;
+    }
+
+    setReceivedRequests((items) => items.map((item) => item.id === id ? { ...item, status } : item));
+    setToastMessage({ type: "success", text: `Solicitação ${status.toLowerCase()} com sucesso.` });
+  }
 
   async function handleSavePersonalData(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -198,8 +250,8 @@ export default function ProfilePage() {
       await authClient.updateUser({ name, ...(image ? { image } : {}) });
 
       setToastMessage({ type: "success", text: "Dados pessoais salvos com sucesso no banco!" });
-    } catch (err: any) {
-      setToastMessage({ type: "error", text: err.message || "Falha ao salvar dados pessoais." });
+    } catch (err: unknown) {
+      setToastMessage({ type: "error", text: err instanceof Error ? err.message : "Falha ao salvar dados pessoais." });
     } finally {
       setSavingPersonal(false);
     }
@@ -231,8 +283,8 @@ export default function ProfilePage() {
       setProfile((prev) => (prev ? { ...prev, ...updated } : updated));
 
       setToastMessage({ type: "success", text: "Endereço salvo com sucesso no banco!" });
-    } catch (err: any) {
-      setToastMessage({ type: "error", text: err.message || "Falha ao salvar endereço." });
+    } catch (err: unknown) {
+      setToastMessage({ type: "error", text: err instanceof Error ? err.message : "Falha ao salvar endereço." });
     } finally {
       setSavingAddress(false);
     }
@@ -285,43 +337,15 @@ export default function ProfilePage() {
 
           <section className="min-w-0">
             {activeTab === "adocoes" && (
-              requests.length > 0 ? (
-                <div className="space-y-5">
-                  <header className="flex items-end justify-between gap-4">
-                    <div>
-                      <h2 className="text-2xl font-bold">Animais para adoção</h2>
-                      <p className="mt-1 text-sm text-[#5b675f]">Acompanhe seus processos de adoção.</p>
-                    </div>
-                    <span className="shrink-0 text-sm font-semibold text-[#707971]">{requests.length} solicitações</span>
-                  </header>
-                  {requests.map((req) => (
-                    <article key={req.id} className="group grid overflow-hidden rounded-xl bg-white shadow-[0_4px_12px_rgba(38,51,43,0.05)] sm:grid-cols-[180px_1fr]">
-                      <div className="relative h-52 overflow-hidden sm:h-full sm:min-h-[190px]">
-                        <Image src={req.animal?.image || "/images/login-cover-v2.png"} alt={req.animal?.name || "Animal"} fill className="object-cover" />
-                      </div>
-                      <div className="flex flex-col p-5 sm:p-6">
-                        <div className="flex flex-wrap items-start justify-between gap-3">
-                          <h3 className="text-2xl font-semibold">{req.animal?.name}</h3>
-                          <span className="rounded-full bg-[#aff1c4] px-3 py-1.5 text-xs font-semibold text-[#0d5130]">
-                            {req.status}
-                          </span>
-                        </div>
-                        <div className="mt-2 flex flex-wrap gap-2">
-                          <span className="rounded-full bg-[#e3f2e6] px-3 py-1.5 text-xs font-semibold text-[#404942]">{req.animal?.species}</span>
-                          <span className="rounded-full bg-[#e3f2e6] px-3 py-1.5 text-xs font-semibold text-[#404942]">{req.animal?.sex}</span>
-                        </div>
-                        <div className="mt-auto flex justify-end border-t border-[#c0c9bf]/30 pt-4">
-                          <Link href={`/adocao/${req.animal?.id}`} className="rounded-xl border-2 border-[#256441] px-5 py-2.5 text-sm font-semibold text-[#256441] transition hover:bg-[#256441] hover:text-white">
-                            Ver detalhes do pet
-                          </Link>
-                        </div>
-                      </div>
-                    </article>
-                  ))}
-                </div>
-              ) : (
-                <EmptyTab title="Animais para adoção" description="Você ainda não possui solicitações de adoção em andamento." />
-              )
+              <div className="space-y-10">
+                <header>
+                  <h2 className="text-2xl font-bold">Animais para adoção</h2>
+                  <p className="mt-1 text-sm text-[#5b675f]">Acompanhe pedidos feitos por você e o interesse recebido nos seus animais.</p>
+                </header>
+
+                <RequestSection title="Minhas solicitações" empty="Você ainda não solicitou a adoção de nenhum animal." requests={requests} />
+                <RequestSection title="Solicitações recebidas" empty="Seus animais ainda não receberam solicitações de adoção." requests={receivedRequests} received onUpdate={updateReceivedRequest} />
+              </div>
             )}
             {activeTab === "doacoes" && <EmptyTab title="Itens para doar" description="Seus itens cadastrados para doação aparecerão aqui." />}
             {activeTab === "favoritos" && (
@@ -375,6 +399,49 @@ function ProfileForm({ children, showActions = true, onSubmit, loading }: { chil
         </footer>
       )}
     </form>
+  );
+}
+
+function RequestSection({ title, empty, requests, received = false, onUpdate }: { title: string; empty: string; requests: AdoptionRequestItem[]; received?: boolean; onUpdate?: (id: string, status: "Aprovada" | "Recusada") => void }) {
+  return (
+    <section className="space-y-4">
+      <div className="flex items-center justify-between gap-4">
+        <h3 className="text-lg font-bold">{title}</h3>
+        <span className="text-sm font-semibold text-[#707971]">{requests.length}</span>
+      </div>
+      {requests.length === 0 ? (
+        <div className="rounded-xl border border-dashed border-[#b8c9bd] bg-[#f7fcf8] p-7 text-center text-sm text-[#5b675f]">{empty}</div>
+      ) : requests.map((request) => (
+        <article key={request.id} className="group grid overflow-hidden rounded-xl bg-white shadow-[0_4px_12px_rgba(38,51,43,0.05)] sm:grid-cols-[180px_1fr]">
+          <div className="relative h-52 overflow-hidden sm:h-full sm:min-h-[190px]">
+            <Image src={request.animal?.image || "/images/login-cover-v2.png"} alt={request.animal?.name || "Animal"} fill className="object-cover" />
+          </div>
+          <div className="flex flex-col p-5 sm:p-6">
+            <div className="flex flex-wrap items-start justify-between gap-3">
+              <div>
+                <h4 className="text-2xl font-semibold">{request.animal?.name}</h4>
+                {received && request.requester && <p className="mt-1 text-sm text-[#526057]">Solicitado por <strong>{request.requester.name}</strong></p>}
+              </div>
+              <span className="rounded-full bg-[#aff1c4] px-3 py-1.5 text-xs font-semibold text-[#0d5130]">{request.status}</span>
+            </div>
+            <div className="mt-3 flex flex-wrap gap-2">
+              <span className="rounded-full bg-[#e3f2e6] px-3 py-1.5 text-xs font-semibold text-[#404942]">{request.animal?.species}</span>
+              <span className="rounded-full bg-[#e3f2e6] px-3 py-1.5 text-xs font-semibold text-[#404942]">{request.animal?.sex}</span>
+            </div>
+            {request.notes && <p className="mt-3 rounded-lg bg-[#f7fcf8] p-3 text-sm text-[#526057]">{request.notes}</p>}
+            <div className="mt-auto flex flex-wrap justify-end gap-2 border-t border-[#c0c9bf]/30 pt-4">
+              <Link href={`/adocao/${request.animal?.id}`} className="rounded-xl border border-[#256441] px-4 py-2.5 text-sm font-semibold text-[#256441] transition hover:bg-[#e8f7eb]">Ver animal</Link>
+              {received && request.status === "Em análise" && onUpdate && (
+                <>
+                  <button type="button" onClick={() => onUpdate(request.id, "Recusada")} className="rounded-xl border border-red-300 px-4 py-2.5 text-sm font-semibold text-red-700 transition hover:bg-red-50">Recusar</button>
+                  <button type="button" onClick={() => onUpdate(request.id, "Aprovada")} className="rounded-xl bg-[#256441] px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-[#194b30]">Aprovar</button>
+                </>
+              )}
+            </div>
+          </div>
+        </article>
+      ))}
+    </section>
   );
 }
 

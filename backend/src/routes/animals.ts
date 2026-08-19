@@ -3,7 +3,7 @@ import { Hono } from "hono";
 import crypto from "node:crypto";
 import { z } from "zod";
 import { db } from "../../lib/db/index.ts";
-import { animal, user as userTable } from "../../lib/db/schemas/index.ts";
+import { adoptionRequest, animal, user as userTable } from "../../lib/db/schemas/index.ts";
 import type { AuthContext } from "./index.ts";
 
 export const animalRoutes = new Hono<AuthContext>();
@@ -113,6 +113,7 @@ animalRoutes.get("/", async (c) => {
 
 animalRoutes.get("/:id", async (c) => {
   const id = c.req.param("id");
+  const currentUser = c.get("user");
   const [result] = await db
     .select({
       animal,
@@ -133,7 +134,21 @@ animalRoutes.get("/:id", async (c) => {
     return c.json({ error: "Animal não encontrado" }, 404);
   }
 
-  return c.json({ ...result.animal, owner: result.owner });
+  let viewerRequestStatus: string | null = null;
+  if (currentUser) {
+    const [viewerRequest] = await db
+      .select({ status: adoptionRequest.status })
+      .from(adoptionRequest)
+      .where(
+        and(
+          eq(adoptionRequest.animalId, id),
+          eq(adoptionRequest.userId, currentUser.id),
+        ),
+      );
+    viewerRequestStatus = viewerRequest?.status ?? null;
+  }
+
+  return c.json({ ...result.animal, owner: result.owner, viewerRequestStatus });
 });
 
 animalRoutes.post("/", async (c) => {

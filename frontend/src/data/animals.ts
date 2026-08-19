@@ -10,7 +10,7 @@ export type Animal = {
   age: string;
   weight?: string;
   traits: string[];
-  status: "Disponível" | "Em Processo";
+  status: "Disponível" | "Em Processo" | "Adotado";
   organization: string;
   distance: string;
   neutered?: "Sim" | "Não" | "Não sei";
@@ -35,5 +35,6 @@ export type Animal = {
     state?: string | null;
     verified: boolean;
   };
+  viewerRequestStatus?: "Em análise" | "Aprovada" | "Recusada" | "Cancelada" | null;
 };
 
