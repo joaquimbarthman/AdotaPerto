@@ -32,6 +32,8 @@ type UserProfile = {
   email: string;
   image?: string | null;
   birthDate?: string | null;
+  instagram?: string | null;
+  whatsapp?: string | null;
   bio?: string | null;
   zipCode?: string | null;
   street?: string | null;
@@ -44,6 +46,9 @@ type AdoptionRequestItem = {
   id: string;
   status: string;
   notes?: string | null;
+  answers?: Record<string, string | string[]> | null;
+  compatibilityScore?: number | null;
+  compatibilityDetails?: string[] | null;
   createdAt: string;
   animal: Animal;
   requester?: {
@@ -52,6 +57,12 @@ type AdoptionRequestItem = {
     image?: string | null;
     city?: string | null;
     state?: string | null;
+  };
+  ownerContact?: {
+    name: string;
+    email: string;
+    whatsapp?: string | null;
+    instagram?: string | null;
   };
 };
 
@@ -227,6 +238,8 @@ export default function ProfilePage() {
     const formData = new FormData(event.currentTarget);
     const name = formData.get("nome") as string;
     const birthDate = formData.get("nascimento") as string;
+    const instagram = formData.get("instagram") as string;
+    const whatsapp = formData.get("whatsapp") as string;
     const bio = formData.get("bio") as string;
     const photo = formData.get("foto");
 
@@ -237,7 +250,7 @@ export default function ProfilePage() {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
         credentials: "include",
-        body: JSON.stringify({ name, birthDate, bio, ...(image ? { image } : {}) }),
+        body: JSON.stringify({ name, birthDate, instagram, whatsapp, bio, ...(image ? { image } : {}) }),
       });
 
       if (!res.ok) {
@@ -368,7 +381,7 @@ export default function ProfilePage() {
               )
             )}
             {activeTab === "dados" && (
-              <ProfileForm key={`dados-${profile?.name}-${profile?.bio}-${profile?.birthDate}`} onSubmit={handleSavePersonalData} loading={savingPersonal}>
+              <ProfileForm key={`dados-${profile?.name}-${profile?.bio}-${profile?.birthDate}-${profile?.instagram}-${profile?.whatsapp}`} onSubmit={handleSavePersonalData} loading={savingPersonal}>
                 <PersonalData profile={profile} userName={userName} userImage={userImage} userBio={userBio} />
               </ProfileForm>
             )}
@@ -422,16 +435,18 @@ function RequestSection({ title, empty, requests, received = false, onUpdate }: 
                 <h4 className="text-2xl font-semibold">{request.animal?.name}</h4>
                 {received && request.requester && <p className="mt-1 text-sm text-[#526057]">Solicitado por <strong>{request.requester.name}</strong></p>}
               </div>
-              <span className="rounded-full bg-[#aff1c4] px-3 py-1.5 text-xs font-semibold text-[#0d5130]">{request.status}</span>
+              <span className="rounded-full bg-[#aff1c4] px-3 py-1.5 text-xs font-semibold text-[#0d5130]">{request.status === "PENDING" ? "Em análise" : request.status}</span>
             </div>
             <div className="mt-3 flex flex-wrap gap-2">
               <span className="rounded-full bg-[#e3f2e6] px-3 py-1.5 text-xs font-semibold text-[#404942]">{request.animal?.species}</span>
               <span className="rounded-full bg-[#e3f2e6] px-3 py-1.5 text-xs font-semibold text-[#404942]">{request.animal?.sex}</span>
             </div>
             {request.notes && <p className="mt-3 rounded-lg bg-[#f7fcf8] p-3 text-sm text-[#526057]">{request.notes}</p>}
+            {!received && request.status === "Aprovada" && request.ownerContact && <ApprovedContact contact={request.ownerContact} />}
             <div className="mt-auto flex flex-wrap justify-end gap-2 border-t border-[#c0c9bf]/30 pt-4">
               <Link href={`/adocao/${request.animal?.id}`} className="rounded-xl border border-[#256441] px-4 py-2.5 text-sm font-semibold text-[#256441] transition hover:bg-[#e8f7eb]">Ver animal</Link>
-              {received && request.status === "Em análise" && onUpdate && (
+              {received && request.answers && <Link href={`/perfil/solicitacoes/${request.id}`} className="rounded-xl border border-[#256441] bg-[#e8f7eb] px-4 py-2.5 text-sm font-semibold text-[#256441] transition hover:bg-[#d7eeda]">Ver detalhes</Link>}
+              {received && (request.status === "Em análise" || request.status === "PENDING") && onUpdate && (
                 <>
                   <button type="button" onClick={() => onUpdate(request.id, "Recusada")} className="rounded-xl border border-red-300 px-4 py-2.5 text-sm font-semibold text-red-700 transition hover:bg-red-50">Recusar</button>
                   <button type="button" onClick={() => onUpdate(request.id, "Aprovada")} className="rounded-xl bg-[#256441] px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-[#194b30]">Aprovar</button>
@@ -443,6 +458,10 @@ function RequestSection({ title, empty, requests, received = false, onUpdate }: 
       ))}
     </section>
   );
+}
+
+function ApprovedContact({ contact }: { contact: NonNullable<AdoptionRequestItem["ownerContact"]> }) {
+  return <section className="mt-4 rounded-xl border border-[#86c99c] bg-[#e8f7eb] p-4"><h5 className="text-sm font-bold text-[#194b30]">Contato liberado</h5><p className="mt-1 text-xs text-[#526057]">Sua solicitação foi aprovada. Entre em contato com {contact.name} para combinar os próximos passos.</p><div className="mt-3 flex flex-wrap gap-2"><a href={`mailto:${contact.email}`} className="rounded-lg bg-white px-3 py-2 text-xs font-semibold text-[#256441]">{contact.email}</a>{contact.whatsapp && <a href={`https://wa.me/${contact.whatsapp.replace(/\D/g, "")}`} target="_blank" rel="noreferrer" className="rounded-lg bg-white px-3 py-2 text-xs font-semibold text-[#256441]">WhatsApp: {contact.whatsapp}</a>}{contact.instagram && <span className="rounded-lg bg-white px-3 py-2 text-xs font-semibold text-[#256441]">Instagram: {contact.instagram}</span>}</div></section>;
 }
 
 function EmptyTab({ title, description }: { title: string; description: string }) {
@@ -468,6 +487,8 @@ function SectionHeading({ title, description }: { title: string; description: st
 
 function PersonalData({ profile, userName, userImage, userBio }: { profile: UserProfile | null; userName: string; userImage: string; userBio: string }) {
   const birthDate = profile?.birthDate || "";
+  const instagram = profile?.instagram || "";
+  const whatsapp = profile?.whatsapp || "";
 
   return (
     <section id="panel-dados" role="tabpanel" aria-labelledby="tab-dados">
@@ -497,6 +518,8 @@ function PersonalData({ profile, userName, userImage, userBio }: { profile: User
         <div className="grid content-start gap-5 sm:grid-cols-2">
           <div className="sm:col-span-2"><ProfileField label="Nome completo" name="nome" defaultValue={userName} autoComplete="name" required /></div>
           <ProfileField label="Data de nascimento" name="nascimento" type="date" defaultValue={birthDate} autoComplete="bday" />
+          <ProfileField label="Instagram" name="instagram" defaultValue={instagram} placeholder="@seuusuario" autoComplete="off" />
+          <ProfileField label={"WhatsApp / n\u00famero"} name="whatsapp" type="tel" inputMode="tel" defaultValue={whatsapp} placeholder="(00) 00000-0000" autoComplete="tel" />
           <label className="sm:col-span-2">
             <span className="mb-2 block text-sm font-bold text-[#253129]">Bio</span>
             <textarea name="bio" rows={5} maxLength={300} defaultValue={userBio} placeholder="Conte um pouco sobre você..." className="w-full resize-y rounded-xl border border-[#c0c9bf] bg-[#f7fcf8] px-4 py-3 text-sm leading-6 text-[#121e17] outline-none transition placeholder:text-[#879188] focus:border-[#3f7d58] focus:ring-2 focus:ring-[#3f7d58]/15" />
@@ -598,6 +621,12 @@ function AccountAccess({ userEmail }: { userEmail: string }) {
       <div className="max-w-3xl divide-y divide-[#d7e6da] overflow-hidden rounded-xl border border-[#d7e6da]">
         <AccessRow icon="/icons/email.svg" title="E-mail" value={userEmail} onEdit={() => { setStatusMessage(null); setModal("email"); }} />
         <AccessRow icon="/icons/password.svg" title="Senha" value="••••••••••••" onEdit={() => { setStatusMessage(null); setModal("senha"); }} />
+      </div>
+
+      <div className="mt-5 max-w-3xl rounded-xl border border-[#d7e6da] bg-[#f7fcf8] p-5">
+        <h3 className="text-sm font-bold text-[#253129]">Esqueceu sua senha?</h3>
+        <p className="mt-1 text-sm leading-6 text-[#5b675f]">Receba um c&oacute;digo de 4 d&iacute;gitos no seu e-mail e crie uma nova senha com seguran&ccedil;a.</p>
+        <Link href="/esqueci-senha" className="mt-4 inline-flex rounded-lg border border-[#256441] px-5 py-2.5 text-sm font-bold text-[#256441] transition hover:bg-[#256441] hover:text-white">Redefinir senha</Link>
       </div>
 
       {modal === "email" && (

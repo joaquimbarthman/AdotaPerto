@@ -3,34 +3,14 @@
 import Link from "next/link";
 import Image from "next/image";
 import { useRouter } from "next/navigation";
-import { FormEvent, ReactNode, useEffect, useState } from "react";
+import { FormEvent, useState } from "react";
 import { SiteFooter } from "@/components/site-footer";
 import { SiteHeader } from "@/components/site-header";
 import { useSession } from "@/lib/auth-client";
 import { uploadImages } from "@/lib/uploads";
+import { DonationField as Field, DonationFormSection as Section, DonationPhotoPreview as PhotoPreview, DonationSelect as Select, donationInputClass as inputClass } from "@/components/donation-form-ui";
 
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:4000";
-const inputClass = "min-h-12 w-full rounded-lg border border-[#8b958e] bg-white px-3.5 text-base text-[#121e17] outline-none transition placeholder:text-[#7d8580] focus:border-[#256441] focus:ring-2 focus:ring-[#256441]/15";
-
-function Section({ icon, title, description, children }: { icon: ReactNode; title: string; description?: string; children: ReactNode }) {
-  return (
-    <section className="rounded-2xl border border-[#d7e6da] bg-white p-5 shadow-[0_4px_12px_rgba(38,51,43,0.04)] sm:p-8 lg:p-10">
-      <div className="mb-6 flex items-start gap-3 text-[#0f5d39]">
-        <span className="mt-1 grid size-7 shrink-0 place-items-center">{icon}</span>
-        <div><h2 className="text-xl font-bold sm:text-2xl">{title}</h2>{description && <p className="mt-1 text-sm leading-5 text-[#5a655e]">{description}</p>}</div>
-      </div>
-      {children}
-    </section>
-  );
-}
-
-function Field({ label, optional, children, className = "" }: { label: string; optional?: boolean; children: ReactNode; className?: string }) {
-  return <label className={`flex flex-col gap-1.5 text-sm font-semibold text-[#121e17] ${className}`}><span>{label}{optional && <span className="font-normal text-[#68726b]"> (opcional)</span>}</span>{children}</label>;
-}
-
-function Select({ name, children, required = true }: { name: string; children: ReactNode; required?: boolean }) {
-  return <select name={name} required={required} defaultValue="" className={`${inputClass} appearance-none bg-[linear-gradient(45deg,transparent_50%,#4d5b53_50%),linear-gradient(135deg,#4d5b53_50%,transparent_50%)] bg-[position:calc(100%-18px)_21px,calc(100%-13px)_21px] bg-[size:5px_5px,5px_5px] bg-no-repeat pr-10`}><option value="" disabled>Selecione...</option>{children}</select>;
-}
 
 function YesNoUnknown({ name, unknown = true }: { name: string; unknown?: boolean }) {
   return <div className="flex min-h-12 flex-wrap items-center gap-x-5 gap-y-2 rounded-lg border border-[#c5cec7] px-3.5">{["Sim", "Não", ...(unknown ? ["Não sei"] : [])].map((value) => <label key={value} className="inline-flex items-center gap-2 font-normal"><input type="radio" name={name} value={value} required className="size-4 accent-[#256441]" />{value}</label>)}</div>;
@@ -44,27 +24,9 @@ function HeartIcon() { return <svg viewBox="0 0 24 24" className="size-6" fill="
 function CameraIcon() { return <svg viewBox="0 0 24 24" className="size-6" fill="none" stroke="currentColor" strokeWidth="1.8"><path d="M4 7h4l2-3h4l2 3h4v13H4V7Z" /><circle cx="12" cy="13" r="4" /></svg>; }
 function StoryIcon() { return <svg viewBox="0 0 24 24" className="size-5" fill="none" stroke="currentColor" strokeWidth="1.8"><path d="M5 4h11a3 3 0 0 1 3 3v13H7a3 3 0 0 1-3-3V5a1 1 0 0 1 1-1Z" /><path d="M7 16h12M8 8h7M8 11h5" strokeLinecap="round" /></svg>; }
 
-function PhotoPreview({ file, label, onRemove }: { file: File; label: string; onRemove: () => void }) {
-  const [url, setUrl] = useState("");
-
-  useEffect(() => {
-    const objectUrl = URL.createObjectURL(file);
-    setUrl(objectUrl);
-    return () => URL.revokeObjectURL(objectUrl);
-  }, [file]);
-
-  return (
-    <div className="group relative aspect-square overflow-hidden rounded-xl border border-[#86a590] bg-[#e3f2e6]">
-      {url && <Image src={url} alt={label} fill unoptimized className="object-cover" />}
-      <button type="button" onClick={onRemove} className="absolute right-2 top-2 grid size-8 place-items-center rounded-full bg-black/65 text-lg font-bold text-white shadow transition hover:bg-red-600" aria-label={`Remover ${label}`}>×</button>
-      <span className="absolute inset-x-0 bottom-0 truncate bg-black/60 px-2 py-1.5 text-xs font-medium text-white">{file.name}</span>
-    </div>
-  );
-}
-
 export default function AnimalDonationPage() {
   const router = useRouter();
-  const { data: session, isPending } = useSession();
+  const { data: session } = useSession();
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [sent, setSent] = useState(false);
@@ -141,8 +103,8 @@ export default function AnimalDonationPage() {
 
       setSent(true);
       window.scrollTo({ top: 0, behavior: "smooth" });
-    } catch (err: any) {
-      setError(err.message || "Erro ao cadastrar animal.");
+    } catch (err: unknown) {
+      setError(err instanceof Error ? err.message : "Erro ao cadastrar animal.");
     } finally {
       setLoading(false);
     }

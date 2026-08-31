@@ -35,6 +35,6 @@ export type Animal = {
     state?: string | null;
     verified: boolean;
   };
-  viewerRequestStatus?: "Em análise" | "Aprovada" | "Recusada" | "Cancelada" | null;
+  viewerRequestStatus?: "PENDING" | "Em análise" | "Aprovada" | "Recusada" | "Cancelada" | null;
 };
 

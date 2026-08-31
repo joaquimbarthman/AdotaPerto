@@ -20,9 +20,6 @@ export default function PetDetailsPage() {
 
   const [animal, setAnimal] = useState<Animal | null>(null);
   const [loading, setLoading] = useState(true);
-  const [requesting, setRequesting] = useState(false);
-  const [requestSuccess, setRequestSuccess] = useState(false);
-  const [requestError, setRequestError] = useState<string | null>(null);
 
   useEffect(() => {
     async function loadAnimal() {
@@ -41,37 +38,13 @@ export default function PetDetailsPage() {
     }
   }, [id]);
 
-  async function handleRequestAdoption() {
-    setRequestError(null);
-
+  function handleRequestAdoption() {
     if (!session) {
       router.push("/login");
       return;
     }
-
     if (!animal) return;
-
-    setRequesting(true);
-    try {
-      const res = await fetch(`${API_BASE_URL}/api/adoption-requests`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        credentials: "include",
-        body: JSON.stringify({ animalId: animal.id }),
-      });
-
-      if (!res.ok) {
-        const data = await res.json();
-        throw new Error(data.error || "Erro ao solicitar adoção.");
-      }
-
-      setRequestSuccess(true);
-      setAnimal((current) => current ? { ...current, viewerRequestStatus: "Em análise" } : current);
-    } catch (err: unknown) {
-      setRequestError(err instanceof Error ? err.message : "Não foi possível enviar a solicitação.");
-    } finally {
-      setRequesting(false);
-    }
+    router.push(`/adocao/${animal.id}/solicitacao`);
   }
 
   if (loading) {
@@ -140,38 +113,6 @@ export default function PetDetailsPage() {
           </svg>
           Voltar
         </Link>
-
-        {requestSuccess && (
-          <div
-            role="status"
-            className="mb-8 rounded-2xl border border-[#86c99c] bg-[#e8f7eb] p-6 text-[#194b30]"
-          >
-            <strong className="text-lg">
-              Solicitação de adoção enviada com sucesso!
-            </strong>
-            <p className="mt-1 text-sm">
-              O responsável receberá seu interesse e você poderá acompanhar o
-              status na sua página de perfil.
-            </p>
-            <div className="mt-4 flex gap-3">
-              <Link
-                href="/perfil"
-                className="rounded-xl bg-[#256441] px-5 py-2.5 text-sm font-semibold text-white transition hover:bg-[#194b30]"
-              >
-                Acompanhar no Perfil
-              </Link>
-            </div>
-          </div>
-        )}
-
-        {requestError && (
-          <div
-            role="alert"
-            className="mb-8 rounded-2xl border border-red-200 bg-red-50 p-4 text-sm font-semibold text-red-800"
-          >
-            {requestError}
-          </div>
-        )}
 
         <div className="grid items-start gap-6 lg:grid-cols-[2fr_1fr]">
           <div className="space-y-6">
@@ -352,13 +293,13 @@ export default function PetDetailsPage() {
 
             <button
               type="button"
-              disabled={requesting || requestSuccess || Boolean(animal.viewerRequestStatus) || animal.status === "Adotado"}
+              disabled={Boolean(animal.viewerRequestStatus) || animal.status === "Adotado"}
               onClick={handleRequestAdoption}
               className="w-full rounded-xl bg-[#256441] px-6 py-4 text-sm font-semibold tracking-[0.05em] text-white shadow-sm transition-all hover:-translate-y-0.5 hover:bg-[#194b30] hover:shadow-md active:scale-[0.98] disabled:opacity-60"
             >
               {animal.viewerRequestStatus === "Aprovada"
                 ? "Você adotou"
-                : animal.viewerRequestStatus === "Em análise" || requestSuccess
+                : animal.viewerRequestStatus === "Em análise" || animal.viewerRequestStatus === "PENDING"
                   ? "Solicitação em análise"
                   : animal.viewerRequestStatus === "Recusada"
                     ? "Solicitação recusada"
@@ -366,9 +307,7 @@ export default function PetDetailsPage() {
                       ? "Solicitação cancelada"
                       : animal.status === "Adotado"
                         ? "Animal já adotado"
-                        : requesting
-                          ? "Enviando solicitação..."
-                          : "Solicitar adoção"}
+                        : "Tenho interesse em adotar"}
             </button>
           </aside>
         </div>

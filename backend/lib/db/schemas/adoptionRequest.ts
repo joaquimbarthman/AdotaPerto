@@ -1,4 +1,4 @@
-import { index, pgTable, text, timestamp } from "drizzle-orm/pg-core";
+import { index, integer, jsonb, pgTable, text, timestamp } from "drizzle-orm/pg-core";
 import { animal } from "./animal.ts";
 import { user } from "./user.ts";
 
@@ -14,6 +14,9 @@ export const adoptionRequest = pgTable(
       .references(() => animal.id, { onDelete: "cascade" }),
     status: text("status").default("Em análise").notNull(),
     notes: text("notes"),
+    answers: jsonb("answers").$type<Record<string, string | string[]>>(),
+    compatibilityScore: integer("compatibility_score"),
+    compatibilityDetails: jsonb("compatibility_details").$type<string[]>(),
     createdAt: timestamp("created_at").defaultNow().notNull(),
     updatedAt: timestamp("updated_at")
       .defaultNow()

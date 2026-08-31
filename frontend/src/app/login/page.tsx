@@ -70,7 +70,7 @@ export default function LoginPage() {
             <input type="checkbox" name="rememberMe" className="size-4 accent-[#0f5d39]" />
             Lembrar de mim
           </label>
-          <Link href="#" className="font-semibold text-[#0f5d39] transition hover:underline">Esqueci minha senha</Link>
+          <Link href="/esqueci-senha" className="font-semibold text-[#0f5d39] transition hover:underline">Esqueci minha senha</Link>
         </div>
 
         <button

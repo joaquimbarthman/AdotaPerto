@@ -11,3 +11,4 @@ export * from "./sessionRelations.ts";
 export * from "./animalRelations.ts";
 export * from "./adoptionRequestRelations.ts";
 export * from "./favoriteRelations.ts";
+export * from "./donationItem.ts";

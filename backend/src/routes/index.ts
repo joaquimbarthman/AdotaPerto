@@ -5,6 +5,7 @@ import { animalRoutes } from "./animals.ts";
 import { favoriteRoutes } from "./favorites.ts";
 import { userRoutes } from "./users.ts";
 import { uploadRoutes } from "./uploads.ts";
+import { donationItemRoutes } from "./donationItems.ts";
 
 export type AuthContext = {
   Variables: {
@@ -29,3 +30,4 @@ apiRoutes.route("/users", userRoutes);
 apiRoutes.route("/adoption-requests", adoptionRequestRoutes);
 apiRoutes.route("/favorites", favoriteRoutes);
 apiRoutes.route("/uploads", uploadRoutes);
+apiRoutes.route("/donation-items", donationItemRoutes);

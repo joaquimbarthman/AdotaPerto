@@ -41,13 +41,13 @@ export default function DonationsPage() {
               <svg viewBox="0 0 20 20" className="size-4" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden="true"><path d="m7.5 4.5 5 5.5-5 5.5" strokeLinecap="round" strokeLinejoin="round" /></svg>
             </span>
           </Link>
-          <div className="relative flex min-h-[330px] flex-col items-center justify-center overflow-hidden rounded-2xl border border-[#d7e6da] bg-white p-8">
+          <Link href="/doacoes/item" className="group relative flex min-h-[330px] flex-col items-center justify-center overflow-hidden rounded-2xl border border-[#d7e6da] bg-white p-8 transition-all duration-300 hover:-translate-y-1 hover:border-[#86c99c] hover:shadow-[0_14px_35px_rgba(37,100,65,0.12)] focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-[#256441]">
             <span className="absolute -right-10 -top-10 size-32 rounded-full bg-[#ffdcbf]/30" />
             <span className="grid size-20 place-items-center rounded-full bg-[#e3f2e6] text-[#985700]"><BoxIcon /></span>
             <h2 className="mt-7 text-2xl font-semibold">Itens e recursos</h2>
             <p className="mt-2 max-w-[245px] leading-6 text-[#404942]">Doe ração, caminhas, medicamentos e outros suprimentos essenciais.</p>
-            <span className="mt-6 rounded-lg bg-[#f5f2eb] px-3 py-1 text-xs font-bold uppercase tracking-wider text-[#6c6457]">Em breve</span>
-          </div>
+            <span className="mt-6 inline-flex items-center gap-1.5 text-sm font-bold text-[#256441] opacity-0 transition group-hover:opacity-100 group-focus-visible:opacity-100">Começar <span aria-hidden="true">›</span></span>
+          </Link>
         </div>
       </main>
       <SiteFooter />
