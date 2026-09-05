@@ -9,15 +9,15 @@ import { useSession } from "@/lib/auth-client";
 
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:4000";
 
-export function AnimalCard({ animal, isInitiallyFavorite = false }: { animal: Animal; isInitiallyFavorite?: boolean }) {
+export function AnimalCard({ animal, isInitiallyFavorite = false, onFavoriteChange }: { animal: Animal; isInitiallyFavorite?: boolean; onFavoriteChange?: (favorite: boolean) => void }) {
   const router = useRouter();
   const { data: session } = useSession();
   const [favorite, setFavorite] = useState(isInitiallyFavorite);
   const [loadingFav, setLoadingFav] = useState(false);
+  const displayedFavorite = Boolean(session && favorite);
 
   useEffect(() => {
     if (!session) {
-      setFavorite(false);
       return;
     }
 
@@ -44,7 +44,7 @@ export function AnimalCard({ animal, isInitiallyFavorite = false }: { animal: An
       return;
     }
 
-    const nextState = !favorite;
+    const nextState = !displayedFavorite;
     setFavorite(nextState);
     setLoadingFav(true);
 
@@ -66,6 +66,7 @@ export function AnimalCard({ animal, isInitiallyFavorite = false }: { animal: An
           throw new Error("Falha ao remover favorito");
         }
       }
+      onFavoriteChange?.(nextState);
     } catch {
       setFavorite(!nextState);
     } finally {
@@ -92,40 +93,38 @@ export function AnimalCard({ animal, isInitiallyFavorite = false }: { animal: An
         </span>
       </Link>
 
-      <div className="flex flex-1 flex-col p-5 sm:p-6">
-        <div className="flex items-start justify-between gap-3">
-          <Link href={`/adocao/${animal.id}`} className="text-2xl font-semibold leading-8 transition-colors hover:text-[#256441]">
+      <div className="flex min-w-0 flex-1 flex-col p-5 sm:p-6">
+        <div className="flex min-w-0 items-start justify-between gap-3">
+          <Link href={`/adocao/${animal.id}`} title={animal.name} className="min-w-0 flex-1 truncate text-xl font-semibold leading-9 transition-colors hover:text-[#256441]">
             {animal.name}
           </Link>
           <button
             type="button"
             disabled={loadingFav}
             onClick={toggleFavorite}
-            className={`grid size-9 shrink-0 place-items-center rounded-full transition-all hover:bg-[#e8f7eb] active:scale-90 ${favorite ? "bg-[#e8f7eb]" : "bg-transparent"}`}
-            aria-label={favorite ? "Remover dos favoritos" : "Adicionar aos favoritos"}
+            className={`grid size-9 shrink-0 place-items-center rounded-full transition-all hover:bg-[#e8f7eb] active:scale-90 ${displayedFavorite ? "bg-[#e8f7eb]" : "bg-transparent"}`}
+            aria-label={displayedFavorite ? "Remover dos favoritos" : "Adicionar aos favoritos"}
           >
-            <Image
-              src="/icons/heart.svg"
-              alt=""
-              width={20}
-              height={19}
-              className={`transition-all ${favorite ? "scale-110 drop-shadow-sm filter-[invert(28%)_sepia(85%)_saturate(2000%)_hue-rotate(330deg)]" : "opacity-60"}`}
-            />
+            <svg viewBox="0 0 24 24" aria-hidden="true" className={`size-5 transition-all ${displayedFavorite ? "scale-110 text-[#d33f56] drop-shadow-sm" : "text-[#59675e]"}`} fill={displayedFavorite ? "currentColor" : "none"} stroke="currentColor" strokeWidth="2.2">
+              <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78L12 21.23l8.84-8.84a5.5 5.5 0 0 0 0-7.78Z" strokeLinecap="round" strokeLinejoin="round" />
+            </svg>
           </button>
         </div>
 
-        <p className="mt-1 min-h-12 text-sm leading-6 text-[#404942]">
+        <p className="mt-1 h-5 min-w-0 truncate text-sm leading-5 text-[#404942]">
           {animal.species} <span className="mx-1 text-[#c0c9bf]">•</span> {animal.sex} <span className="mx-1 text-[#c0c9bf]">•</span> {animal.age}
         </p>
 
-        <div className="mt-4 flex min-h-14 flex-wrap content-start gap-2">
+        <div className="mt-3 flex h-7 min-w-0 flex-nowrap gap-2 overflow-hidden">
           <Tag>Porte {animal.size}</Tag>
-          {traits.slice(0, 2).map((trait) => <Tag key={trait}>{trait}</Tag>)}
+          {traits.slice(0, 1).map((trait) => <Tag key={trait}>{trait}</Tag>)}
         </div>
 
-        <div className="mb-4 mt-1 flex items-center gap-2 border-t border-[#d7e6da] pt-3 text-xs font-medium text-[#4d5b53]">
-          <Image src="/icons/location.svg" alt="" width={14} height={17} className="shrink-0" />
-          <span>A aproximadamente {distance} de você</span>
+        <div className="mt-auto pt-5">
+          <div className="flex min-h-10 items-center gap-2 border-t border-[#d7e6da] pt-3 text-xs font-medium text-[#4d5b53]">
+            <Image src="/icons/location.svg" alt="" width={14} height={17} className="shrink-0" />
+            <span className="truncate">A aproximadamente {distance} de você</span>
+          </div>
         </div>
 
       </div>
@@ -134,5 +133,5 @@ export function AnimalCard({ animal, isInitiallyFavorite = false }: { animal: An
 }
 
 function Tag({ children }: { children: React.ReactNode }) {
-  return <span className="h-fit rounded-lg bg-[#eefdf1] px-3 py-1.5 text-xs font-semibold text-[#256441]">{children}</span>;
+  return <span className="h-7 max-w-[calc(50%-0.25rem)] shrink truncate rounded-lg bg-[#eefdf1] px-3 py-1.5 text-xs font-semibold leading-4 text-[#256441]">{children}</span>;
 }

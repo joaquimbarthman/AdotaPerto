@@ -1,5 +1,7 @@
 "use client";
 
+import { Notification, notify } from "@/components/notification";
+
 import { DirectionalChevron } from "@/components/directional-chevron";
 import { DonationField, DonationFormSection, DonationPhotoPreview, DonationSelect, donationInputClass } from "@/components/donation-form-ui";
 import { SiteFooter } from "@/components/site-footer";
@@ -9,7 +11,7 @@ import { uploadImages } from "@/lib/uploads";
 import Image from "next/image";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { FormEvent, useMemo, useState } from "react";
+import { FormEvent, useEffect, useMemo, useRef, useState } from "react";
 
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:4000";
 const expiryCategories = new Set(["Ração", "Petiscos", "Produtos de higiene", "Produtos de limpeza"]);
@@ -27,7 +29,34 @@ export default function ItemDonationPage() {
   const [sent, setSent] = useState(false);
   const [globalError, setGlobalError] = useState<string | null>(null);
   const [errors, setErrors] = useState<Record<string, string>>({});
+  const [editId, setEditId] = useState<string | null>(null);
+  const [editData, setEditData] = useState<Record<string, unknown> | null>(null);
+  const formRef = useRef<HTMLFormElement>(null);
   const today = useMemo(() => new Date().toISOString().slice(0, 10), []);
+
+  useEffect(() => {
+    const id = new URLSearchParams(window.location.search).get("edit");
+    if (id) queueMicrotask(() => setEditId(id));
+  }, []);
+
+  useEffect(() => {
+    if (!editId) return;
+    fetch(`${API_BASE_URL}/api/donation-items/${editId}`, { credentials: "include" })
+      .then(async (response) => { if (!response.ok) throw new Error("Doação não encontrada."); return response.json(); })
+      .then((data) => { setEditData(data); setCategory(String(data.category || "")); })
+      .catch((cause: unknown) => setGlobalError(cause instanceof Error ? cause.message : "Não foi possível carregar a doação."));
+  }, [editId]);
+
+  useEffect(() => {
+    if (!editData || !formRef.current) return;
+    const values = { title: editData.title, category: editData.category, itemName: editData.itemName, quantity: editData.quantity, unit: editData.unit, condition: editData.condition, expirationDate: editData.expirationDate, description: editData.description, deliveryMethod: editData.deliveryMethod, availableUntil: editData.availableUntil };
+    Object.entries(values).forEach(([name, value]) => {
+      if (value == null) return;
+      const controls = formRef.current?.elements.namedItem(name);
+      if (controls instanceof RadioNodeList) controls.value = String(value);
+      else if (controls instanceof HTMLInputElement || controls instanceof HTMLSelectElement || controls instanceof HTMLTextAreaElement) controls.value = String(value);
+    });
+  }, [editData]);
 
   async function submit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -38,28 +67,32 @@ export default function ItemDonationPage() {
     const fieldErrors: Record<string, string> = {};
     if (quantity <= 0) fieldErrors.quantity = "Informe uma quantidade maior que zero.";
     if (availableUntil && availableUntil < today) fieldErrors.availableUntil = "Escolha a data de hoje ou uma data futura.";
-    if (!mainPhoto) fieldErrors.mainPhoto = "Adicione uma foto principal para publicar a doação.";
+    if (!mainPhoto && !editData?.mainImage) fieldErrors.mainPhoto = "Adicione uma foto principal para publicar a doação.";
     setErrors(fieldErrors);
     if (Object.keys(fieldErrors).length) return;
 
     if (!session) { router.push("/login?reason=unauthenticated"); return; }
     setLoading(true);
     try {
-      const urls = await uploadImages([mainPhoto!, ...extraPhotos]);
-      const response = await fetch(`${API_BASE_URL}/api/donation-items`, {
-        method: "POST",
+      const files = [mainPhoto, ...extraPhotos].filter((file): file is File => file instanceof File);
+      const urls = await uploadImages(files);
+      const mainImage = mainPhoto ? urls[0] : String(editData?.mainImage || "");
+      const images = extraPhotos.length ? urls.slice(mainPhoto ? 1 : 0) : (Array.isArray(editData?.images) ? editData.images : []);
+      const response = await fetch(`${API_BASE_URL}/api/donation-items${editId ? `/${editId}` : ""}`, {
+        method: editId ? "PUT" : "POST",
         headers: { "Content-Type": "application/json" },
         credentials: "include",
         body: JSON.stringify({
           title: String(form.get("title")), category: String(form.get("category")), itemName: String(form.get("itemName")), quantity,
           unit: String(form.get("unit")), condition: String(form.get("condition")), expirationDate: String(form.get("expirationDate") || "") || null,
-          description: String(form.get("description")), mainImage: urls[0], images: urls.slice(1), deliveryMethod: String(form.get("deliveryMethod")),
+          description: String(form.get("description")), mainImage, images, deliveryMethod: String(form.get("deliveryMethod")),
           availableUntil: availableUntil || null,
         }),
       });
       const result = await response.json().catch(() => ({}));
       if (!response.ok) throw new Error(result.error || "Não foi possível publicar a doação.");
       setSent(true);
+      notify("Doação salva com sucesso.", "success");
       window.scrollTo({ top: 0, behavior: "smooth" });
     } catch (cause: unknown) {
       setGlobalError(cause instanceof Error ? cause.message : "Não foi possível publicar a doação.");
@@ -67,10 +100,10 @@ export default function ItemDonationPage() {
   }
 
   return <div className="min-h-screen bg-[#eefdf1] text-[#121e17]"><SiteHeader /><main className="mx-auto max-w-[1120px] px-5 py-9 sm:px-8 sm:py-12 lg:px-16">
-    <Link href="/doacoes" className="group inline-flex items-center gap-1.5 text-sm font-semibold text-[#404942] transition hover:text-[#256441]"><DirectionalChevron className="transition-transform group-hover:-translate-x-0.5" />Voltar às opções</Link>
-    <header className="mb-10 mt-6"><h1 className="text-3xl font-extrabold tracking-[-0.025em] sm:text-4xl lg:text-5xl">Publicar doação</h1><p className="mt-2 text-base leading-7 text-[#4d5b53] sm:text-lg">Compartilhe itens e recursos que podem ajudar quem precisa.</p></header>
-    {globalError && <div role="alert" className="mb-7 rounded-xl border border-red-200 bg-red-50 p-4 text-sm font-semibold text-red-800">{globalError}</div>}
-    {sent ? <Success /> : <form onSubmit={submit} className="mx-auto grid max-w-[1120px] items-start gap-8 lg:grid-cols-[minmax(0,1fr)_300px]">
+    <Link href={editId ? "/perfil#publicacoes" : "/doacoes"} className="group inline-flex items-center gap-1.5 text-sm font-semibold text-[#404942] transition hover:text-[#256441]"><DirectionalChevron className="transition-transform group-hover:-translate-x-0.5" />{editId ? "Voltar às publicações" : "Voltar às opções"}</Link>
+    <header className="mb-10 mt-6"><h1 className="text-3xl font-extrabold tracking-[-0.025em] sm:text-4xl lg:text-5xl">{editId ? "Editar anúncio do item" : "Publicar doação"}</h1><p className="mt-2 text-base leading-7 text-[#4d5b53] sm:text-lg">{editId ? "Revise todas as informações e mantenha o anúncio atualizado." : "Compartilhe itens e recursos que podem ajudar quem precisa."}</p></header>
+    {globalError && <Notification text={globalError} />}
+    {sent ? <Success editing={Boolean(editId)} /> : <form ref={formRef} onSubmit={submit} className="mx-auto grid max-w-[1120px] items-start gap-8 lg:grid-cols-[minmax(0,1fr)_300px]">
       <div className="flex min-w-0 flex-col gap-7">
       <DonationFormSection icon={<SectionIcon src="/icons/donations-profile.svg" />} title="Informações" description="Identifique o item e informe a quantidade disponível."><div className="grid gap-5 sm:grid-cols-2">
         <DonationField label="Título da doação" className="sm:col-span-2"><input name="title" required minLength={3} placeholder="Ex.: Ração para cães adultos" className={donationInputClass} /></DonationField>
@@ -87,7 +120,7 @@ export default function ItemDonationPage() {
       </div></DonationFormSection>
 
       <DonationFormSection icon={<SectionIcon src="/icons/gallery.svg" />} title="Fotos" description="Use imagens claras e reais. A foto principal aparecerá em destaque no anúncio."><div className="grid gap-6 sm:grid-cols-2">
-        <DonationField label="Foto principal" error={errors.mainPhoto}><input key={mainInputKey} type="file" accept="image/png,image/jpeg,image/webp" onChange={(event) => { setMainPhoto(event.target.files?.[0] || null); setErrors((current) => ({ ...current, mainPhoto: "" })); }} className="block min-h-14 w-full rounded-lg border border-dashed border-[#86a590] bg-[#f7fcf8] p-3 text-sm file:mr-3 file:rounded-lg file:border-0 file:bg-[#256441] file:px-4 file:py-2 file:font-semibold file:text-white" />{mainPhoto && <div className="mt-3 max-w-64"><DonationPhotoPreview featured file={mainPhoto} label="Foto principal" onRemove={() => { setMainPhoto(null); setMainInputKey((value) => value + 1); }} /></div>}</DonationField>
+        <DonationField label="Foto principal" error={errors.mainPhoto}><input key={mainInputKey} type="file" accept="image/png,image/jpeg,image/webp" onChange={(event) => { setMainPhoto(event.target.files?.[0] || null); setErrors((current) => ({ ...current, mainPhoto: "" })); }} className="block min-h-14 w-full rounded-lg border border-dashed border-[#86a590] bg-[#f7fcf8] p-3 text-sm file:mr-3 file:rounded-lg file:border-0 file:bg-[#256441] file:px-4 file:py-2 file:font-semibold file:text-white" />{mainPhoto && <div className="mt-3 max-w-64"><DonationPhotoPreview featured file={mainPhoto} label="Foto principal" onRemove={() => { setMainPhoto(null); setMainInputKey((value) => value + 1); }} /></div>}{!mainPhoto && typeof editData?.mainImage === "string" && <div className="relative mt-3 h-36 max-w-64 overflow-hidden rounded-xl"><Image src={editData.mainImage} alt="Foto atual" fill className="object-cover" /><span className="absolute bottom-2 left-2 rounded-md bg-black/65 px-2 py-1 text-xs text-white">Foto atual</span></div>}</DonationField>
         <DonationField label="Fotos adicionais" optional><input key={extraInputKey} type="file" accept="image/png,image/jpeg,image/webp" multiple onChange={(event) => setExtraPhotos(Array.from(event.target.files || []).slice(0, 5))} className="block min-h-14 w-full rounded-lg border border-dashed border-[#86a590] bg-[#f7fcf8] p-3 text-sm file:mr-3 file:rounded-lg file:border-0 file:bg-[#e3f2e6] file:px-4 file:py-2 file:font-semibold file:text-[#256441]" /><span className="text-xs font-normal text-[#526057]">Até 5 imagens adicionais.</span></DonationField>
       </div>{extraPhotos.length > 0 && <div className="mt-6 grid grid-cols-2 gap-3 sm:grid-cols-3 md:grid-cols-5">{extraPhotos.map((file, index) => <DonationPhotoPreview key={`${file.name}-${file.lastModified}-${index}`} file={file} label={`Foto adicional ${index + 1}`} onRemove={() => { setExtraPhotos((files) => files.filter((_, itemIndex) => itemIndex !== index)); setExtraInputKey((value) => value + 1); }} />)}</div>}</DonationFormSection>
 
@@ -96,7 +129,7 @@ export default function ItemDonationPage() {
         <DonationField label="Disponível até" optional error={errors.availableUntil}><input name="availableUntil" type="date" min={today} className={donationInputClass} onChange={() => setErrors((current) => ({ ...current, availableUntil: "" }))} /></DonationField>
       </div></DonationFormSection>
 
-      <div className="grid gap-3 border-t border-[#d7e6da] pt-6 sm:grid-cols-[0.8fr_1.2fr]"><Link href="/doacoes" className="flex min-h-[54px] items-center justify-center rounded-xl border border-[#256441] bg-white px-6 py-3 text-sm font-semibold text-[#256441] transition hover:bg-[#e8f7eb] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#256441]">Cancelar</Link><button type="submit" disabled={loading} className="flex min-h-[54px] items-center justify-center rounded-xl bg-[#0f5d39] px-6 py-3 text-sm font-semibold text-white shadow-[0_4px_12px_rgba(15,93,57,0.18)] transition hover:-translate-y-0.5 hover:bg-[#194b30] disabled:translate-y-0 disabled:cursor-wait disabled:opacity-60">{loading ? "Publicando doação..." : "Publicar doação"}</button></div>
+      <div className="grid gap-3 border-t border-[#d7e6da] pt-6 sm:grid-cols-[0.8fr_1.2fr]"><Link href={editId ? "/perfil#publicacoes" : "/doacoes"} className="flex min-h-[54px] items-center justify-center rounded-xl border border-[#256441] bg-white px-6 py-3 text-sm font-semibold text-[#256441] transition hover:bg-[#e8f7eb] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#256441]">Cancelar</Link><button type="submit" disabled={loading} className="flex min-h-[54px] items-center justify-center rounded-xl bg-[#0f5d39] px-6 py-3 text-sm font-semibold text-white shadow-[0_4px_12px_rgba(15,93,57,0.18)] transition hover:-translate-y-0.5 hover:bg-[#194b30] disabled:translate-y-0 disabled:cursor-wait disabled:opacity-60">{loading ? "Salvando..." : editId ? "Salvar alterações" : "Publicar doação"}</button></div>
       </div>
 
       <aside className="lg:sticky lg:top-28">
@@ -116,4 +149,4 @@ export default function ItemDonationPage() {
 
 function SectionIcon({ src }: { src: string }) { return <Image src={src} alt="" width={24} height={24} className="size-6 object-contain" />; }
 function DonationTip({ icon, title, children }: { icon: string; title: string; children: React.ReactNode }) { return <li className="flex items-start gap-3 py-4"><span className="mt-0.5 grid size-6 shrink-0 place-items-center text-[#256441]"><Image src={icon} alt="" width={22} height={22} className="max-h-[22px] max-w-[22px] object-contain" /></span><span><strong className="mb-0.5 block text-[#253129]">{title}</strong>{children}</span></li>; }
-function Success() { return <section role="status" className="mx-auto max-w-[960px] rounded-2xl border border-[#86c99c] bg-white p-8 text-center shadow-sm sm:p-12"><div className="mx-auto grid size-16 place-items-center rounded-2xl bg-[#e3f2e6]"><Image src="/icons/available-detail.svg" alt="Doação publicada" width={32} height={32} /></div><h2 className="mt-5 text-2xl font-bold">Doação publicada com sucesso!</h2><p className="mx-auto mt-2 max-w-xl leading-7 text-[#526057]">O item foi salvo e já faz parte das suas publicações.</p><Link href="/doacoes" className="mt-7 inline-flex min-h-12 items-center justify-center rounded-xl bg-[#256441] px-6 py-3 font-semibold text-white transition hover:bg-[#194b30]">Voltar para doações</Link></section>; }
+function Success({ editing = false }: { editing?: boolean }) { return <section role="status" className="mx-auto max-w-[960px] rounded-2xl border border-[#86c99c] bg-white p-8 text-center shadow-sm sm:p-12"><div className="mx-auto grid size-16 place-items-center rounded-2xl bg-[#e3f2e6]"><Image src="/icons/available-detail.svg" alt="Doação salva" width={32} height={32} /></div><h2 className="mt-5 text-2xl font-bold">Doação {editing ? "atualizada" : "publicada"} com sucesso!</h2><p className="mx-auto mt-2 max-w-xl leading-7 text-[#526057]">O item foi salvo e já faz parte das suas publicações.</p><Link href={editing ? "/perfil#publicacoes" : "/doacoes"} className="mt-7 inline-flex min-h-12 items-center justify-center rounded-xl bg-[#256441] px-6 py-3 font-semibold text-white transition hover:bg-[#194b30]">{editing ? "Voltar às publicações" : "Voltar para doações"}</Link></section>; }

@@ -1,6 +1,8 @@
 "use client";
 
 import { PhotoGallery } from "@/components/photo-gallery";
+import { SkeletonLoader } from "@/components/skeleton-loader";
+import { notify } from "@/components/notification";
 import { SiteFooter } from "@/components/site-footer";
 import { SiteHeader } from "@/components/site-header";
 import type { Animal } from "@/data/animals";
@@ -16,7 +18,7 @@ export default function PetDetailsPage() {
   const params = useParams();
   const router = useRouter();
   const id = params.id as string;
-  const { data: session } = useSession();
+  const { data: session, isPending } = useSession();
 
   const [animal, setAnimal] = useState<Animal | null>(null);
   const [loading, setLoading] = useState(true);
@@ -39,20 +41,25 @@ export default function PetDetailsPage() {
   }, [id]);
 
   function handleRequestAdoption() {
+    if (isPending) return;
     if (!session) {
-      router.push("/login");
+      router.push("/login?reason=unauthenticated");
       return;
     }
     if (!animal) return;
+    if (animal.userId === session.user.id || animal.owner?.id === session.user.id) {
+      notify("Você não pode adotar seu próprio animal.", "warning");
+      return;
+    }
+    if (animal.viewerRequestStatus || animal.status !== "Disponível") {
+      notify("Este animal já possui uma solicitação sua ou está indisponível.", "warning");
+      return;
+    }
     router.push(`/adocao/${animal.id}/solicitacao`);
   }
 
   if (loading) {
-    return (
-      <div className="flex min-h-screen items-center justify-center bg-[#eefdf1] text-[#256441]">
-        <div className="size-10 animate-spin rounded-full border-4 border-[#256441] border-t-transparent" />
-      </div>
-    );
+    return <SkeletonLoader fullScreen variant="detail" />;
   }
 
   if (!animal) {
@@ -293,7 +300,7 @@ export default function PetDetailsPage() {
 
             <button
               type="button"
-              disabled={Boolean(animal.viewerRequestStatus) || animal.status === "Adotado"}
+              disabled={isPending || Boolean(animal.viewerRequestStatus) || animal.status !== "Disponível"}
               onClick={handleRequestAdoption}
               className="w-full rounded-xl bg-[#256441] px-6 py-4 text-sm font-semibold tracking-[0.05em] text-white shadow-sm transition-all hover:-translate-y-0.5 hover:bg-[#194b30] hover:shadow-md active:scale-[0.98] disabled:opacity-60"
             >

@@ -1,5 +1,7 @@
 "use client";
 
+import { Notification } from "@/components/notification";
+
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { FormEvent, useState } from "react";
@@ -54,11 +56,7 @@ export default function RegisterPage() {
         <p className="mt-2 text-sm leading-6 text-[#4d5b53] sm:text-base">Leva menos de um minuto para começar.</p>
       </header>
 
-      {errorMessage && (
-        <div className="mb-4 rounded-xl border border-red-200 bg-red-50 p-3 text-sm text-red-700">
-          {errorMessage}
-        </div>
-      )}
+      {errorMessage && <Notification text={errorMessage} />}
 
       <form onSubmit={handleSubmit} className="space-y-4">
         <AuthField label="Nome Completo" icon="/icons/user.svg" name="name" placeholder="Seu nome completo" autoComplete="name" required />

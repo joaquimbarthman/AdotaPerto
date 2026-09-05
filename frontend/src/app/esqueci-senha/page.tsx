@@ -1,5 +1,7 @@
 "use client";
 
+import { Notification } from "@/components/notification";
+
 import Image from "next/image";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
@@ -152,7 +154,7 @@ function PageHeading({ title, description }: { title: string; description: React
 }
 
 function StatusMessage({ message }: { message: string | null }) {
-  return message ? <div role="alert" className="mb-5 rounded-xl border border-red-200 bg-red-50 p-3 text-sm text-red-700">{message}</div> : null;
+  return message ? <Notification text={message} /> : null;
 }
 
 function PrimaryButton({ loading, label, loadingLabel }: { loading: boolean; label: string; loadingLabel: string }) {

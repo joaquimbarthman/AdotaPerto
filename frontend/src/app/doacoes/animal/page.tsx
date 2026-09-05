@@ -1,9 +1,11 @@
 "use client";
 
+import { Notification, notify } from "@/components/notification";
+
 import Link from "next/link";
 import Image from "next/image";
 import { useRouter } from "next/navigation";
-import { FormEvent, useState } from "react";
+import { FormEvent, useEffect, useRef, useState } from "react";
 import { SiteFooter } from "@/components/site-footer";
 import { SiteHeader } from "@/components/site-header";
 import { useSession } from "@/lib/auth-client";
@@ -21,7 +23,6 @@ function PawIcon() {
 }
 function HealthIcon() { return <svg viewBox="0 0 24 24" className="size-6" fill="none" stroke="currentColor" strokeWidth="1.8"><path d="M9 3h6v4h4v14H5V7h4V3Zm1 12h4m-2-2v4" /></svg>; }
 function HeartIcon() { return <svg viewBox="0 0 24 24" className="size-6" fill="none" stroke="currentColor" strokeWidth="1.8"><path d="M20.8 5.8a5 5 0 0 0-7.1 0L12 7.5l-1.7-1.7a5 5 0 0 0-7.1 7.1L12 21l8.8-8.1a5 5 0 0 0 0-7.1Z" /></svg>; }
-function CameraIcon() { return <svg viewBox="0 0 24 24" className="size-6" fill="none" stroke="currentColor" strokeWidth="1.8"><path d="M4 7h4l2-3h4l2 3h4v13H4V7Z" /><circle cx="12" cy="13" r="4" /></svg>; }
 function StoryIcon() { return <svg viewBox="0 0 24 24" className="size-5" fill="none" stroke="currentColor" strokeWidth="1.8"><path d="M5 4h11a3 3 0 0 1 3 3v13H7a3 3 0 0 1-3-3V5a1 1 0 0 1 1-1Z" /><path d="M7 16h12M8 8h7M8 11h5" strokeLinecap="round" /></svg>; }
 
 export default function AnimalDonationPage() {
@@ -34,6 +35,41 @@ export default function AnimalDonationPage() {
   const [extraPhotos, setExtraPhotos] = useState<File[]>([]);
   const [mainInputKey, setMainInputKey] = useState(0);
   const [extraInputKey, setExtraInputKey] = useState(0);
+  const [editId, setEditId] = useState<string | null>(null);
+  const [editData, setEditData] = useState<Record<string, unknown> | null>(null);
+  const formRef = useRef<HTMLFormElement>(null);
+
+  useEffect(() => {
+    const id = new URLSearchParams(window.location.search).get("edit");
+    if (id) queueMicrotask(() => setEditId(id));
+  }, []);
+
+  useEffect(() => {
+    if (!editId) return;
+    fetch(`${API_BASE_URL}/api/animals/${editId}`, { credentials: "include" })
+      .then(async (response) => { if (!response.ok) throw new Error("Anúncio não encontrado."); return response.json(); })
+      .then(setEditData)
+      .catch((cause: unknown) => setError(cause instanceof Error ? cause.message : "Não foi possível carregar o anúncio."));
+  }, [editId]);
+
+  useEffect(() => {
+    if (!editData || !formRef.current) return;
+    const values: Record<string, unknown> = {
+      nome: editData.name, especie: editData.species === "Cachorro" ? "Cão" : editData.species, sexo: editData.sex,
+      idade: editData.age, porte: editData.size === "P" ? "Pequeno" : editData.size === "G" ? "Grande" : "Médio", raca: editData.breed,
+      castrado: editData.neutered, vacinas: editData.vaccination, vermifugado: editData.dewormed,
+      condicao: editData.hasHealthCondition ? "Sim" : "Não", descricaoSaude: editData.healthCondition,
+      energia: editData.energyLevel, caes: editData.livesWithDogs, gatos: editData.livesWithCats, criancas: editData.livesWithChildren,
+      personalidade: editData.personality, comportamento: editData.behaviorNotes, motivo: editData.adoptionReason,
+      tempoCuidados: editData.timeInCare, sobCuidados: editData.currentlyInCare ? "Sim" : "Não", descricao: editData.description,
+    };
+    Object.entries(values).forEach(([name, value]) => {
+      if (value == null) return;
+      const controls = formRef.current?.elements.namedItem(name);
+      if (controls instanceof RadioNodeList) controls.value = String(value);
+      else if (controls instanceof HTMLInputElement || controls instanceof HTMLSelectElement || controls instanceof HTMLTextAreaElement) controls.value = String(value);
+    });
+  }, [editData]);
 
   async function submit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -45,7 +81,7 @@ export default function AnimalDonationPage() {
       return;
     }
 
-    if (!mainPhoto) {
+    if (!mainPhoto && !editData?.image) {
       setError("Selecione uma foto principal do animal.");
       return;
     }
@@ -57,10 +93,10 @@ export default function AnimalDonationPage() {
 
     setLoading(true);
     try {
-      const files = [mainPhoto, ...extraPhotos];
+      const files = [mainPhoto, ...extraPhotos].filter((file): file is File => file instanceof File);
       const uploadedUrls = await uploadImages(files);
-      const image = uploadedUrls[0] || "/images/login-cover-v2.png";
-      const images = uploadedUrls.length > 1 ? uploadedUrls.slice(1) : [];
+      const image = mainPhoto ? uploadedUrls[0] : String(editData?.image || "/images/login-cover-v2.png");
+      const images = extraPhotos.length ? uploadedUrls.slice(mainPhoto ? 1 : 0) : (Array.isArray(editData?.images) ? editData.images : []);
 
       const payload = {
       name: formData.get("nome") as string,
@@ -86,11 +122,11 @@ export default function AnimalDonationPage() {
       description: formData.get("descricao") as string,
       image,
       images,
-      status: "Disponível",
+      status: String(editData?.status || "Disponível"),
       };
 
-      const res = await fetch(`${API_BASE_URL}/api/animals`, {
-        method: "POST",
+      const res = await fetch(`${API_BASE_URL}/api/animals${editId ? `/${editId}` : ""}`, {
+        method: editId ? "PUT" : "POST",
         headers: { "Content-Type": "application/json" },
         credentials: "include",
         body: JSON.stringify(payload),
@@ -102,6 +138,7 @@ export default function AnimalDonationPage() {
       }
 
       setSent(true);
+      notify("Publicação salva com sucesso.", "success");
       window.scrollTo({ top: 0, behavior: "smooth" });
     } catch (err: unknown) {
       setError(err instanceof Error ? err.message : "Erro ao cadastrar animal.");
@@ -113,33 +150,29 @@ export default function AnimalDonationPage() {
   return (
     <div className="min-h-screen bg-[#eefdf1] text-[#121e17]">
       <SiteHeader />
-      <main className="mx-auto max-w-[1280px] px-5 py-10 sm:px-8 sm:py-12">
-        <Link href="/doacoes" className="mb-7 inline-flex items-center gap-2 rounded-lg px-2 py-1 text-sm font-semibold text-[#256441] transition hover:bg-[#e8f7eb]"><span aria-hidden="true">‹</span> Voltar às opções</Link>
+      <main className="mx-auto max-w-[1120px] px-5 py-9 sm:px-8 sm:py-12 lg:px-16">
+        <Link href={editId ? "/perfil#publicacoes" : "/doacoes"} className="mb-7 inline-flex items-center gap-2 rounded-lg px-2 py-1 text-sm font-semibold text-[#256441] transition hover:bg-[#e8f7eb]"><span aria-hidden="true">‹</span> {editId ? "Voltar às publicações" : "Voltar às opções"}</Link>
         
-        {error && (
-          <div role="alert" className="mb-8 rounded-2xl border border-red-200 bg-red-50 p-5 text-red-800">
-            <strong>Erro:</strong> {error}
-          </div>
-        )}
+        {error && <Notification text={error} />}
 
         {sent && (
           <div role="status" className="mb-8 rounded-2xl border border-[#86c99c] bg-[#e8f7eb] p-6 text-[#194b30]">
-            <strong className="text-lg">Animal cadastrado com sucesso no banco de dados!</strong>
-            <p className="mt-1 text-sm">O anúncio agora está salvo e disponível para adoção.</p>
+            <strong className="text-lg">Animal {editId ? "atualizado" : "cadastrado"} com sucesso!</strong>
+            <p className="mt-1 text-sm">As informações do anúncio foram salvas.</p>
             <div className="mt-4 flex gap-3">
-              <Link href="/adocao" className="rounded-xl bg-[#256441] px-5 py-2.5 text-sm font-semibold text-white transition hover:bg-[#194b30]">
-                Ver lista de adoção
+              <Link href={editId ? "/perfil#publicacoes" : "/adocao"} className="rounded-xl bg-[#256441] px-5 py-2.5 text-sm font-semibold text-white transition hover:bg-[#194b30]">
+                {editId ? "Voltar às publicações" : "Ver lista de adoção"}
               </Link>
             </div>
           </div>
         )}
 
         <header className="mb-10 max-w-4xl">
-          <h1 className="text-3xl font-extrabold tracking-[-0.025em] sm:text-4xl lg:text-5xl">Cadastrar animal para adoção</h1>
+          <h1 className="text-3xl font-extrabold tracking-[-0.025em] sm:text-4xl lg:text-5xl">{editId ? "Editar anúncio do animal" : "Cadastrar animal para adoção"}</h1>
           <p className="mt-2 text-base leading-7 text-[#4d5b53] sm:text-lg">Preencha as informações com carinho para ajudar este animal a encontrar um novo lar seguro e amoroso.</p>
         </header>
 
-        <form onSubmit={submit} className="grid items-start gap-8 lg:grid-cols-[minmax(0,1fr)_330px]">
+        <form ref={formRef} onSubmit={submit} className="mx-auto grid max-w-[1120px] items-start gap-8 lg:grid-cols-[minmax(0,1fr)_300px]">
           <div className="flex min-w-0 flex-col gap-7">
             <Section icon={<PawIcon />} title="Informações básicas">
               <div className="grid gap-5 sm:grid-cols-2">
@@ -182,12 +215,13 @@ export default function AnimalDonationPage() {
               </div>
             </Section>
 
-            <Section icon={<CameraIcon />} title="Fotos" description="Adicione imagens claras e atuais. A primeira será usada como foto principal.">
+            <Section icon={<Image src="/icons/gallery.svg" alt="" width={24} height={24} className="size-6 object-contain" />} title="Fotos" description="Adicione imagens claras e atuais. A primeira será usada como foto principal.">
               <div className="grid gap-5 sm:grid-cols-2">
                 <div className="flex flex-col gap-1.5 text-sm font-semibold text-[#121e17]">
                   <span>Foto principal</span>
                   <input key={mainInputKey} name="fotoPrincipal" type="file" accept="image/png,image/jpeg,image/webp" onChange={(event) => setMainPhoto(event.target.files?.[0] || null)} className="block w-full rounded-lg border border-dashed border-[#86a590] bg-[#f7fcf8] p-4 text-sm file:mr-3 file:rounded-lg file:border-0 file:bg-[#256441] file:px-4 file:py-2 file:font-semibold file:text-white" />
                   {mainPhoto && <div className="mt-2 max-w-52"><PhotoPreview file={mainPhoto} label="foto principal" onRemove={() => { setMainPhoto(null); setMainInputKey((value) => value + 1); }} /></div>}
+                  {!mainPhoto && typeof editData?.image === "string" && <div className="relative mt-2 h-32 max-w-52 overflow-hidden rounded-xl"><Image src={editData.image} alt="Foto atual" fill className="object-cover" /><span className="absolute bottom-2 left-2 rounded-md bg-black/65 px-2 py-1 text-xs text-white">Foto atual</span></div>}
                 </div>
                 <div className="flex flex-col gap-1.5 text-sm font-semibold text-[#121e17]">
                   <span>Outras fotos <span className="font-normal text-[#68726b]">(opcional, até 5)</span></span>
@@ -207,10 +241,10 @@ export default function AnimalDonationPage() {
             </section>
             
             <div className="grid gap-3 border-t border-[#d7e6da] pt-6 sm:grid-cols-[0.8fr_1.2fr]">
-              <Link href="/doacoes" className="flex min-h-[52px] w-full items-center justify-center rounded-xl border border-[#256441] bg-white px-6 py-3 text-center text-sm font-semibold text-[#256441] transition hover:bg-[#e8f7eb] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#256441]">Cancelar</Link>
+              <Link href={editId ? "/perfil#publicacoes" : "/doacoes"} className="flex min-h-[52px] w-full items-center justify-center rounded-xl border border-[#256441] bg-white px-6 py-3 text-center text-sm font-semibold text-[#256441] transition hover:bg-[#e8f7eb] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#256441]">Cancelar</Link>
               <button type="submit" disabled={loading} className="flex min-h-[52px] w-full items-center justify-center gap-2 rounded-xl bg-[#0f5d39] px-6 py-3 text-sm font-semibold text-white shadow-[0_4px_12px_rgba(15,93,57,0.18)] transition hover:-translate-y-0.5 hover:bg-[#194b30] hover:shadow-[0_7px_16px_rgba(15,93,57,0.22)] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#256441] disabled:opacity-60">
                 <svg viewBox="0 0 20 20" className="size-4" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden="true"><path d="m5 10 3.2 3.2L15 6.5" strokeLinecap="round" strokeLinejoin="round" /></svg>
-                {loading ? "Salvando cadastro..." : "Finalizar cadastro"}
+                {loading ? "Salvando..." : editId ? "Salvar alterações" : "Finalizar cadastro"}
               </button>
             </div>
           </div>
@@ -221,7 +255,7 @@ export default function AnimalDonationPage() {
               <p className="mt-1 text-sm leading-5 text-[#526057]">Pequenos cuidados aumentam as chances de adoção.</p>
             </div>
             <ul className="divide-y divide-[#e6eee8] rounded-2xl border border-[#d7e6da] bg-white px-5 text-sm leading-5 text-[#526057] shadow-[0_4px_14px_rgba(38,51,43,0.04)]">
-              <li className="flex items-start gap-3 py-4"><span className="mt-0.5 shrink-0 text-[#256441]"><CameraIcon /></span><span><strong className="mb-0.5 block text-[#253129]">Boas fotos</strong>Use iluminação natural e mostre diferentes ângulos.</span></li>
+              <li className="flex items-start gap-3 py-4"><span className="mt-0.5 grid size-6 shrink-0 place-items-center"><Image src="/icons/gallery.svg" alt="" width={24} height={24} className="size-6 object-contain" /></span><span><strong className="mb-0.5 block text-[#253129]">Boas fotos</strong>Use iluminação natural e mostre diferentes ângulos.</span></li>
               <li className="flex items-start gap-3 py-4"><span className="mt-0.5 shrink-0 text-[#256441]"><HeartIcon /></span><span><strong className="mb-0.5 block text-[#253129]">Seja honesto</strong>Descreva a personalidade e os cuidados reais para evitar devoluções.</span></li>
               <li className="flex items-start gap-3 py-4"><span className="mt-0.5 shrink-0 text-[#256441]"><StoryIcon /></span><span><strong className="mb-0.5 block text-[#253129]">Conte a história</strong>Um relato verdadeiro cria conexão com possíveis adotantes.</span></li>
             </ul>

@@ -1,0 +1,88 @@
+"use client";
+
+import { useEffect, useMemo, useState } from "react";
+import { DirectionalChevron } from "@/components/directional-chevron";
+import { SkeletonLoader } from "@/components/skeleton-loader";
+import { LoadErrorState } from "@/components/load-error-state";
+import { DonationItemCard } from "@/components/donation-item-card";
+import { EmptyState } from "@/components/empty-state";
+import { ExploreTabs } from "@/components/explore-tabs";
+import { SiteFooter } from "@/components/site-footer";
+import { SiteHeader } from "@/components/site-header";
+
+const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:4000";
+const CATEGORY_OPTIONS = ["Ração", "Petiscos", "Produtos de higiene", "Caminhas e cobertores", "Coleiras e guias", "Caixas de transporte", "Brinquedos", "Utensílios", "Produtos de limpeza", "Outros"];
+const CONDITION_OPTIONS = ["Novo", "Lacrado", "Aberto em boas condições", "Usado em boas condições"];
+
+export type DonationItem = {
+  id: string; title: string; category: string; itemName: string; quantity: number; unit: string;
+  condition: string; description: string; mainImage: string; images?: string[]; deliveryMethod: string;
+  availableUntil?: string | null; expirationDate?: string | null; status: string; createdAt?: string; distance?: string;
+};
+
+export default function DonationItemsPage() {
+  const [items, setItems] = useState<DonationItem[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [categories, setCategories] = useState<string[]>([]);
+  const [conditions, setConditions] = useState<string[]>([]);
+  const [delivery, setDelivery] = useState("Qualquer");
+  const [sort, setSort] = useState("Mais recentes");
+  const [visible, setVisible] = useState(6);
+  const [filtersOpen, setFiltersOpen] = useState(true);
+
+  useEffect(() => {
+    fetch(`${API_BASE_URL}/api/donation-items`)
+      .then(async (response) => { if (!response.ok) throw new Error("Não foi possível carregar as doações."); return response.json(); })
+      .then((data) => setItems(Array.isArray(data) ? data : []))
+      .catch((cause: unknown) => setError(cause instanceof Error ? cause.message : "Não foi possível carregar as doações."))
+      .finally(() => setLoading(false));
+  }, []);
+
+  const activeFilters = categories.length + conditions.length + (delivery !== "Qualquer" ? 1 : 0);
+  const filteredItems = useMemo(() => {
+    const result = items.filter((item) => (!categories.length || categories.includes(item.category)) && (!conditions.length || conditions.includes(item.condition)) && (delivery === "Qualquer" || item.deliveryMethod === delivery));
+    return [...result].sort((a, b) => sort === "Maior quantidade" ? b.quantity - a.quantity : new Date(b.createdAt || 0).getTime() - new Date(a.createdAt || 0).getTime());
+  }, [items, categories, conditions, delivery, sort]);
+
+  const toggle = (value: string, values: string[], setter: (next: string[]) => void) => { setter(values.includes(value) ? values.filter((item) => item !== value) : [...values, value]); setVisible(6); };
+  const clear = () => { setCategories([]); setConditions([]); setDelivery("Qualquer"); setVisible(6); };
+
+  return <div className="min-h-screen bg-[#eefdf1] text-[#121e17]">
+    <SiteHeader />
+    <main className="mx-auto max-w-[1200px] px-5 py-8 sm:px-10 lg:px-20 lg:py-12">
+      <ExploreTabs />
+      <div className="grid items-start gap-6 lg:grid-cols-[256px_1fr]">
+        <aside className="lg:sticky lg:top-28">
+          <details className="group overflow-hidden rounded-2xl border border-[#d7e6da] bg-white shadow-[0_8px_24px_rgba(38,51,43,0.06)]" open={filtersOpen}>
+            <summary onClick={(event) => { event.preventDefault(); if (window.innerWidth < 1024) setFiltersOpen((value) => !value); }} className="flex cursor-pointer list-none items-center justify-between border-b border-[#e7eee9] bg-[#f7fcf8] px-5 py-4 [&::-webkit-details-marker]:hidden lg:cursor-default">
+              <div className="flex items-center gap-2"><h2 className="text-xl font-semibold">Filtros</h2>{activeFilters > 0 && <span className="grid size-5 place-items-center rounded-full bg-[#256441] text-[10px] font-bold text-white">{activeFilters}</span>}</div>
+              <div className="flex items-center"><button type="button" onClick={(event) => { event.preventDefault(); event.stopPropagation(); clear(); }} disabled={!activeFilters} className="hidden min-h-8 rounded-lg px-2.5 text-xs font-semibold text-[#256441] hover:bg-[#e8f7eb] disabled:pointer-events-none disabled:text-[#9aa69e] lg:block">Limpar</button><DirectionalChevron direction="down" className={`text-[#256441] transition-transform lg:hidden ${filtersOpen ? "rotate-90" : ""}`} /></div>
+            </summary>
+            <div className="flex flex-col px-5 pb-4">
+              <FilterChecks title="Categoria" options={CATEGORY_OPTIONS} selected={categories} onToggle={(value) => toggle(value, categories, setCategories)} />
+              <FilterChecks title="Condição" options={CONDITION_OPTIONS} selected={conditions} onToggle={(value) => toggle(value, conditions, setConditions)} />
+              <FilterPills title="Forma de entrega" options={["Qualquer", "Retirada", "Entrega", "A combinar"]} selected={delivery} onSelect={(value) => { setDelivery(value); setVisible(6); }} />
+              {activeFilters > 0 && <button type="button" onClick={clear} className="mt-5 rounded-xl border border-[#256441] py-2.5 text-sm font-semibold text-[#256441] hover:bg-[#e8f7eb] lg:hidden">Limpar todos os filtros</button>}
+            </div>
+          </details>
+        </aside>
+        <section>
+          <div className="mb-6 flex flex-col justify-between gap-4 sm:flex-row sm:items-end">
+            <div><h1 className="text-3xl font-extrabold tracking-[-0.02em] sm:text-[40px] sm:leading-12">Itens disponíveis</h1><p className="mt-1 text-base text-[#404942]">{filteredItems.length} {filteredItems.length === 1 ? "item disponível" : "itens disponíveis"} para ajudar quem precisa.</p></div>
+            <label className="flex items-center gap-2 text-xs text-[#404942]">Ordenar por:<select value={sort} onChange={(event) => setSort(event.target.value)} className="rounded-lg border border-[#d6e6db] bg-white px-3 py-2 text-sm outline-none focus:border-[#256441]"><option>Mais recentes</option><option>Maior quantidade</option></select></label>
+          </div>
+          {loading ? <SkeletonLoader variant="cards" /> : error ? <LoadErrorState message="Não foi possível carregar as doações." /> : filteredItems.length ? <div className="grid gap-6 sm:grid-cols-2 xl:grid-cols-3">{filteredItems.slice(0, visible).map((item) => <DonationItemCard key={item.id} item={item} />)}</div> : <EmptyItems filtered={activeFilters > 0} />}
+          {visible < filteredItems.length && <div className="flex justify-center pt-14"><button type="button" onClick={() => setVisible((value) => value + 3)} className="group flex min-w-56 items-center justify-center gap-2 rounded-xl border-2 border-[#256441] px-8 py-3.5 text-sm font-semibold tracking-[0.05em] text-[#256441] transition hover:-translate-y-0.5 hover:bg-[#256441] hover:text-white">Carregar mais <DirectionalChevron direction="down" /></button></div>}
+        </section>
+      </div>
+    </main>
+    <div className="mt-10"><SiteFooter /></div>
+  </div>;
+}
+
+function FilterChecks({ title, options, selected, onToggle }: { title: string; options: string[]; selected: string[]; onToggle: (value: string) => void }) { return <section className="border-b border-[#e7eee9] py-4"><h3 className="mb-2 text-[13px] font-semibold tracking-[0.04em] text-[#4d5b53]">{title}</h3><div className="space-y-2">{options.map((option) => <label key={option} className="flex cursor-pointer items-start gap-2.5 text-sm text-[#26332b]"><input type="checkbox" checked={selected.includes(option)} onChange={() => onToggle(option)} className="peer sr-only" /><span className="mt-0.5 grid size-[18px] shrink-0 place-items-center rounded-[5px] border border-[#c6d5ca] text-xs font-bold text-white peer-checked:border-[#256441] peer-checked:bg-[#256441]">{selected.includes(option) ? "✓" : ""}</span><span>{option}</span></label>)}</div></section>; }
+function FilterPills({ title, options, selected, onSelect }: { title: string; options: string[]; selected: string; onSelect: (value: string) => void }) { return <section className="py-4"><h3 className="mb-2 text-[13px] font-semibold tracking-[0.04em] text-[#4d5b53]">{title}</h3><div className="flex flex-wrap gap-1.5">{options.map((option) => <button type="button" key={option} onClick={() => onSelect(option)} className={`rounded-xl border px-3 py-1.5 text-xs font-semibold ${selected === option ? "border-[#256441] bg-[#256441] text-white" : "border-[#c6d5ca] text-[#4d5b53] hover:border-[#256441]"}`}>{option}</button>)}</div></section>; }
+function EmptyItems({ filtered }: { filtered: boolean }) {
+  return <EmptyState message={filtered ? "Nenhum item encontrado com esses filtros." : "Nenhum item disponível agora."} description={filtered ? "Tente remover alguns filtros para ampliar os resultados." : undefined} />;
+}

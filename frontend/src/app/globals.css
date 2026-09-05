@@ -120,6 +120,52 @@ html[data-theme="dark"] textarea::placeholder {
   color: #84958a !important;
 }
 
+/* Semantic feedback colors must keep their meaning and contrast in dark mode. */
+html[data-theme="dark"] :is(.bg-red-50, .bg-red-100) {
+  background-color: #3d2024 !important;
+}
+
+html[data-theme="dark"] :is(.border-red-200, .border-red-300) {
+  border-color: #81404a !important;
+}
+
+html[data-theme="dark"] :is(.text-red-600, .text-red-700, .text-red-800) {
+  color: #ff9ca9 !important;
+}
+
+html[data-theme="dark"] :is(.hover\:bg-red-50:hover, .hover\:bg-red-100:hover) {
+  background-color: #4a252b !important;
+  color: #ffb0ba !important;
+}
+
+html[data-theme="dark"] :is(.bg-green-50, .bg-green-100) {
+  background-color: #173b27 !important;
+}
+
+html[data-theme="dark"] :is(.border-green-200, .border-green-300) {
+  border-color: #367b50 !important;
+}
+
+html[data-theme="dark"] :is(.text-green-700, .text-green-800) {
+  color: #8ce0a8 !important;
+}
+
+html[data-theme="dark"] :is(.bg-amber-50, .bg-yellow-50) {
+  background-color: #45341b !important;
+}
+
+html[data-theme="dark"] :is(.border-amber-200, .border-yellow-200) {
+  border-color: #88682d !important;
+}
+
+html[data-theme="dark"] :is(.text-amber-700, .text-amber-800, .text-yellow-800) {
+  color: #f3c66f !important;
+}
+
+html[data-theme="dark"] input[type="file"]::file-selector-button {
+  border-color: #405848;
+}
+
 main {
   animation: page-enter 350ms ease-out both;
 }
@@ -133,6 +179,30 @@ main {
     opacity: 1;
     transform: translateY(0);
   }
+}
+
+.profile-loader {
+  animation: loader-float 1.15s ease-in-out infinite;
+}
+
+.profile-loader::after {
+  position: absolute;
+  inset: -7px;
+  border: 3px solid transparent;
+  border-top-color: currentColor;
+  border-right-color: color-mix(in srgb, currentColor 35%, transparent);
+  border-radius: 9999px;
+  content: "";
+  animation: loader-spin 900ms linear infinite;
+}
+
+@keyframes loader-float {
+  0%, 100% { transform: translateY(0) scale(1); }
+  50% { transform: translateY(-5px) scale(1.03); }
+}
+
+@keyframes loader-spin {
+  to { transform: rotate(360deg); }
 }
 
 @media (prefers-reduced-motion: reduce) {
@@ -176,4 +246,74 @@ button {
   background: #256441;
   box-shadow: 0 1px 4px rgb(38 51 43 / 20%);
   cursor: pointer;
+}
+@keyframes notification-enter {
+  from { opacity: 0; transform: translateX(-32px); }
+  to { opacity: 1; transform: translateX(0); }
+}
+@keyframes notification-exit {
+  from { opacity: 1; transform: translateX(0); }
+  to { opacity: 0; transform: translateX(-32px); }
+}
+@keyframes notification-progress {
+  from { transform: scaleX(1); }
+  to { transform: scaleX(0); }
+}
+@keyframes skeleton-shimmer {
+  to { transform: translateX(100%); }
+}
+.skeleton-shimmer { position: relative; background: #dfe9e1; }
+.skeleton-shimmer::after { content: ""; position: absolute; inset: 0; transform: translateX(-100%); background: linear-gradient(90deg, transparent, rgba(255,255,255,.72), transparent); animation: skeleton-shimmer 1.35s infinite; }
+.load-error-state { border-color: color-mix(in srgb, #ef4444 55%, white); background: color-mix(in srgb, #ef4444 30%, white); color: #7f1d1d; }
+html[data-theme="dark"] .skeleton-shimmer { background: #29372e; }
+html[data-theme="dark"] .skeleton-shimmer::after { background: linear-gradient(90deg, transparent, rgba(255,255,255,.08), transparent); }
+html[data-theme="dark"] .load-error-state { border-color: color-mix(in srgb, #ef4444 55%, #17211b); background: color-mix(in srgb, #ef4444 30%, #17211b); color: #fee2e2; }
+.notification-enter { animation: notification-enter 260ms cubic-bezier(0.22, 1, 0.36, 1); }
+.notification-exit { animation: notification-exit 350ms ease-in forwards; }
+.notification-progress { animation: notification-progress 5s linear forwards; }
+.notification-success { background: color-mix(in srgb, #22c55e 30%, white); color: #14532d; }
+.notification-error { background: color-mix(in srgb, #ef4444 30%, white); color: #7f1d1d; }
+.notification-warning { background: color-mix(in srgb, #f59e0b 30%, white); color: #713f12; }
+.notification-info { background: color-mix(in srgb, #3b82f6 30%, white); color: #1e3a8a; }
+html[data-theme="dark"] .notification-success { background: color-mix(in srgb, #22c55e 30%, #17211b); color: #dcfce7; }
+html[data-theme="dark"] .notification-error { background: color-mix(in srgb, #ef4444 30%, #17211b); color: #fee2e2; }
+html[data-theme="dark"] .notification-warning { background: color-mix(in srgb, #f59e0b 30%, #17211b); color: #fef3c7; }
+html[data-theme="dark"] .notification-info { background: color-mix(in srgb, #3b82f6 30%, #17211b); color: #dbeafe; }
+html[data-theme="dark"] .notification-dropdown {
+  border-color: #33483a !important;
+  background: #18251d !important;
+  box-shadow: 0 22px 60px rgb(0 0 0 / 42%);
+}
+html[data-theme="dark"] .notification-list,
+html[data-theme="dark"] .notification-item {
+  border-color: #2b3c31 !important;
+}
+html[data-theme="dark"] .notification-item {
+  background: #18251d !important;
+}
+html[data-theme="dark"] .notification-item:hover,
+html[data-theme="dark"] .notification-footer:hover {
+  background: #213329 !important;
+}
+html[data-theme="dark"] .notification-item-read {
+  opacity: .58;
+}
+html[data-theme="dark"] .notification-type-icon[data-tone="success"] {
+  background: #183b27 !important;
+  color: #7cdda0 !important;
+}
+html[data-theme="dark"] .notification-type-icon[data-tone="publication"] {
+  background: #342849 !important;
+  color: #c8a9ff !important;
+}
+html[data-theme="dark"] .notification-type-icon[data-tone="info"] {
+  background: #1d3349 !important;
+  color: #91c8ff !important;
+}
+html[data-theme="dark"] .notification-dropdown .text-\[\#859087\],
+html[data-theme="dark"] .notification-dropdown .text-\[\#9aa49d\] {
+  color: #87978c !important;
+}
+@media (prefers-reduced-motion: reduce) {
+  .notification-enter, .notification-exit, .notification-progress, .skeleton-shimmer::after { animation: none; }
 }

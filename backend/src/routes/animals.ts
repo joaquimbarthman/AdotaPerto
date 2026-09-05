@@ -111,6 +111,19 @@ animalRoutes.get("/", async (c) => {
   return c.json(list);
 });
 
+animalRoutes.get("/mine", async (c) => {
+  const currentUser = c.get("user");
+  if (!currentUser) return c.json({ error: "Não autorizado" }, 401);
+
+  return c.json(
+    await db
+      .select()
+      .from(animal)
+      .where(eq(animal.userId, currentUser.id))
+      .orderBy(desc(animal.createdAt)),
+  );
+});
+
 animalRoutes.get("/:id", async (c) => {
   const id = c.req.param("id");
   const currentUser = c.get("user");

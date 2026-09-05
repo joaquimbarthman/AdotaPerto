@@ -1,5 +1,7 @@
 "use client";
 
+import { Notification } from "@/components/notification";
+
 import Image from "next/image";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
@@ -7,6 +9,10 @@ import type { FormEvent, ReactNode } from "react";
 import { useEffect, useState } from "react";
 import { createPortal } from "react-dom";
 import { AnimalCard } from "@/components/animal-card";
+import { SkeletonLoader } from "@/components/skeleton-loader";
+import { LoadErrorState } from "@/components/load-error-state";
+import { DonationItemCard } from "@/components/donation-item-card";
+import { EmptyState } from "@/components/empty-state";
 import { SiteFooter } from "@/components/site-footer";
 import { SiteHeader } from "@/components/site-header";
 import { authClient, useSession } from "@/lib/auth-client";
@@ -16,12 +22,12 @@ import { uploadImages } from "@/lib/uploads";
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:4000";
 
 const tabs = [
-  { id: "adocoes", label: "Animais para adoção", icon: "/icons/adoptions.svg" },
-  { id: "doacoes", label: "Itens para doar", icon: "/icons/donations-profile.svg" },
-  { id: "favoritos", label: "Favoritos", icon: "/icons/favorites.svg" },
-  { id: "dados", label: "Dados pessoais", icon: "/icons/user.svg" },
-  { id: "endereco", label: "Endereço", icon: "/icons/location.svg" },
-  { id: "acesso", label: "Acesso à conta", icon: "/icons/password.svg" },
+  { id: "publicacoes", label: "Minhas publicações" },
+  { id: "solicitacoes", label: "Solicitações" },
+  { id: "favoritos", label: "Favoritos" },
+  { id: "dados", label: "Dados pessoais" },
+  { id: "endereco", label: "Endereço" },
+  { id: "acesso", label: "Acesso à conta" },
 ] as const;
 
 type TabId = (typeof tabs)[number]["id"];
@@ -72,6 +78,31 @@ type FavoriteItem = {
   animal: Animal;
 };
 
+type FavoriteDonationItem = { id: string; createdAt: string; item: DonationItem };
+
+type DonationItem = {
+  id: string;
+  title: string;
+  itemName: string;
+  category: string;
+  quantity: number;
+  unit: string;
+  condition: string;
+  description: string;
+  mainImage: string;
+  deliveryMethod: string;
+  status: "Disponível" | "Pausado" | "Doado";
+  createdAt: string;
+};
+
+type EditablePublication = { kind: "animal"; data: Animal } | { kind: "item"; data: DonationItem };
+
+type DonationItemRequest = {
+  id: string; status: string; quantity: number; message?: string | null; createdAt: string; item: DonationItem;
+  requester?: { id: string; name: string; image?: string | null; city?: string | null; state?: string | null };
+  ownerContact?: AdoptionRequestItem["ownerContact"];
+};
+
 function formatMemberSince(date?: string | Date) {
   if (!date) return "Membro recente";
   const d = new Date(date);
@@ -88,32 +119,38 @@ export default function ProfilePage() {
   const [requests, setRequests] = useState<AdoptionRequestItem[]>([]);
   const [receivedRequests, setReceivedRequests] = useState<AdoptionRequestItem[]>([]);
   const [favorites, setFavorites] = useState<FavoriteItem[]>([]);
+  const [favoriteItems, setFavoriteItems] = useState<FavoriteDonationItem[]>([]);
+  const [favoriteType, setFavoriteType] = useState<"animais" | "itens">("animais");
+  const [myAnimals, setMyAnimals] = useState<Animal[]>([]);
+  const [myItems, setMyItems] = useState<DonationItem[]>([]);
+  const [publicationFilter, setPublicationFilter] = useState<"animais" | "itens">("animais");
+  const [requestFilter, setRequestFilter] = useState<"recebidas" | "enviadas">("recebidas");
+  const [requestType, setRequestType] = useState<"animais" | "itens">("animais");
+  const [itemRequests, setItemRequests] = useState<DonationItemRequest[]>([]);
+  const [receivedItemRequests, setReceivedItemRequests] = useState<DonationItemRequest[]>([]);
   const [loadingProfile, setLoadingProfile] = useState(true);
   const [savingPersonal, setSavingPersonal] = useState(false);
   const [savingAddress, setSavingAddress] = useState(false);
   const [toastMessage, setToastMessage] = useState<{ type: "success" | "error"; text: string } | null>(null);
-  const [minimumLoadingFinished, setMinimumLoadingFinished] = useState(false);
-  const [loadingCountdown, setLoadingCountdown] = useState(3);
+  const [loadingPublications, setLoadingPublications] = useState(true);
+  const [publicationsError, setPublicationsError] = useState<string | null>(null);
+  const [loadingRequests, setLoadingRequests] = useState(true);
+  const [requestsError, setRequestsError] = useState<string | null>(null);
 
   const { data: session, isPending: isSessionPending } = useSession();
 
   useEffect(() => {
-    const timer = window.setInterval(() => {
-      setLoadingCountdown((current) => {
-        if (current <= 1) {
-          window.clearInterval(timer);
-          setMinimumLoadingFinished(true);
-          return 0;
-        }
-        return current - 1;
-      });
-    }, 1000);
-
-    return () => window.clearInterval(timer);
+    function selectTabFromHash() {
+      const id = window.location.hash.replace("#", "") as TabId;
+      if (tabs.some((tab) => tab.id === id)) setActiveTab(id);
+    }
+    queueMicrotask(selectTabFromHash);
+    window.addEventListener("hashchange", selectTabFromHash);
+    return () => window.removeEventListener("hashchange", selectTabFromHash);
   }, []);
 
   useEffect(() => {
-    if (minimumLoadingFinished && !isSessionPending && !session) {
+    if (!isSessionPending && !session) {
       router.replace("/login?reason=unauthenticated");
       return;
     }
@@ -144,11 +181,18 @@ export default function ProfilePage() {
       }
 
       async function loadRequests() {
+        setLoadingRequests(true);
+        setRequestsError(null);
         try {
-          const [sentResponse, receivedResponse] = await Promise.all([
+          const [sentResponse, receivedResponse, sentItemsResponse, receivedItemsResponse] = await Promise.all([
             fetch(`${API_BASE_URL}/api/adoption-requests`, { credentials: "include" }),
             fetch(`${API_BASE_URL}/api/adoption-requests/received`, { credentials: "include" }),
+            fetch(`${API_BASE_URL}/api/donation-item-requests`, { credentials: "include" }),
+            fetch(`${API_BASE_URL}/api/donation-item-requests/received`, { credentials: "include" }),
           ]);
+          if (!sentResponse.ok || !receivedResponse.ok || !sentItemsResponse.ok || !receivedItemsResponse.ok) {
+            throw new Error("Não foi possível carregar as solicitações.");
+          }
           if (sentResponse.ok) {
             const data = await sentResponse.json();
             if (Array.isArray(data)) setRequests(data);
@@ -157,53 +201,59 @@ export default function ProfilePage() {
             const data = await receivedResponse.json();
             if (Array.isArray(data)) setReceivedRequests(data);
           }
+          if (sentItemsResponse.ok) { const data = await sentItemsResponse.json(); if (Array.isArray(data)) setItemRequests(data); }
+          if (receivedItemsResponse.ok) { const data = await receivedItemsResponse.json(); if (Array.isArray(data)) setReceivedItemRequests(data); }
         } catch {
-          // ignore
+          setRequestsError("Não foi possível carregar suas solicitações.");
+        } finally {
+          setLoadingRequests(false);
         }
       }
 
       async function loadFavorites() {
         try {
-          const res = await fetch(`${API_BASE_URL}/api/favorites`, { credentials: "include" });
-          if (res.ok) {
-            const data = await res.json();
-            if (Array.isArray(data)) setFavorites(data);
-          }
+          const [animalsResponse, itemsResponse] = await Promise.all([
+            fetch(`${API_BASE_URL}/api/favorites`, { credentials: "include" }),
+            fetch(`${API_BASE_URL}/api/favorites/items`, { credentials: "include" }),
+          ]);
+          if (animalsResponse.ok) { const data = await animalsResponse.json(); if (Array.isArray(data)) setFavorites(data); }
+          if (itemsResponse.ok) { const data = await itemsResponse.json(); if (Array.isArray(data)) setFavoriteItems(data); }
         } catch {
           // ignore
+        }
+      }
+
+      async function loadPublications() {
+        setLoadingPublications(true);
+        setPublicationsError(null);
+        try {
+          const [animalsResponse, itemsResponse] = await Promise.all([
+            fetch(`${API_BASE_URL}/api/animals/mine`, { credentials: "include" }),
+            fetch(`${API_BASE_URL}/api/donation-items/mine`, { credentials: "include" }),
+          ]);
+          const animalsData = animalsResponse.ok ? await animalsResponse.json() : null;
+          const itemsData = itemsResponse.ok ? await itemsResponse.json() : null;
+          if (!animalsResponse.ok || !itemsResponse.ok) throw new Error("Não foi possível carregar todas as publicações.");
+          setMyAnimals(Array.isArray(animalsData) ? animalsData : []);
+          setMyItems(Array.isArray(itemsData) ? itemsData : []);
+        } catch {
+          setPublicationsError("Não foi possível carregar suas publicações.");
+        } finally {
+          setLoadingPublications(false);
         }
       }
 
       loadProfile();
       loadRequests();
       loadFavorites();
+      loadPublications();
     }
-  }, [isSessionPending, minimumLoadingFinished, session, router]);
+  }, [isSessionPending, session, router]);
 
-  if (!minimumLoadingFinished || isSessionPending || !session || loadingProfile) {
-    return (
-      <div className="flex min-h-screen items-center justify-center bg-[#eefdf1] text-[#256441]">
-        <div className="flex flex-col items-center gap-4" role="status" aria-live="polite">
-          <div className="relative grid size-16 place-items-center" aria-label={`${loadingCountdown} segundos`}>
-            <div className="absolute inset-0 animate-spin rounded-full border-4 border-[#256441] border-t-transparent" />
-            <span key={loadingCountdown} className="text-2xl font-extrabold text-[#256441]">{loadingCountdown}</span>
-          </div>
-          <p className="text-sm font-semibold">Carregando dados...</p>
-        </div>
-      </div>
-    );
-  }
+  if (isSessionPending || (session && loadingProfile)) return <ProfileLoading label={isSessionPending ? "Verificando sua sessão" : "Carregando seu perfil"} />;
 
   if (!session) {
-    return (
-      <div className="flex min-h-screen flex-col items-center justify-center bg-[#eefdf1] px-4 text-center">
-        <h1 className="text-2xl font-bold text-[#121e17]">Você não está conectado</h1>
-        <p className="mt-2 text-[#526057]">Faça login para visualizar seu perfil.</p>
-        <Link href="/login" className="mt-6 rounded-xl bg-[#256441] px-6 py-3 font-semibold text-white transition hover:bg-[#194b30]">
-          Ir para o Login
-        </Link>
-      </div>
-    );
+    return <ProfileLoading label="Redirecionando para o login" />;
   }
 
   const userName = profile?.name || session.user.name || "Usuário";
@@ -303,15 +353,28 @@ export default function ProfilePage() {
     }
   }
 
+  async function updateReceivedItemRequest(id: string, status: "Aprovada" | "Recusada") {
+    const response = await fetch(`${API_BASE_URL}/api/donation-item-requests/${id}/status`, { method: "PATCH", headers: { "Content-Type": "application/json" }, credentials: "include", body: JSON.stringify({ status }) });
+    if (!response.ok) return setToastMessage({ type: "error", text: "Não foi possível atualizar a solicitação do item." });
+    setReceivedItemRequests((items) => items.map((item) => item.id === id ? { ...item, status } : item));
+    setToastMessage({ type: "success", text: `Solicitação ${status.toLowerCase()} com sucesso.` });
+  }
+
+  async function removePublication(publication: EditablePublication) {
+    if (!window.confirm("Excluir esta publicação permanentemente?")) return;
+    const endpoint = publication.kind === "animal" ? "animals" : "donation-items";
+    const response = await fetch(`${API_BASE_URL}/api/${endpoint}/${publication.data.id}`, { method: "DELETE", credentials: "include" });
+    if (!response.ok) return setToastMessage({ type: "error", text: "Não foi possível excluir a publicação." });
+    if (publication.kind === "animal") setMyAnimals((items) => items.filter((item) => item.id !== publication.data.id));
+    else setMyItems((items) => items.filter((item) => item.id !== publication.data.id));
+    setToastMessage({ type: "success", text: "Publicação excluída." });
+  }
+
   return (
     <div className="min-h-screen bg-[#eefdf1] text-[#121e17]">
       <SiteHeader />
       <main className="mx-auto max-w-[1200px] px-5 pb-24 pt-8 sm:px-10 lg:px-20">
-        {toastMessage && (
-          <div className={`mb-6 rounded-2xl border p-4 text-sm font-semibold shadow-sm ${toastMessage.type === "success" ? "border-green-200 bg-green-50 text-green-800" : "border-red-200 bg-red-50 text-red-800"}`}>
-            {toastMessage.text}
-          </div>
-        )}
+        {toastMessage && <Notification text={toastMessage.text} type={toastMessage.type} />}
 
         <section className="relative overflow-hidden rounded-2xl bg-white p-5 shadow-[0_4px_12px_rgba(38,51,43,0.05)] sm:p-6">
           <div className="absolute -bottom-20 -right-20 size-64 rounded-full bg-[#aff1c4]/20 blur-3xl" />
@@ -342,43 +405,47 @@ export default function ProfilePage() {
         <div className="mt-10 grid items-start gap-8 lg:grid-cols-[230px_1fr] lg:gap-12">
           <nav className="flex gap-2 overflow-x-auto pb-2 lg:sticky lg:top-28 lg:flex-col lg:overflow-visible" aria-label="Áreas do perfil">
             {tabs.map((item, index) => (
-              <button key={item.id} id={`tab-${item.id}`} type="button" aria-pressed={activeTab === item.id} onClick={() => { setToastMessage(null); setActiveTab(item.id); }} className={`flex shrink-0 items-center gap-3 rounded-lg px-4 py-3 text-left text-sm font-semibold tracking-[0.02em] transition ${activeTab === item.id ? "bg-[#3f7d58] text-white shadow-sm" : "text-[#404942] hover:bg-white/70 hover:text-[#256441]"} ${index === 3 ? "lg:mt-3 lg:border-t lg:border-[#c0c9bf] lg:pt-5" : ""}`}>
-                <Image src={item.icon} alt="" width={20} height={20} className={activeTab === item.id ? "brightness-0 invert" : ""} />{item.label}
-              </button>
+              <div key={item.id} className={`shrink-0 lg:w-full ${index === 3 ? "lg:mt-3 lg:border-t lg:border-[#c0c9bf] lg:pt-4" : ""}`}>
+                <button id={`tab-${item.id}`} type="button" aria-pressed={activeTab === item.id} onClick={() => { setToastMessage(null); setActiveTab(item.id); window.history.replaceState(null, "", `#${item.id}`); }} className={`flex w-full items-center gap-3 rounded-lg px-4 py-3 text-left text-sm font-semibold tracking-[0.02em] transition ${activeTab === item.id ? "bg-[#3f7d58] text-white shadow-sm" : "text-[#404942] hover:bg-white/70 hover:text-[#256441]"}`}>
+                  <ProfileNavIcon id={item.id} />{item.label}
+                </button>
+              </div>
             ))}
           </nav>
 
           <section className="min-w-0">
-            {activeTab === "adocoes" && (
-              <div className="space-y-10">
-                <header>
-                  <h2 className="text-2xl font-bold">Animais para adoção</h2>
-                  <p className="mt-1 text-sm text-[#5b675f]">Acompanhe pedidos feitos por você e o interesse recebido nos seus animais.</p>
-                </header>
-
-                <RequestSection title="Minhas solicitações" empty="Você ainda não solicitou a adoção de nenhum animal." requests={requests} />
-                <RequestSection title="Solicitações recebidas" empty="Seus animais ainda não receberam solicitações de adoção." requests={receivedRequests} received onUpdate={updateReceivedRequest} />
+            {activeTab === "publicacoes" && (
+              <PublicationsPanel
+                filter={publicationFilter}
+                onFilter={setPublicationFilter}
+                animals={myAnimals}
+                items={myItems}
+                loading={loadingPublications}
+                error={publicationsError}
+                onEdit={(publication) => router.push(`/doacoes/${publication.kind === "animal" ? "animal" : "item"}?edit=${publication.data.id}`)}
+                onRemove={removePublication}
+              />
+            )}
+            {activeTab === "solicitacoes" && (
+              <div className="space-y-7">
+                <PageHeading title="Central de solicitações" description="Acompanhe adoções e pedidos de itens em uma única área." action={<RequestTypePicker value={requestType} onChange={setRequestType} animalCount={requests.length + receivedRequests.length} itemCount={itemRequests.length + receivedItemRequests.length} />} />
+                <div className="flex items-center justify-between gap-4">
+                  <RequestDirectionTabs value={requestFilter} options={requestType === "animais" ? [{ id: "recebidas", label: "Recebidas", count: receivedRequests.length }, { id: "enviadas", label: "Enviadas", count: requests.length }] : [{ id: "recebidas", label: "Recebidas", count: receivedItemRequests.length }, { id: "enviadas", label: "Enviadas", count: itemRequests.length }]} onChange={(value) => setRequestFilter(value as "recebidas" | "enviadas")} />
+                </div>
+                {loadingRequests ? <SkeletonLoader variant="cards" /> : requestsError ? <LoadErrorState message="Não foi possível carregar suas solicitações." /> : requestType === "animais" ? (requestFilter === "recebidas"
+                  ? <RequestSection empty="Seus animais ainda não receberam solicitações." requests={receivedRequests} received onUpdate={updateReceivedRequest} />
+                  : <RequestSection empty="Você ainda não solicitou nenhuma adoção." requests={requests} />)
+                : (requestFilter === "recebidas"
+                    ? <ItemRequestSection empty="Seus itens ainda não receberam solicitações." requests={receivedItemRequests} received onUpdate={updateReceivedItemRequest} />
+                    : <ItemRequestSection empty="Você ainda não solicitou nenhum item." requests={itemRequests} />)}
               </div>
             )}
-            {activeTab === "doacoes" && <EmptyTab title="Itens para doar" description="Seus itens cadastrados para doação aparecerão aqui." />}
             {activeTab === "favoritos" && (
-              favorites.length > 0 ? (
-                <div className="space-y-6">
-                  <header className="flex items-end justify-between gap-4">
-                    <div>
-                      <h2 className="text-2xl font-bold">Seus Favoritos</h2>
-                      <p className="mt-1 text-sm text-[#5b675f]">Pets que você marcou com coração.</p>
-                    </div>
-                  </header>
-                  <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
-                    {favorites.map((fav) => (
-                      <AnimalCard key={fav.id} animal={fav.animal} />
-                    ))}
-                  </div>
-                </div>
-              ) : (
-                <EmptyTab title="Favoritos" description="Os animais e itens que você favoritar aparecerão aqui." />
-              )
+              <div className="space-y-6">
+                <PageHeading title="Seus favoritos" description="Acesse os animais e itens que você marcou com coração." />
+                <SegmentedControl value={favoriteType} options={[{ id: "animais", label: "Animais", count: favorites.length }, { id: "itens", label: "Itens", count: favoriteItems.length }]} onChange={(value) => setFavoriteType(value as "animais" | "itens")} />
+                {favoriteType === "animais" ? (favorites.length > 0 ? <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">{favorites.map((fav) => <AnimalCard key={fav.id} animal={fav.animal} isInitiallyFavorite onFavoriteChange={(favorite) => { if (!favorite) setFavorites((current) => current.filter((item) => item.id !== fav.id)); }} />)}</div> : <EmptyTab title="Nenhum animal favorito" description="Os animais que você favoritar aparecerão aqui." />) : (favoriteItems.length > 0 ? <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">{favoriteItems.map((favorite) => <DonationItemCard key={favorite.id} item={favorite.item} isInitiallyFavorite onFavoriteChange={(active) => { if (!active) setFavoriteItems((current) => current.filter((entry) => entry.id !== favorite.id)); }} />)}</div> : <EmptyTab title="Nenhum item favorito" description="Os itens que você favoritar aparecerão aqui." />)}
+              </div>
             )}
             {activeTab === "dados" && (
               <ProfileForm key={`dados-${profile?.name}-${profile?.bio}-${profile?.birthDate}-${profile?.instagram}-${profile?.whatsapp}`} onSubmit={handleSavePersonalData} loading={savingPersonal}>
@@ -399,6 +466,68 @@ export default function ProfilePage() {
   );
 }
 
+function PageHeading({ title, description, action }: { title: string; description: string; action?: ReactNode }) {
+  return <header className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between"><div><p className="mb-1 text-xs font-bold uppercase tracking-[0.14em] text-[#3f7d58]">Área de gestão</p><h2 className="text-2xl font-extrabold tracking-[-0.02em] sm:text-3xl">{title}</h2><p className="mt-1 max-w-2xl text-sm leading-6 text-[#5b675f]">{description}</p></div>{action}</header>;
+}
+
+function ProfileNavIcon({ id }: { id: TabId }) {
+  const common = { viewBox: "0 0 24 24", className: "size-5 shrink-0", fill: "none", stroke: "currentColor", strokeWidth: 2, strokeLinecap: "round" as const, strokeLinejoin: "round" as const, "aria-hidden": true };
+  if (id === "publicacoes") return <svg {...common}><path d="M20.8 4.7a5.2 5.2 0 0 0-7.4 0L12 6.1l-1.4-1.4a5.2 5.2 0 0 0-7.4 7.4L12 21l8.8-8.9a5.2 5.2 0 0 0 0-7.4Z" /></svg>;
+  if (id === "solicitacoes") return <svg {...common}><path d="M18 8a6 6 0 0 0-12 0c0 7-3 7-3 9h18c0-2-3-2-3-9M10 21h4" /></svg>;
+  if (id === "favoritos") return <svg {...common}><path d="M6 3h12v18l-6-4-6 4V3Z" /></svg>;
+  if (id === "dados") return <svg {...common}><circle cx="12" cy="8" r="4" /><path d="M4 21a8 8 0 0 1 16 0" /></svg>;
+  if (id === "endereco") return <svg {...common}><path d="M20 10c0 5-8 11-8 11S4 15 4 10a8 8 0 1 1 16 0Z" /><circle cx="12" cy="10" r="2.5" /></svg>;
+  return <svg {...common}><rect x="4" y="10" width="16" height="11" rx="2" /><path d="M8 10V7a4 4 0 0 1 8 0v3M12 15v2" /></svg>;
+}
+
+function SegmentedControl({ value, options, onChange }: { value: string; options: { id: string; label: string; count: number }[]; onChange: (id: string) => void }) {
+  return <div className="flex w-fit flex-wrap items-center gap-2" role="tablist">{options.map((option) => <button key={option.id} type="button" role="tab" aria-selected={value === option.id} onClick={() => onChange(option.id)} className={`group inline-flex min-h-9 items-center gap-1.5 rounded-lg px-3 py-1.5 text-sm font-semibold transition ${value === option.id ? "bg-[#e3f2e6] text-[#256441]" : "text-[#526057] hover:bg-[#e8f7eb] hover:text-[#256441]"}`}><span>{option.label}</span><span className="rounded-full bg-[#256441]/10 px-1.5 py-0.5 text-[11px] font-bold text-[#256441]">{option.count}</span><svg viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth="1.8" className={`size-3.5 transition-transform group-hover:translate-x-0.5 ${value === option.id ? "opacity-100" : "opacity-50"}`} aria-hidden="true"><path d="m7.5 4.5 5 5.5-5 5.5" /></svg></button>)}</div>;
+}
+
+function RequestDirectionTabs({ value, options, onChange }: { value: string; options: { id: string; label: string; count: number }[]; onChange: (id: string) => void }) {
+  return <div className="mb-4 flex w-fit flex-wrap items-center gap-2" role="tablist" aria-label="Direção da solicitação">{options.map((option) => <button key={option.id} type="button" role="tab" aria-selected={value === option.id} onClick={() => onChange(option.id)} className={`group inline-flex min-h-9 items-center gap-1.5 rounded-lg px-3 py-1.5 text-sm font-semibold transition ${value === option.id ? "bg-[#e3f2e6] text-[#256441]" : "text-[#526057] hover:bg-[#e8f7eb] hover:text-[#256441]"}`}><span>{option.label}</span><span className="rounded-full bg-[#256441]/10 px-1.5 py-0.5 text-[11px] font-bold text-[#256441]">{option.count}</span><svg viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth="1.8" className={`size-3.5 transition-transform group-hover:translate-x-0.5 ${value === option.id ? "opacity-100" : "opacity-50"}`} aria-hidden="true"><path d="m7.5 4.5 5 5.5-5 5.5" /></svg></button>)}</div>;
+}
+
+function RequestTypePicker({ value, onChange, animalCount, itemCount }: { value: "animais" | "itens"; onChange: (value: "animais" | "itens") => void; animalCount: number; itemCount: number }) {
+  const options = [
+    { id: "animais" as const, title: "Animais", count: animalCount },
+    { id: "itens" as const, title: "Itens", count: itemCount },
+  ];
+  return <div className="flex flex-wrap items-center gap-2" role="tablist" aria-label="Tipo de solicitação">{options.map((option) => <button key={option.id} type="button" role="tab" aria-selected={value === option.id} onClick={() => onChange(option.id)} className={`group inline-flex min-h-9 items-center gap-1.5 rounded-lg px-3 py-1.5 text-sm font-semibold transition ${value === option.id ? "bg-[#e3f2e6] text-[#256441]" : "text-[#526057] hover:bg-[#e8f7eb] hover:text-[#256441]"}`}><span>{option.title}</span><span className="rounded-full bg-[#256441]/10 px-1.5 py-0.5 text-[11px] font-bold text-[#256441]">{option.count}</span><svg viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth="1.8" className={`size-3.5 transition-transform group-hover:translate-x-0.5 ${value === option.id ? "opacity-100" : "opacity-50"}`} aria-hidden="true"><path d="m7.5 4.5 5 5.5-5 5.5" /></svg></button>)}</div>;
+}
+
+function PublicationsPanel({ filter, onFilter, animals, items, loading, error, onEdit, onRemove }: { filter: "animais" | "itens"; onFilter: (value: "animais" | "itens") => void; animals: Animal[]; items: DonationItem[]; loading: boolean; error: string | null; onEdit: (publication: EditablePublication) => void; onRemove: (publication: EditablePublication) => void }) {
+  const publications: EditablePublication[] = filter === "animais" ? animals.map((data) => ({ kind: "animal", data })) : items.map((data) => ({ kind: "item", data }));
+  return <div className="space-y-7">
+    <PageHeading title="Minhas publicações" description="Gerencie os anúncios que outras pessoas encontram na plataforma." action={<div className="flex gap-2"><Link href="/doacoes/animal" className="rounded-xl border border-[#256441] bg-white px-4 py-2.5 text-sm font-bold text-[#256441] hover:bg-[#eefdf1]">+ Animal</Link><Link href="/doacoes/item" className="rounded-xl bg-[#256441] px-4 py-2.5 text-sm font-bold text-white hover:bg-[#194b30]">+ Item</Link></div>} />
+    <SegmentedControl value={filter} options={[{ id: "animais", label: "Animais", count: animals.length }, { id: "itens", label: "Itens", count: items.length }]} onChange={(value) => onFilter(value as "animais" | "itens")} />
+    {loading ? (
+      <PublicationSkeleton />
+    ) : error ? (
+      <LoadErrorState message="Não foi possível carregar suas publicações." />
+    ) : publications.length === 0 ? (
+      <EmptyTab title={filter === "animais" ? "Nenhum animal publicado" : "Nenhum item publicado"} description="Sua primeira publicação aparecerá aqui com opções de edição e status." />
+    ) : (
+      <div className="grid gap-4 sm:grid-cols-2">{publications.map((publication) => <PublicationCard key={publication.data.id} publication={publication} onEdit={onEdit} onRemove={onRemove} />)}</div>
+    )}
+  </div>;
+}
+
+function PublicationSkeleton() { return <SkeletonLoader variant="cards" />; }
+
+function ProfileLoading({ label }: { label: string }) {
+  return <div className="min-h-screen bg-[#eefdf1] text-[#121e17]"><SiteHeader /><SkeletonLoader variant="profile" /><span className="sr-only">{label}</span></div>;
+}
+
+function PublicationCard({ publication, onEdit, onRemove }: { publication: EditablePublication; onEdit: (publication: EditablePublication) => void; onRemove: (publication: EditablePublication) => void }) {
+  const isAnimal = publication.kind === "animal";
+  const data = publication.data;
+  const title = publication.kind === "animal" ? publication.data.name : publication.data.title;
+  const image = publication.kind === "animal" ? publication.data.image : publication.data.mainImage;
+  const detail = publication.kind === "animal" ? `${publication.data.species} • ${publication.data.sex} • ${publication.data.age}` : `${publication.data.quantity} ${publication.data.unit} • ${publication.data.category}`;
+  return <article className="group overflow-hidden rounded-2xl border border-[#e1e8e2] bg-white shadow-[0_5px_16px_rgba(38,51,43,0.06)] transition-all duration-300 ease-out hover:-translate-y-1.5 hover:scale-[1.01] hover:border-[#9fc5aa] hover:shadow-[0_18px_38px_rgba(31,91,57,0.15)] motion-reduce:transform-none motion-reduce:transition-none"><div className="relative h-44 overflow-hidden bg-[#e3f2e6]"><Image src={image || "/images/login-cover-v2.png"} alt={title} fill className="object-cover transition-transform duration-500 ease-out group-hover:scale-[1.06] motion-reduce:transform-none" /><span className="absolute left-3 top-3 rounded-full bg-white/95 px-3 py-1.5 text-xs font-bold text-[#256441] shadow-sm transition-transform duration-300 group-hover:-translate-y-0.5 motion-reduce:transform-none">{data.status}</span><div className="pointer-events-none absolute inset-0 bg-gradient-to-t from-[#194b30]/10 to-transparent opacity-0 transition-opacity duration-300 group-hover:opacity-100" /></div><div className="p-5"><p className="text-xs font-bold uppercase tracking-wider text-[#708078]">{isAnimal ? "Adoção" : "Doação de item"}</p><h3 className="mt-1 truncate text-xl font-extrabold transition-colors duration-300 group-hover:text-[#256441]">{title}</h3><p className="mt-1 text-sm text-[#526057]">{detail}</p><div className="mt-5 grid grid-cols-[1fr_auto] gap-2 border-t border-[#e7eee9] pt-4"><button type="button" onClick={() => onEdit(publication)} className="rounded-lg bg-[#e3f2e6] px-4 py-2.5 text-sm font-bold text-[#256441] transition hover:bg-[#d7eeda]">Editar publicação</button><button type="button" onClick={() => onRemove(publication)} className="rounded-lg px-3 py-2.5 text-sm font-bold text-red-700 transition hover:bg-red-50" aria-label={`Excluir ${title}`}>Excluir</button></div></div></article>;
+}
+
 function ProfileForm({ children, showActions = true, onSubmit, loading }: { children: ReactNode; showActions?: boolean; onSubmit?: (event: FormEvent<HTMLFormElement>) => void; loading?: boolean }) {
   return (
     <form onSubmit={onSubmit || ((event) => event.preventDefault())} className="overflow-hidden rounded-xl bg-white shadow-[0_4px_12px_rgba(38,51,43,0.05)]">
@@ -415,42 +544,83 @@ function ProfileForm({ children, showActions = true, onSubmit, loading }: { chil
   );
 }
 
-function RequestSection({ title, empty, requests, received = false, onUpdate }: { title: string; empty: string; requests: AdoptionRequestItem[]; received?: boolean; onUpdate?: (id: string, status: "Aprovada" | "Recusada") => void }) {
+function ItemRequestSection({ empty, requests, received = false, onUpdate }: { empty: string; requests: DonationItemRequest[]; received?: boolean; onUpdate?: (id: string, status: "Aprovada" | "Recusada") => void }) {
+  return <section className="space-y-4">
+    {requests.length === 0 ? <EmptyState message={empty} /> : <div className="space-y-4">{requests.map((request) => <article key={request.id} className="group grid overflow-hidden rounded-2xl border border-[#e1e8e2] bg-white shadow-[0_4px_14px_rgba(38,51,43,0.05)] transition-all duration-300 ease-out hover:-translate-y-1.5 hover:scale-[1.005] hover:border-[#9fc5aa] hover:shadow-[0_18px_38px_rgba(31,91,57,0.14)] motion-reduce:transform-none motion-reduce:transition-none sm:grid-cols-[140px_1fr]">
+      <div className="relative h-44 overflow-hidden bg-[#e3f2e6] sm:h-full sm:min-h-[184px]"><Image src={request.item.mainImage || "/images/login-cover-v2.png"} alt={request.item.title} fill sizes="140px" className="object-cover transition-transform duration-500 ease-out group-hover:scale-[1.07] motion-reduce:transform-none" /><div className="pointer-events-none absolute inset-0 bg-gradient-to-r from-transparent to-[#194b30]/10 opacity-0 transition-opacity duration-300 group-hover:opacity-100" /></div>
+      <div className="flex min-w-0 flex-col p-5"><div className="flex items-start justify-between gap-3"><div className="min-w-0"><p className="text-xs font-bold uppercase tracking-wider text-[#708078]">Solicitação de item</p><h4 className="mt-1 truncate text-xl font-extrabold">{request.item.title}</h4>{received && request.requester && <p className="mt-1 text-sm text-[#526057]">Solicitado por <strong>{request.requester.name}</strong></p>}</div><StatusBadge status={request.status} /></div>
+        <div className="mt-3 flex flex-wrap gap-2"><span className="rounded-md bg-[#e3f2e6] px-3 py-1.5 text-xs font-semibold text-[#404942]">{request.item.category}</span><span className="rounded-md bg-[#e3f2e6] px-3 py-1.5 text-xs font-semibold text-[#404942]">{request.quantity} {request.item.unit}</span><span className="rounded-md bg-[#e3f2e6] px-3 py-1.5 text-xs font-semibold text-[#404942]">{request.item.deliveryMethod}</span></div>
+        <p className="mt-3 text-xs font-medium text-[#68726b]">Solicitação enviada em {formatRequestDate(request.createdAt)}</p>
+        {!received && isApproved(request.status) && request.ownerContact && <ApprovedContactLinks contact={request.ownerContact} />}
+        <div className="mt-auto flex flex-col gap-3 pt-4 sm:flex-row sm:items-center sm:justify-between"><Link href={`/itens/${request.item.id}`} className="inline-flex min-h-11 items-center justify-center rounded-xl border border-[#86a590] bg-white px-4 text-sm font-semibold text-[#256441] transition hover:bg-[#f0faf3]">Ver item</Link>{received && (request.status === "Em análise" || request.status === "PENDING") && onUpdate && <div className="grid grid-cols-2 gap-2"><button type="button" onClick={() => onUpdate(request.id, "Recusada")} className="min-h-11 rounded-xl border border-red-200 px-4 text-sm font-semibold text-red-700 hover:bg-red-50">Recusar</button><button type="button" onClick={() => onUpdate(request.id, "Aprovada")} className="min-h-11 rounded-xl bg-[#256441] px-5 text-sm font-semibold text-white hover:bg-[#194b30]">Aprovar</button></div>}</div>
+      </div>
+    </article>)}</div>}
+  </section>;
+}
+
+function formatRequestDate(value: string) {
+  const date = new Date(value);
+  return Number.isNaN(date.getTime()) ? "data não informada" : date.toLocaleDateString("pt-BR");
+}
+
+function StatusBadge({ status }: { status: string }) {
+  const normalized = status === "PENDING" ? "Em análise" : status;
+  const tone = normalized === "Aprovada" ? "bg-green-100 text-green-800" : normalized === "Recusada" || normalized === "Cancelada" ? "bg-red-50 text-red-700" : "bg-[#fff2e5] text-[#764200]";
+  return <span className={`shrink-0 rounded-md px-3 py-1.5 text-xs font-bold ${tone}`}>{normalized}</span>;
+}
+
+function isApproved(status: string) {
+  return status === "Aprovada" || status === "APPROVED";
+}
+
+function ApprovedContactLinks({ contact }: { contact: NonNullable<AdoptionRequestItem["ownerContact"]> }) {
+  const phone = contact.whatsapp?.trim();
+  const instagram = contact.instagram?.trim();
+  if (!phone && !instagram) return null;
+  const phoneDigits = phone?.replace(/\D/g, "") || "";
+  const whatsappNumber = phoneDigits.length === 10 || phoneDigits.length === 11 ? `55${phoneDigits}` : phoneDigits;
+  const instagramUser = instagram?.replace(/^https?:\/\/(www\.)?instagram\.com\//i, "").replace(/^@/, "").replace(/\/$/, "");
+  return <div className="mt-4 flex flex-wrap gap-2" aria-label="Contatos do responsável">
+    {phone && <a href={`https://wa.me/${whatsappNumber}`} target="_blank" rel="noreferrer" className="inline-flex min-h-10 items-center gap-2 rounded-lg bg-[#e3f2e6] px-3.5 text-xs font-bold text-[#256441] transition hover:bg-[#d7eeda]" aria-label={`Conversar pelo WhatsApp no número ${phone}`}><svg viewBox="0 0 24 24" className="size-[17px] shrink-0" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M20 11.5a8 8 0 0 1-11.8 7L4 19.8l1.3-4A8 8 0 1 1 20 11.5Z" /><path d="M9 8.5c.4 3 2.1 4.7 5.2 5.3" /></svg><span>{phone}</span></a>}
+    {instagram && instagramUser && <a href={`https://instagram.com/${instagramUser}`} target="_blank" rel="noreferrer" className="inline-flex min-h-10 items-center gap-2 rounded-lg bg-[#e3f2e6] px-3.5 text-xs font-bold text-[#256441] transition hover:bg-[#d7eeda]" aria-label={`Abrir Instagram de ${instagram}`}><svg viewBox="0 0 24 24" className="size-[17px] shrink-0" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><rect x="3" y="3" width="18" height="18" rx="5" /><circle cx="12" cy="12" r="4" /><circle cx="17.5" cy="6.5" r="1" fill="currentColor" stroke="none" /></svg><span>@{instagramUser}</span></a>}
+  </div>;
+}
+
+function RequestSection({ empty, requests, received = false, onUpdate }: { empty: string; requests: AdoptionRequestItem[]; received?: boolean; onUpdate?: (id: string, status: "Aprovada" | "Recusada") => void }) {
   return (
     <section className="space-y-4">
-      <div className="flex items-center justify-between gap-4">
-        <h3 className="text-lg font-bold">{title}</h3>
-        <span className="text-sm font-semibold text-[#707971]">{requests.length}</span>
-      </div>
       {requests.length === 0 ? (
-        <div className="rounded-xl border border-dashed border-[#b8c9bd] bg-[#f7fcf8] p-7 text-center text-sm text-[#5b675f]">{empty}</div>
+        <EmptyState message={empty} />
       ) : requests.map((request) => (
-        <article key={request.id} className="group grid overflow-hidden rounded-xl bg-white shadow-[0_4px_12px_rgba(38,51,43,0.05)] sm:grid-cols-[180px_1fr]">
-          <div className="relative h-52 overflow-hidden sm:h-full sm:min-h-[190px]">
-            <Image src={request.animal?.image || "/images/login-cover-v2.png"} alt={request.animal?.name || "Animal"} fill className="object-cover" />
+        <article key={request.id} className="group grid overflow-hidden rounded-2xl border border-[#e1e8e2] bg-white shadow-[0_4px_14px_rgba(38,51,43,0.05)] transition-all duration-300 ease-out hover:-translate-y-1.5 hover:scale-[1.005] hover:border-[#9fc5aa] hover:shadow-[0_18px_38px_rgba(31,91,57,0.14)] motion-reduce:transform-none motion-reduce:transition-none sm:grid-cols-[148px_1fr]">
+          <div className="relative h-44 overflow-hidden sm:h-full sm:min-h-[180px]">
+            <Image src={request.animal?.image || "/images/login-cover-v2.png"} alt={request.animal?.name || "Animal"} fill sizes="148px" className="object-cover transition-transform duration-500 ease-out group-hover:scale-[1.07] motion-reduce:transform-none" />
+            <div className="pointer-events-none absolute inset-0 bg-gradient-to-r from-transparent to-[#194b30]/10 opacity-0 transition-opacity duration-300 group-hover:opacity-100" />
           </div>
           <div className="flex flex-col p-5 sm:p-6">
             <div className="flex flex-wrap items-start justify-between gap-3">
               <div>
-                <h4 className="text-2xl font-semibold">{request.animal?.name}</h4>
+                <p className="text-xs font-bold uppercase tracking-wider text-[#708078]">Solicitação de adoção</p><h4 className="mt-1 text-xl font-extrabold">{request.animal?.name}</h4>
                 {received && request.requester && <p className="mt-1 text-sm text-[#526057]">Solicitado por <strong>{request.requester.name}</strong></p>}
               </div>
-              <span className="rounded-full bg-[#aff1c4] px-3 py-1.5 text-xs font-semibold text-[#0d5130]">{request.status === "PENDING" ? "Em análise" : request.status}</span>
+              <StatusBadge status={request.status} />
             </div>
             <div className="mt-3 flex flex-wrap gap-2">
-              <span className="rounded-full bg-[#e3f2e6] px-3 py-1.5 text-xs font-semibold text-[#404942]">{request.animal?.species}</span>
-              <span className="rounded-full bg-[#e3f2e6] px-3 py-1.5 text-xs font-semibold text-[#404942]">{request.animal?.sex}</span>
+              <span className="rounded-md bg-[#e3f2e6] px-3 py-1.5 text-xs font-semibold text-[#404942]">{request.animal?.species}</span>
+              <span className="rounded-md bg-[#e3f2e6] px-3 py-1.5 text-xs font-semibold text-[#404942]">{request.animal?.sex}</span>
             </div>
-            {request.notes && <p className="mt-3 rounded-lg bg-[#f7fcf8] p-3 text-sm text-[#526057]">{request.notes}</p>}
-            {!received && request.status === "Aprovada" && request.ownerContact && <ApprovedContact contact={request.ownerContact} />}
-            <div className="mt-auto flex flex-wrap justify-end gap-2 border-t border-[#c0c9bf]/30 pt-4">
-              <Link href={`/adocao/${request.animal?.id}`} className="rounded-xl border border-[#256441] px-4 py-2.5 text-sm font-semibold text-[#256441] transition hover:bg-[#e8f7eb]">Ver animal</Link>
-              {received && request.answers && <Link href={`/perfil/solicitacoes/${request.id}`} className="rounded-xl border border-[#256441] bg-[#e8f7eb] px-4 py-2.5 text-sm font-semibold text-[#256441] transition hover:bg-[#d7eeda]">Ver detalhes</Link>}
+            <p className="mt-3 text-xs font-medium text-[#68726b]">Solicitação enviada em {formatRequestDate(request.createdAt)}</p>
+            {!received && isApproved(request.status) && request.ownerContact && <ApprovedContactLinks contact={request.ownerContact} />}
+            <div className="mt-auto flex flex-col gap-3 pt-4 sm:flex-row sm:items-center sm:justify-between">
+              <div className="flex flex-col gap-2 min-[440px]:flex-row">
+                <Link href={`/adocao/${request.animal?.id}`} className="inline-flex min-h-11 items-center justify-center rounded-xl border border-[#86a590] bg-white px-4 text-sm font-semibold text-[#256441] transition hover:bg-[#f0faf3]">Ver animal</Link>
+                {received && request.answers && <Link href={`/perfil/solicitacoes/${request.id}`} className="inline-flex min-h-11 items-center justify-center rounded-xl bg-[#e3f2e6] px-4 text-sm font-semibold text-[#194b30] transition hover:bg-[#d7eeda]">Informações da solicitação</Link>}
+              </div>
               {received && (request.status === "Em análise" || request.status === "PENDING") && onUpdate && (
-                <>
-                  <button type="button" onClick={() => onUpdate(request.id, "Recusada")} className="rounded-xl border border-red-300 px-4 py-2.5 text-sm font-semibold text-red-700 transition hover:bg-red-50">Recusar</button>
-                  <button type="button" onClick={() => onUpdate(request.id, "Aprovada")} className="rounded-xl bg-[#256441] px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-[#194b30]">Aprovar</button>
-                </>
+                <div className="grid grid-cols-2 gap-2">
+                  <button type="button" onClick={() => onUpdate(request.id, "Recusada")} className="min-h-11 rounded-xl border border-red-200 bg-white px-4 text-sm font-semibold text-red-700 transition hover:bg-red-50">Recusar</button>
+                  <button type="button" onClick={() => onUpdate(request.id, "Aprovada")} className="min-h-11 rounded-xl bg-[#256441] px-5 text-sm font-semibold text-white shadow-sm transition hover:bg-[#194b30]">Aprovar</button>
+                </div>
               )}
             </div>
           </div>
@@ -460,20 +630,8 @@ function RequestSection({ title, empty, requests, received = false, onUpdate }: 
   );
 }
 
-function ApprovedContact({ contact }: { contact: NonNullable<AdoptionRequestItem["ownerContact"]> }) {
-  return <section className="mt-4 rounded-xl border border-[#86c99c] bg-[#e8f7eb] p-4"><h5 className="text-sm font-bold text-[#194b30]">Contato liberado</h5><p className="mt-1 text-xs text-[#526057]">Sua solicitação foi aprovada. Entre em contato com {contact.name} para combinar os próximos passos.</p><div className="mt-3 flex flex-wrap gap-2"><a href={`mailto:${contact.email}`} className="rounded-lg bg-white px-3 py-2 text-xs font-semibold text-[#256441]">{contact.email}</a>{contact.whatsapp && <a href={`https://wa.me/${contact.whatsapp.replace(/\D/g, "")}`} target="_blank" rel="noreferrer" className="rounded-lg bg-white px-3 py-2 text-xs font-semibold text-[#256441]">WhatsApp: {contact.whatsapp}</a>}{contact.instagram && <span className="rounded-lg bg-white px-3 py-2 text-xs font-semibold text-[#256441]">Instagram: {contact.instagram}</span>}</div></section>;
-}
-
 function EmptyTab({ title, description }: { title: string; description: string }) {
-  return (
-    <div className="rounded-xl bg-white p-10 text-center shadow-[0_4px_12px_rgba(38,51,43,0.05)]">
-      <div className="mx-auto mb-4 grid size-12 place-items-center rounded-full bg-[#e8f7eb]">
-        <Image src="/icons/heart.svg" alt="" width={21} height={21} />
-      </div>
-      <h2 className="text-2xl font-bold">{title}</h2>
-      <p className="mx-auto mt-2 max-w-md text-sm leading-6 text-[#5b675f]">{description}</p>
-    </div>
-  );
+  return <EmptyState message={title} description={description} />;
 }
 
 function SectionHeading({ title, description }: { title: string; description: string }) {
@@ -612,11 +770,7 @@ function AccountAccess({ userEmail }: { userEmail: string }) {
     <section id="panel-acesso" role="tabpanel" aria-labelledby="tab-acesso">
       <SectionHeading title="Acesso à conta" description="Consulte e altere com segurança seus dados de acesso." />
 
-      {statusMessage && (
-        <div className={`mb-5 rounded-xl border p-4 text-sm font-medium ${statusMessage.type === "success" ? "border-green-200 bg-green-50 text-green-800" : "border-red-200 bg-red-50 text-red-800"}`}>
-          {statusMessage.text}
-        </div>
-      )}
+      {statusMessage && <Notification text={statusMessage.text} type={statusMessage.type} />}
 
       <div className="max-w-3xl divide-y divide-[#d7e6da] overflow-hidden rounded-xl border border-[#d7e6da]">
         <AccessRow icon="/icons/email.svg" title="E-mail" value={userEmail} onEdit={() => { setStatusMessage(null); setModal("email"); }} />

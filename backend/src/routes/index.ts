@@ -6,6 +6,7 @@ import { favoriteRoutes } from "./favorites.ts";
 import { userRoutes } from "./users.ts";
 import { uploadRoutes } from "./uploads.ts";
 import { donationItemRoutes } from "./donationItems.ts";
+import { donationItemRequestRoutes } from "./donationItemRequests.ts";
 
 export type AuthContext = {
   Variables: {
@@ -31,3 +32,4 @@ apiRoutes.route("/adoption-requests", adoptionRequestRoutes);
 apiRoutes.route("/favorites", favoriteRoutes);
 apiRoutes.route("/uploads", uploadRoutes);
 apiRoutes.route("/donation-items", donationItemRoutes);
+apiRoutes.route("/donation-item-requests", donationItemRequestRoutes);

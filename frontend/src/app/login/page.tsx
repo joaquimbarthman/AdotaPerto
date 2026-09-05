@@ -1,5 +1,7 @@
 "use client";
 
+import { Notification } from "@/components/notification";
+
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { FormEvent, useEffect, useState } from "react";
@@ -55,11 +57,7 @@ export default function LoginPage() {
         <p className="mt-2 leading-6 text-[#4d5b53]">Entre para acompanhar seus favoritos e processos de adoção.</p>
       </header>
 
-      {errorMessage && (
-        <div className="mb-4 rounded-xl border border-red-200 bg-red-50 p-3 text-sm text-red-700">
-          {errorMessage}
-        </div>
-      )}
+      {errorMessage && <Notification text={errorMessage} />}
 
       <form onSubmit={handleSubmit} className="space-y-5">
         <AuthField label="Email" icon="/icons/email.svg" name="email" type="email" placeholder="seu@email.com" autoComplete="email" required />

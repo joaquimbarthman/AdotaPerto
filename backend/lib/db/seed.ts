@@ -1,6 +1,6 @@
 import { asc, eq } from "drizzle-orm";
 import { db } from "./index.ts";
-import { animal, user } from "./schemas/index.ts";
+import { animal, donationItem, user } from "./schemas/index.ts";
 
 const mockAnimals = [
   {
@@ -127,6 +127,17 @@ const mockAnimals = [
   },
 ] satisfies Array<Omit<typeof animal.$inferInsert, "userId">>;
 
+const mockDonationItems = [
+  { id: "item-racao-caes", title: "Ração para cães adultos", category: "Ração", itemName: "Ração premium sabor carne", quantity: 5, unit: "Kg", condition: "Aberto em boas condições", description: "Pacote bem armazenado, aberto recentemente e dentro da validade.", mainImage: "/images/login-cover-v2.png", images: [], deliveryMethod: "Retirada", status: "Disponível" },
+  { id: "item-racao-gatos", title: "Ração para gatos", category: "Ração", itemName: "Ração seca para gatos castrados", quantity: 2, unit: "Kg", condition: "Lacrado", description: "Dois quilos de ração em embalagem lacrada e pronta para doação.", mainImage: "/images/login-cover-v2.png", images: [], deliveryMethod: "Entrega", status: "Disponível" },
+  { id: "item-caminha", title: "Caminha tamanho médio", category: "Caminhas e cobertores", itemName: "Caminha acolchoada", quantity: 1, unit: "Unidade", condition: "Usado em boas condições", description: "Caminha higienizada, confortável e sem rasgos, indicada para cães médios.", mainImage: "/images/login-cover-v2.png", images: [], deliveryMethod: "A combinar", status: "Disponível" },
+  { id: "item-coleira", title: "Coleira e guia", category: "Coleiras e guias", itemName: "Kit de passeio ajustável", quantity: 1, unit: "Unidade", condition: "Novo", description: "Kit novo com coleira regulável e guia resistente para cães pequenos.", mainImage: "/images/login-cover-v2.png", images: [], deliveryMethod: "Retirada", status: "Disponível" },
+  { id: "item-shampoo", title: "Shampoo veterinário", category: "Produtos de higiene", itemName: "Shampoo neutro para pets", quantity: 2, unit: "Unidade", condition: "Lacrado", description: "Frascos lacrados de shampoo neutro, próprios para cães e gatos.", mainImage: "/images/login-cover-v2.png", images: [], deliveryMethod: "Entrega", status: "Disponível" },
+  { id: "item-brinquedos", title: "Kit de brinquedos", category: "Brinquedos", itemName: "Bolinhas e mordedores", quantity: 6, unit: "Unidade", condition: "Usado em boas condições", description: "Brinquedos higienizados e conservados para enriquecer a rotina dos animais.", mainImage: "/images/login-cover-v2.png", images: [], deliveryMethod: "A combinar", status: "Disponível" },
+  { id: "item-caixa-transporte", title: "Caixa de transporte", category: "Caixas de transporte", itemName: "Caixa para animais pequenos", quantity: 1, unit: "Unidade", condition: "Usado em boas condições", description: "Caixa firme, higienizada e com trava funcionando corretamente.", mainImage: "/images/login-cover-v2.png", images: [], deliveryMethod: "Retirada", status: "Disponível" },
+  { id: "item-petiscos", title: "Petiscos para cães", category: "Petiscos", itemName: "Biscoitos naturais", quantity: 3, unit: "Pacote", condition: "Lacrado", description: "Pacotes lacrados de biscoitos naturais indicados para cães adultos.", mainImage: "/images/login-cover-v2.png", images: [], deliveryMethod: "Entrega", status: "Disponível" },
+] satisfies Array<Omit<typeof donationItem.$inferInsert, "userId">>;
+
 async function seed() {
   const [firstUser] = await db
     .select({ id: user.id, name: user.name })
@@ -155,9 +166,20 @@ async function seed() {
         await tx.insert(animal).values(values);
       }
     }
+
+    for (const mockItem of mockDonationItems) {
+      const values = { ...mockItem, userId: firstUser.id };
+      const [existing] = await tx.select({ id: donationItem.id }).from(donationItem).where(eq(donationItem.id, mockItem.id));
+
+      if (existing) {
+        await tx.update(donationItem).set({ ...values, updatedAt: new Date() }).where(eq(donationItem.id, mockItem.id));
+      } else {
+        await tx.insert(donationItem).values(values);
+      }
+    }
   });
 
-  console.log(`${mockAnimals.length} animais associados ao usuário ${firstUser.name}.`);
+  console.log(`${mockAnimals.length} animais e ${mockDonationItems.length} itens associados ao usuário ${firstUser.name}.`);
 }
 
 seed()

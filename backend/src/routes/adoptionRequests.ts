@@ -153,6 +153,10 @@ adoptionRequestRoutes.post("/", async (c) => {
     return c.json({ error: "Você não pode solicitar a adoção do próprio animal" }, 400);
   }
 
+  if (existingAnimal.status !== "Disponível") {
+    return c.json({ error: "Este animal não está disponível para adoção." }, 409);
+  }
+
   const [existingRequest] = await db
     .select({ id: adoptionRequest.id })
     .from(adoptionRequest)

@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import "./globals.css";
+import { NotificationProvider } from "@/components/notification";
 
 export const metadata: Metadata = {
   title: "AdotaPerto",
@@ -25,7 +26,7 @@ export default function RootLayout({
           }}
         />
       </head>
-      <body>{children}</body>
+      <body><NotificationProvider />{children}</body>
     </html>
   );
 }

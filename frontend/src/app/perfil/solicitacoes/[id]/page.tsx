@@ -5,6 +5,7 @@ import { SiteFooter } from "@/components/site-footer";
 import { SiteHeader } from "@/components/site-header";
 import type { Animal } from "@/data/animals";
 import Image from "next/image";
+import { SkeletonLoader } from "@/components/skeleton-loader";
 import Link from "next/link";
 import { useParams } from "next/navigation";
 import { useEffect, useState } from "react";
@@ -46,7 +47,7 @@ export default function RequestDetailsPage() {
   }, [id]);
 
   if (error) return <StatePage title="Não foi possível abrir os detalhes" message={error} />;
-  if (!request) return <div className="grid min-h-screen place-items-center bg-[#eefdf1]"><div className="size-11 animate-spin rounded-full border-4 border-[#256441] border-t-transparent" /></div>;
+  if (!request) return <SkeletonLoader fullScreen variant="detail" />;
 
   const answers = request.answers || {};
   const score = request.compatibilityScore ?? 0;
@@ -56,7 +57,7 @@ export default function RequestDetailsPage() {
     <div className="min-h-screen bg-[#eefdf1] text-[#121e17]">
       <SiteHeader />
       <main className="mx-auto max-w-[1120px] px-5 py-8 sm:px-10 lg:px-20 lg:py-12">
-        <Link href="/perfil" className="group inline-flex items-center gap-1.5 text-sm font-semibold text-[#404942] transition hover:text-[#256441]"><DirectionalChevron className="transition-transform group-hover:-translate-x-0.5" />Voltar para solicitações</Link>
+        <Link href="/perfil#solicitacoes" className="group inline-flex items-center gap-1.5 text-sm font-semibold text-[#404942] transition hover:text-[#256441]"><DirectionalChevron className="transition-transform group-hover:-translate-x-0.5" />Voltar para solicitações</Link>
 
         <header className="mt-6 flex flex-col justify-between gap-4 sm:flex-row sm:items-end">
           <div><p className="text-sm font-semibold text-[#256441]">Análise da solicitação</p><h1 className="mt-1 text-3xl font-extrabold tracking-[-0.02em] sm:text-4xl">Perfil de {request.requester.name}</h1><p className="mt-2 text-[#526057]">Respostas enviadas para a adoção de {request.animal.name}. Este formulário é somente para visualização.</p></div>
@@ -97,4 +98,4 @@ export default function RequestDetailsPage() {
 
 function valueExists(value: string | string[] | undefined) { return Array.isArray(value) ? value.length > 0 : Boolean(value); }
 function formatValue(value: string | string[] | undefined) { return Array.isArray(value) ? value.join(", ") : value || "Não informado"; }
-function StatePage({ title, message }: { title: string; message: string }) { return <div className="grid min-h-screen place-items-center bg-[#eefdf1] p-6 text-center"><div><h1 className="text-2xl font-bold">{title}</h1><p className="mt-2 text-[#526057]">{message}</p><Link href="/perfil" className="mt-5 inline-flex items-center gap-1 rounded-xl bg-[#256441] px-5 py-3 font-semibold text-white"><DirectionalChevron />Voltar</Link></div></div>; }
+function StatePage({ title, message }: { title: string; message: string }) { return <div className="grid min-h-screen place-items-center bg-[#eefdf1] p-6 text-center"><div><h1 className="text-2xl font-bold">{title}</h1><p className="mt-2 text-[#526057]">{message}</p><Link href="/perfil#solicitacoes" className="mt-5 inline-flex items-center gap-1 rounded-xl bg-[#256441] px-5 py-3 font-semibold text-white"><DirectionalChevron />Voltar</Link></div></div>; }

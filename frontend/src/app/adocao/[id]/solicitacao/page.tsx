@@ -1,8 +1,10 @@
 "use client";
 
 import { SiteFooter } from "@/components/site-footer";
+import { notify, Notification } from "@/components/notification";
 import { SiteHeader } from "@/components/site-header";
 import { DirectionalChevron } from "@/components/directional-chevron";
+import { SkeletonLoader } from "@/components/skeleton-loader";
 import type { Animal } from "@/data/animals";
 import { useSession } from "@/lib/auth-client";
 import Image from "next/image";
@@ -30,6 +32,15 @@ export default function AdoptionRequestPage() {
     if (!isPending && !session) router.replace(`/login?reason=unauthenticated`);
   }, [isPending, router, session]);
 
+  const ownAnimal = Boolean(session && animal && (animal.userId === session.user.id || animal.owner?.id === session.user.id));
+  useEffect(() => {
+    if (!session || !animal) return;
+    if (ownAnimal || animal.viewerRequestStatus || animal.status !== "Disponível") {
+      notify(ownAnimal ? "Você não pode adotar seu próprio animal." : "Este animal já possui uma solicitação sua ou está indisponível.", "warning");
+      router.replace(`/adocao/${id}`);
+    }
+  }, [session, animal, ownAnimal, router, id]);
+
   useEffect(() => {
     if (!id) return;
     fetch(`${API_BASE_URL}/api/animals/${id}`, { credentials: "include" })
@@ -44,7 +55,8 @@ export default function AdoptionRequestPage() {
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     setError(null);
-    if (!animal) return;
+    if (!session) { router.replace("/login?reason=unauthenticated"); return; }
+    if (!animal || ownAnimal || animal.viewerRequestStatus || animal.status !== "Disponível") return;
 
     const form = new FormData(event.currentTarget);
     const answers: Record<string, string | string[]> = {};
@@ -65,6 +77,7 @@ export default function AdoptionRequestPage() {
       const result = await response.json().catch(() => ({}));
       if (!response.ok) throw new Error(result.error || "N\u00e3o foi poss\u00edvel enviar a solicita\u00e7\u00e3o.");
       setSent(true);
+      notify("Solicitação de adoção enviada com sucesso.", "success");
       window.scrollTo({ top: 0, behavior: "smooth" });
     } catch (cause: unknown) {
       setError(cause instanceof Error ? cause.message : "N\u00e3o foi poss\u00edvel enviar a solicita\u00e7\u00e3o.");
@@ -73,7 +86,7 @@ export default function AdoptionRequestPage() {
     }
   }
 
-  if (loading || isPending) return <PageLoading />;
+  if (loading || isPending || !session || ownAnimal || (!sent && animal && (animal.viewerRequestStatus || animal.status !== "Disponível"))) return <PageLoading />;
 
   if (!animal) {
     return <div className="grid min-h-screen place-items-center bg-[#eefdf1] p-6 text-center"><div><h1 className="text-2xl font-bold">Animal n&atilde;o encontrado</h1><Link href="/adocao" className="mt-5 inline-block rounded-xl bg-[#2f7650] px-5 py-3 font-semibold text-white">Voltar para ado&ccedil;&atilde;o</Link></div></div>;
@@ -96,7 +109,7 @@ export default function AdoptionRequestPage() {
             <div className="space-y-8">
               <AnimalSummary animal={animal} />
 
-              {error && <div role="alert" className="rounded-xl border border-red-200 bg-red-50 p-4 text-sm font-semibold text-red-800">{error}</div>}
+              {error && <Notification text={error} />}
 
               {unavailable ? (
                 <div className="rounded-xl border border-[#d7e6da] bg-white p-8 text-center shadow-sm"><h2 className="text-xl font-bold">Solicita&ccedil;&atilde;o indispon&iacute;vel</h2><p className="mt-2 text-sm text-[#526057]">Voc&ecirc; j&aacute; possui uma solicita&ccedil;&atilde;o para este animal ou ele n&atilde;o est&aacute; mais dispon&iacute;vel.</p></div>
@@ -204,6 +217,6 @@ function SuccessCard({ animalName }: { animalName: string }) {
   );
 }
 
-function PageLoading() { return <div className="grid min-h-screen place-items-center bg-[#eefdf1]"><div className="size-11 animate-spin rounded-full border-4 border-[#2f7650] border-t-transparent" aria-label="Carregando" /></div>; }
+function PageLoading() { return <SkeletonLoader fullScreen variant="form" />; }
 
 function sizeName(size?: string) { return ({ P: "Pequeno", M: "M\u00e9dio", G: "Grande" } as Record<string, string>)[size || ""] || size || "N\u00e3o informado"; }

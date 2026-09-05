@@ -3,6 +3,10 @@
 import { useEffect, useMemo, useState } from "react";
 import { AnimalCard } from "@/components/animal-card";
 import { DirectionalChevron } from "@/components/directional-chevron";
+import { SkeletonLoader } from "@/components/skeleton-loader";
+import { LoadErrorState } from "@/components/load-error-state";
+import { EmptyState } from "@/components/empty-state";
+import { ExploreTabs } from "@/components/explore-tabs";
 import { SiteFooter } from "@/components/site-footer";
 import { SiteHeader } from "@/components/site-header";
 import type { Animal } from "@/data/animals";
@@ -54,6 +58,7 @@ export default function AdoptionPage() {
     <div className="min-h-screen bg-[#eefdf1] text-[#121e17]">
       <SiteHeader />
       <main className="mx-auto max-w-[1200px] px-5 py-8 sm:px-10 lg:px-20 lg:py-12">
+        <ExploreTabs />
         <div className="grid items-start gap-6 lg:grid-cols-[256px_1fr]">
           <aside className="lg:sticky lg:top-28">
             <details className="group relative overflow-hidden rounded-2xl border border-[#d7e6da] bg-white shadow-[0_8px_24px_rgba(38,51,43,0.06)]" open={filtersOpen}>
@@ -73,7 +78,7 @@ export default function AdoptionPage() {
               <div><h1 className="text-3xl font-extrabold tracking-[-0.02em] sm:text-[40px] sm:leading-12">Encontre seu novo amigo</h1><p className="mt-1 text-base text-[#404942]">{animals.length} animais aguardando adoção perto de você.</p></div>
               <label className="flex items-center gap-2 text-xs text-[#404942]">Ordenar por:<select className="rounded-lg border border-[#d6e6db] bg-white px-3 py-2 text-sm outline-none focus:border-[#256441]"><option>Mais próximos</option><option>Mais recentes</option></select></label>
             </div>
-            {loadingAnimals ? <div className="rounded-xl bg-white p-12 text-center text-[#404942]">Carregando animais...</div> : loadError ? <div className="rounded-xl border border-red-200 bg-red-50 p-12 text-center text-red-700">Não foi possível carregar os animais.</div> : animals.length ? <div className="grid gap-6 sm:grid-cols-2 xl:grid-cols-3">{animals.slice(0, visible).map((animal) => <AnimalCard key={animal.id} animal={animal} />)}</div> : <div className="rounded-xl bg-white p-12 text-center text-[#404942]">Nenhum animal encontrado com esses filtros.</div>}
+            {loadingAnimals ? <SkeletonLoader variant="cards" /> : loadError ? <LoadErrorState message="Não foi possível carregar os animais." /> : animals.length ? <div className="grid gap-6 sm:grid-cols-2 xl:grid-cols-3">{animals.slice(0, visible).map((animal) => <AnimalCard key={animal.id} animal={animal} />)}</div> : <EmptyState message="Nenhum animal encontrado com esses filtros." />}
             {visible < animals.length && <div className="flex justify-center pt-14"><button onClick={() => setVisible((value) => value + 3)} className="group flex min-w-56 items-center justify-center gap-2 rounded-xl border-2 border-[#256441] px-8 py-3.5 text-sm font-semibold tracking-[0.05em] text-[#256441] transition-all duration-200 hover:-translate-y-0.5 hover:bg-[#256441] hover:text-white active:scale-[0.98]">Carregar mais <DirectionalChevron direction="down" className="transition-transform group-hover:-translate-x-0.5" /></button></div>}
           </section>
         </div>
