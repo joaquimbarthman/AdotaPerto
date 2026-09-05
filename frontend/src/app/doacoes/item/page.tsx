@@ -26,7 +26,6 @@ export default function ItemDonationPage() {
   const [mainInputKey, setMainInputKey] = useState(0);
   const [extraInputKey, setExtraInputKey] = useState(0);
   const [loading, setLoading] = useState(false);
-  const [sent, setSent] = useState(false);
   const [globalError, setGlobalError] = useState<string | null>(null);
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [editId, setEditId] = useState<string | null>(null);
@@ -91,9 +90,8 @@ export default function ItemDonationPage() {
       });
       const result = await response.json().catch(() => ({}));
       if (!response.ok) throw new Error(result.error || "Não foi possível publicar a doação.");
-      setSent(true);
-      notify("Doação salva com sucesso.", "success");
-      window.scrollTo({ top: 0, behavior: "smooth" });
+      notify(editId ? "Item atualizado com sucesso." : "Item publicado com sucesso.", "success");
+      router.push(editId ? "/perfil#publicacoes" : "/itens");
     } catch (cause: unknown) {
       setGlobalError(cause instanceof Error ? cause.message : "Não foi possível publicar a doação.");
     } finally { setLoading(false); }
@@ -103,7 +101,7 @@ export default function ItemDonationPage() {
     <Link href={editId ? "/perfil#publicacoes" : "/doacoes"} className="group inline-flex items-center gap-1.5 text-sm font-semibold text-[#404942] transition hover:text-[#256441]"><DirectionalChevron className="transition-transform group-hover:-translate-x-0.5" />{editId ? "Voltar às publicações" : "Voltar às opções"}</Link>
     <header className="mb-10 mt-6"><h1 className="text-3xl font-extrabold tracking-[-0.025em] sm:text-4xl lg:text-5xl">{editId ? "Editar anúncio do item" : "Publicar doação"}</h1><p className="mt-2 text-base leading-7 text-[#4d5b53] sm:text-lg">{editId ? "Revise todas as informações e mantenha o anúncio atualizado." : "Compartilhe itens e recursos que podem ajudar quem precisa."}</p></header>
     {globalError && <Notification text={globalError} />}
-    {sent ? <Success editing={Boolean(editId)} /> : <form ref={formRef} onSubmit={submit} className="mx-auto grid max-w-[1120px] items-start gap-8 lg:grid-cols-[minmax(0,1fr)_300px]">
+    <form ref={formRef} onSubmit={submit} className="mx-auto grid max-w-[1120px] items-start gap-8 lg:grid-cols-[minmax(0,1fr)_300px]">
       <div className="flex min-w-0 flex-col gap-7">
       <DonationFormSection icon={<SectionIcon src="/icons/donations-profile.svg" />} title="Informações" description="Identifique o item e informe a quantidade disponível."><div className="grid gap-5 sm:grid-cols-2">
         <DonationField label="Título da doação" className="sm:col-span-2"><input name="title" required minLength={3} placeholder="Ex.: Ração para cães adultos" className={donationInputClass} /></DonationField>
@@ -143,10 +141,9 @@ export default function ItemDonationPage() {
           <DonationTip icon="/icons/date.svg" title="Confira a validade">Para alimentos e produtos de higiene, verifique a data antes de publicar.</DonationTip>
         </ul>
       </aside>
-    </form>}
+    </form>
   </main><SiteFooter /></div>;
 }
 
 function SectionIcon({ src }: { src: string }) { return <Image src={src} alt="" width={24} height={24} className="size-6 object-contain" />; }
 function DonationTip({ icon, title, children }: { icon: string; title: string; children: React.ReactNode }) { return <li className="flex items-start gap-3 py-4"><span className="mt-0.5 grid size-6 shrink-0 place-items-center text-[#256441]"><Image src={icon} alt="" width={22} height={22} className="max-h-[22px] max-w-[22px] object-contain" /></span><span><strong className="mb-0.5 block text-[#253129]">{title}</strong>{children}</span></li>; }
-function Success({ editing = false }: { editing?: boolean }) { return <section role="status" className="mx-auto max-w-[960px] rounded-2xl border border-[#86c99c] bg-white p-8 text-center shadow-sm sm:p-12"><div className="mx-auto grid size-16 place-items-center rounded-2xl bg-[#e3f2e6]"><Image src="/icons/available-detail.svg" alt="Doação salva" width={32} height={32} /></div><h2 className="mt-5 text-2xl font-bold">Doação {editing ? "atualizada" : "publicada"} com sucesso!</h2><p className="mx-auto mt-2 max-w-xl leading-7 text-[#526057]">O item foi salvo e já faz parte das suas publicações.</p><Link href={editing ? "/perfil#publicacoes" : "/doacoes"} className="mt-7 inline-flex min-h-12 items-center justify-center rounded-xl bg-[#256441] px-6 py-3 font-semibold text-white transition hover:bg-[#194b30]">{editing ? "Voltar às publicações" : "Voltar para doações"}</Link></section>; }

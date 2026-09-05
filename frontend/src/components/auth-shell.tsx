@@ -1,6 +1,7 @@
 import Image from "next/image";
 import Link from "next/link";
 import { DirectionalChevron } from "@/components/directional-chevron";
+import { BrandLogo } from "@/components/brand-logo";
 
 export function AuthShell({ children, image, imageAlt, register = false }: { children: React.ReactNode; image: string; imageAlt: string; register?: boolean }) {
   return (
@@ -24,5 +25,5 @@ export function AuthShell({ children, image, imageAlt, register = false }: { chi
 }
 
 export function AuthBrand({ withIcon = true }: { withIcon?: boolean }) {
-  return <Link href="/" className="inline-flex items-center gap-2 text-2xl font-bold text-[#0f5d39] transition-opacity hover:opacity-80">{withIcon && <Image src="/icons/brand-paw.svg" alt="" width={25} height={24} />}AdotaPerto</Link>;
+  return <Link href="/" className="inline-block transition-opacity hover:opacity-80" aria-label="AdotaPerto — início"><BrandLogo priority className={`h-auto ${withIcon ? "w-[190px]" : "w-[155px]"}`} /></Link>;
 }

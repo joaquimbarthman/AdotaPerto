@@ -6,9 +6,9 @@ export const metadata: Metadata = {
   title: "AdotaPerto",
   description: "Uma rede de apoio ao bem-estar animal.",
   icons: {
-    icon: "/icons/brand-paw.svg",
-    shortcut: "/icons/brand-paw.svg",
-    apple: "/icons/brand-paw.svg",
+    icon: "/icons/adotaperto-heart.png",
+    shortcut: "/icons/adotaperto-heart.png",
+    apple: "/icons/adotaperto-heart.png",
   },
 };
 

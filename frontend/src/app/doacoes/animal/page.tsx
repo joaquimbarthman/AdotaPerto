@@ -30,7 +30,6 @@ export default function AnimalDonationPage() {
   const { data: session } = useSession();
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [sent, setSent] = useState(false);
   const [mainPhoto, setMainPhoto] = useState<File | null>(null);
   const [extraPhotos, setExtraPhotos] = useState<File[]>([]);
   const [mainInputKey, setMainInputKey] = useState(0);
@@ -137,9 +136,8 @@ export default function AnimalDonationPage() {
         throw new Error(data.error || "Erro ao salvar cadastro do animal.");
       }
 
-      setSent(true);
-      notify("Publicação salva com sucesso.", "success");
-      window.scrollTo({ top: 0, behavior: "smooth" });
+      notify(editId ? "Animal atualizado com sucesso." : "Animal cadastrado com sucesso.", "success");
+      router.push(editId ? "/perfil#publicacoes" : "/adocao");
     } catch (err: unknown) {
       setError(err instanceof Error ? err.message : "Erro ao cadastrar animal.");
     } finally {
@@ -154,18 +152,6 @@ export default function AnimalDonationPage() {
         <Link href={editId ? "/perfil#publicacoes" : "/doacoes"} className="mb-7 inline-flex items-center gap-2 rounded-lg px-2 py-1 text-sm font-semibold text-[#256441] transition hover:bg-[#e8f7eb]"><span aria-hidden="true">‹</span> {editId ? "Voltar às publicações" : "Voltar às opções"}</Link>
         
         {error && <Notification text={error} />}
-
-        {sent && (
-          <div role="status" className="mb-8 rounded-2xl border border-[#86c99c] bg-[#e8f7eb] p-6 text-[#194b30]">
-            <strong className="text-lg">Animal {editId ? "atualizado" : "cadastrado"} com sucesso!</strong>
-            <p className="mt-1 text-sm">As informações do anúncio foram salvas.</p>
-            <div className="mt-4 flex gap-3">
-              <Link href={editId ? "/perfil#publicacoes" : "/adocao"} className="rounded-xl bg-[#256441] px-5 py-2.5 text-sm font-semibold text-white transition hover:bg-[#194b30]">
-                {editId ? "Voltar às publicações" : "Ver lista de adoção"}
-              </Link>
-            </div>
-          </div>
-        )}
 
         <header className="mb-10 max-w-4xl">
           <h1 className="text-3xl font-extrabold tracking-[-0.025em] sm:text-4xl lg:text-5xl">{editId ? "Editar anúncio do animal" : "Cadastrar animal para adoção"}</h1>

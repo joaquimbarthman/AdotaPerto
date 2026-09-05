@@ -1,6 +1,6 @@
 "use client";
 
-import { Notification } from "@/components/notification";
+import { Notification, notify } from "@/components/notification";
 
 import Image from "next/image";
 import Link from "next/link";
@@ -18,6 +18,7 @@ import { SiteHeader } from "@/components/site-header";
 import { authClient, useSession } from "@/lib/auth-client";
 import type { Animal } from "@/data/animals";
 import { uploadImages } from "@/lib/uploads";
+import { ProfilePhotoCropper } from "@/components/profile-photo-cropper";
 
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:4000";
 
@@ -124,6 +125,10 @@ export default function ProfilePage() {
   const [myAnimals, setMyAnimals] = useState<Animal[]>([]);
   const [myItems, setMyItems] = useState<DonationItem[]>([]);
   const [publicationFilter, setPublicationFilter] = useState<"animais" | "itens">("animais");
+  const [requestSearch, setRequestSearch] = useState("");
+  const [favoriteSearch, setFavoriteSearch] = useState("");
+  const [requestPage, setRequestPage] = useState(1);
+  const [favoritePage, setFavoritePage] = useState(1);
   const [requestFilter, setRequestFilter] = useState<"recebidas" | "enviadas">("recebidas");
   const [requestType, setRequestType] = useState<"animais" | "itens">("animais");
   const [itemRequests, setItemRequests] = useState<DonationItemRequest[]>([]);
@@ -131,13 +136,22 @@ export default function ProfilePage() {
   const [loadingProfile, setLoadingProfile] = useState(true);
   const [savingPersonal, setSavingPersonal] = useState(false);
   const [savingAddress, setSavingAddress] = useState(false);
+  const [croppedPhoto, setCroppedPhoto] = useState<File | null>(null);
+  const [photoPreview, setPhotoPreview] = useState("");
   const [toastMessage, setToastMessage] = useState<{ type: "success" | "error"; text: string } | null>(null);
   const [loadingPublications, setLoadingPublications] = useState(true);
   const [publicationsError, setPublicationsError] = useState<string | null>(null);
   const [loadingRequests, setLoadingRequests] = useState(true);
   const [requestsError, setRequestsError] = useState<string | null>(null);
+  const [publicationToDelete, setPublicationToDelete] = useState<EditablePublication | null>(null);
+  const [deletingPublication, setDeletingPublication] = useState(false);
 
   const { data: session, isPending: isSessionPending } = useSession();
+  const debouncedRequestSearch = useDebouncedValue(requestSearch, 300);
+  const debouncedFavoriteSearch = useDebouncedValue(favoriteSearch, 300);
+
+  useEffect(() => { setRequestPage(1); }, [debouncedRequestSearch, requestFilter, requestType]);
+  useEffect(() => { setFavoritePage(1); }, [debouncedFavoriteSearch, favoriteType]);
 
   useEffect(() => {
     function selectTabFromHash() {
@@ -264,6 +278,29 @@ export default function ProfilePage() {
   const userState = profile?.state || "";
   const userLocation = userCity && userState ? `${userCity}, ${userState}` : userCity || userState || "";
   const memberSince = formatMemberSince(profile?.createdAt || session.user.createdAt);
+  const normalizedRequestSearch = debouncedRequestSearch.trim().toLocaleLowerCase("pt-BR");
+  const matchRequest = (request: AdoptionRequestItem) => [request.animal.name, request.animal.species, request.requester?.name, request.status].some((value) => value?.toLocaleLowerCase("pt-BR").includes(normalizedRequestSearch));
+  const matchItemRequest = (request: DonationItemRequest) => [request.item.title, request.item.itemName, request.requester?.name, request.status].some((value) => value?.toLocaleLowerCase("pt-BR").includes(normalizedRequestSearch));
+  const filteredRequests = normalizedRequestSearch ? requests.filter(matchRequest) : requests;
+  const filteredReceivedRequests = normalizedRequestSearch ? receivedRequests.filter(matchRequest) : receivedRequests;
+  const filteredItemRequests = normalizedRequestSearch ? itemRequests.filter(matchItemRequest) : itemRequests;
+  const filteredReceivedItemRequests = normalizedRequestSearch ? receivedItemRequests.filter(matchItemRequest) : receivedItemRequests;
+  const normalizedFavoriteSearch = debouncedFavoriteSearch.trim().toLocaleLowerCase("pt-BR");
+  const filteredFavorites = normalizedFavoriteSearch ? favorites.filter(({ animal }) => [animal.name, animal.species, animal.breed].some((value) => value?.toLocaleLowerCase("pt-BR").includes(normalizedFavoriteSearch))) : favorites;
+  const filteredFavoriteItems = normalizedFavoriteSearch ? favoriteItems.filter(({ item }) => [item.title, item.itemName, item.category].some((value) => value?.toLocaleLowerCase("pt-BR").includes(normalizedFavoriteSearch))) : favoriteItems;
+  const requestPageSize = 6;
+  const currentRequestCount = requestType === "animais" ? (requestFilter === "recebidas" ? filteredReceivedRequests.length : filteredRequests.length) : (requestFilter === "recebidas" ? filteredReceivedItemRequests.length : filteredItemRequests.length);
+  const requestPages = Math.max(1, Math.ceil(currentRequestCount / requestPageSize));
+  const requestStart = (requestPage - 1) * requestPageSize;
+  const visibleRequests = filteredRequests.slice(requestStart, requestStart + requestPageSize);
+  const visibleReceivedRequests = filteredReceivedRequests.slice(requestStart, requestStart + requestPageSize);
+  const visibleItemRequests = filteredItemRequests.slice(requestStart, requestStart + requestPageSize);
+  const visibleReceivedItemRequests = filteredReceivedItemRequests.slice(requestStart, requestStart + requestPageSize);
+  const currentFavoriteCount = favoriteType === "animais" ? filteredFavorites.length : filteredFavoriteItems.length;
+  const favoritePages = Math.max(1, Math.ceil(currentFavoriteCount / 6));
+  const favoriteStart = (favoritePage - 1) * 6;
+  const visibleFavorites = filteredFavorites.slice(favoriteStart, favoriteStart + 6);
+  const visibleFavoriteItems = filteredFavoriteItems.slice(favoriteStart, favoriteStart + 6);
 
   async function updateReceivedRequest(id: string, status: "Aprovada" | "Recusada") {
     const response = await fetch(`${API_BASE_URL}/api/adoption-requests/${id}/status`, {
@@ -291,11 +328,10 @@ export default function ProfilePage() {
     const instagram = formData.get("instagram") as string;
     const whatsapp = formData.get("whatsapp") as string;
     const bio = formData.get("bio") as string;
-    const photo = formData.get("foto");
 
     setSavingPersonal(true);
     try {
-      const [image] = photo instanceof File && photo.size > 0 ? await uploadImages([photo]) : [];
+      const [image] = croppedPhoto ? await uploadImages([croppedPhoto]) : [];
       const res = await fetch(`${API_BASE_URL}/api/users/me`, {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
@@ -311,6 +347,10 @@ export default function ProfilePage() {
       setProfile((prev) => (prev ? { ...prev, ...updated } : updated));
 
       await authClient.updateUser({ name, ...(image ? { image } : {}) });
+
+      setCroppedPhoto(null);
+      if (photoPreview) URL.revokeObjectURL(photoPreview);
+      setPhotoPreview("");
 
       setToastMessage({ type: "success", text: "Dados pessoais salvos com sucesso no banco!" });
     } catch (err: unknown) {
@@ -360,14 +400,27 @@ export default function ProfilePage() {
     setToastMessage({ type: "success", text: `Solicitação ${status.toLowerCase()} com sucesso.` });
   }
 
-  async function removePublication(publication: EditablePublication) {
-    if (!window.confirm("Excluir esta publicação permanentemente?")) return;
+  function removePublication(publication: EditablePublication) {
+    setPublicationToDelete(publication);
+  }
+
+  async function confirmPublicationRemoval() {
+    const publication = publicationToDelete;
+    if (!publication || deletingPublication) return;
+    setDeletingPublication(true);
     const endpoint = publication.kind === "animal" ? "animals" : "donation-items";
-    const response = await fetch(`${API_BASE_URL}/api/${endpoint}/${publication.data.id}`, { method: "DELETE", credentials: "include" });
-    if (!response.ok) return setToastMessage({ type: "error", text: "Não foi possível excluir a publicação." });
-    if (publication.kind === "animal") setMyAnimals((items) => items.filter((item) => item.id !== publication.data.id));
-    else setMyItems((items) => items.filter((item) => item.id !== publication.data.id));
-    setToastMessage({ type: "success", text: "Publicação excluída." });
+    try {
+      const response = await fetch(`${API_BASE_URL}/api/${endpoint}/${publication.data.id}`, { method: "DELETE", credentials: "include" });
+      if (!response.ok) throw new Error();
+      if (publication.kind === "animal") setMyAnimals((items) => items.filter((item) => item.id !== publication.data.id));
+      else setMyItems((items) => items.filter((item) => item.id !== publication.data.id));
+      setPublicationToDelete(null);
+      setToastMessage({ type: "success", text: "Publicação excluída com sucesso." });
+    } catch {
+      setToastMessage({ type: "error", text: "Não foi possível excluir a publicação." });
+    } finally {
+      setDeletingPublication(false);
+    }
   }
 
   return (
@@ -428,28 +481,31 @@ export default function ProfilePage() {
             )}
             {activeTab === "solicitacoes" && (
               <div className="space-y-7">
-                <PageHeading title="Central de solicitações" description="Acompanhe adoções e pedidos de itens em uma única área." action={<RequestTypePicker value={requestType} onChange={setRequestType} animalCount={requests.length + receivedRequests.length} itemCount={itemRequests.length + receivedItemRequests.length} />} />
-                <div className="flex items-center justify-between gap-4">
-                  <RequestDirectionTabs value={requestFilter} options={requestType === "animais" ? [{ id: "recebidas", label: "Recebidas", count: receivedRequests.length }, { id: "enviadas", label: "Enviadas", count: requests.length }] : [{ id: "recebidas", label: "Recebidas", count: receivedItemRequests.length }, { id: "enviadas", label: "Enviadas", count: itemRequests.length }]} onChange={(value) => setRequestFilter(value as "recebidas" | "enviadas")} />
+                <PageHeading title="Central de solicitações" description="Acompanhe adoções e pedidos de itens em uma única área." action={<RequestTypePicker value={requestType} onChange={setRequestType} animalCount={filteredRequests.length + filteredReceivedRequests.length} itemCount={filteredItemRequests.length + filteredReceivedItemRequests.length} />} />
+                <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                  <RequestDirectionTabs value={requestFilter} options={requestType === "animais" ? [{ id: "recebidas", label: "Recebidas", count: filteredReceivedRequests.length }, { id: "enviadas", label: "Enviadas", count: filteredRequests.length }] : [{ id: "recebidas", label: "Recebidas", count: filteredReceivedItemRequests.length }, { id: "enviadas", label: "Enviadas", count: filteredItemRequests.length }]} onChange={(value) => setRequestFilter(value as "recebidas" | "enviadas")} />
+                  <ProfileSearch value={requestSearch} onChange={setRequestSearch} placeholder="Buscar solicitações..." />
                 </div>
                 {loadingRequests ? <SkeletonLoader variant="cards" /> : requestsError ? <LoadErrorState message="Não foi possível carregar suas solicitações." /> : requestType === "animais" ? (requestFilter === "recebidas"
-                  ? <RequestSection empty="Seus animais ainda não receberam solicitações." requests={receivedRequests} received onUpdate={updateReceivedRequest} />
-                  : <RequestSection empty="Você ainda não solicitou nenhuma adoção." requests={requests} />)
+                  ? <RequestSection empty="Nenhuma solicitação encontrada." requests={visibleReceivedRequests} received onUpdate={updateReceivedRequest} />
+                  : <RequestSection empty="Nenhuma solicitação encontrada." requests={visibleRequests} />)
                 : (requestFilter === "recebidas"
-                    ? <ItemRequestSection empty="Seus itens ainda não receberam solicitações." requests={receivedItemRequests} received onUpdate={updateReceivedItemRequest} />
-                    : <ItemRequestSection empty="Você ainda não solicitou nenhum item." requests={itemRequests} />)}
+                    ? <ItemRequestSection empty="Nenhuma solicitação encontrada." requests={visibleReceivedItemRequests} received onUpdate={updateReceivedItemRequest} />
+                    : <ItemRequestSection empty="Nenhuma solicitação encontrada." requests={visibleItemRequests} />)}
+                {currentRequestCount > 0 && <ProfilePagination page={requestPage} totalPages={requestPages} onChange={setRequestPage} label="solicitações" />}
               </div>
             )}
             {activeTab === "favoritos" && (
               <div className="space-y-6">
                 <PageHeading title="Seus favoritos" description="Acesse os animais e itens que você marcou com coração." />
-                <SegmentedControl value={favoriteType} options={[{ id: "animais", label: "Animais", count: favorites.length }, { id: "itens", label: "Itens", count: favoriteItems.length }]} onChange={(value) => setFavoriteType(value as "animais" | "itens")} />
-                {favoriteType === "animais" ? (favorites.length > 0 ? <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">{favorites.map((fav) => <AnimalCard key={fav.id} animal={fav.animal} isInitiallyFavorite onFavoriteChange={(favorite) => { if (!favorite) setFavorites((current) => current.filter((item) => item.id !== fav.id)); }} />)}</div> : <EmptyTab title="Nenhum animal favorito" description="Os animais que você favoritar aparecerão aqui." />) : (favoriteItems.length > 0 ? <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">{favoriteItems.map((favorite) => <DonationItemCard key={favorite.id} item={favorite.item} isInitiallyFavorite onFavoriteChange={(active) => { if (!active) setFavoriteItems((current) => current.filter((entry) => entry.id !== favorite.id)); }} />)}</div> : <EmptyTab title="Nenhum item favorito" description="Os itens que você favoritar aparecerão aqui." />)}
+                <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between"><SegmentedControl value={favoriteType} options={[{ id: "animais", label: "Animais", count: filteredFavorites.length }, { id: "itens", label: "Itens", count: filteredFavoriteItems.length }]} onChange={(value) => setFavoriteType(value as "animais" | "itens")} /><ProfileSearch value={favoriteSearch} onChange={setFavoriteSearch} placeholder="Buscar favoritos..." /></div>
+                {favoriteType === "animais" ? (visibleFavorites.length > 0 ? <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">{visibleFavorites.map((fav) => <AnimalCard key={fav.id} animal={fav.animal} isInitiallyFavorite onFavoriteChange={(favorite) => { if (!favorite) setFavorites((current) => current.filter((item) => item.id !== fav.id)); }} />)}</div> : <EmptyTab title="Nenhum animal favorito" description="Nenhum favorito corresponde à pesquisa." />) : (visibleFavoriteItems.length > 0 ? <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">{visibleFavoriteItems.map((favorite) => <DonationItemCard key={favorite.id} item={favorite.item} isInitiallyFavorite onFavoriteChange={(active) => { if (!active) setFavoriteItems((current) => current.filter((entry) => entry.id !== favorite.id)); }} />)}</div> : <EmptyTab title="Nenhum item favorito" description="Nenhum favorito corresponde à pesquisa." />)}
+                {currentFavoriteCount > 0 && <ProfilePagination page={favoritePage} totalPages={favoritePages} onChange={setFavoritePage} label="favoritos" />}
               </div>
             )}
             {activeTab === "dados" && (
               <ProfileForm key={`dados-${profile?.name}-${profile?.bio}-${profile?.birthDate}-${profile?.instagram}-${profile?.whatsapp}`} onSubmit={handleSavePersonalData} loading={savingPersonal}>
-                <PersonalData profile={profile} userName={userName} userImage={userImage} userBio={userBio} />
+                <PersonalData profile={profile} userName={userName} userImage={photoPreview || userImage} userBio={userBio} photoLoading={savingPersonal && Boolean(croppedPhoto)} onPhotoCrop={(file, preview) => { if (photoPreview) URL.revokeObjectURL(photoPreview); setCroppedPhoto(file); setPhotoPreview(preview); }} />
               </ProfileForm>
             )}
             {activeTab === "endereco" && (
@@ -461,8 +517,40 @@ export default function ProfilePage() {
           </section>
         </div>
       </main>
+      {publicationToDelete && <DeletePublicationModal publication={publicationToDelete} loading={deletingPublication} onCancel={() => setPublicationToDelete(null)} onConfirm={confirmPublicationRemoval} />}
       <SiteFooter />
     </div>
+  );
+}
+
+function DeletePublicationModal({ publication, loading, onCancel, onConfirm }: { publication: EditablePublication; loading: boolean; onCancel: () => void; onConfirm: () => void }) {
+  const title = publication.kind === "animal" ? publication.data.name : publication.data.title;
+  const kind = publication.kind === "animal" ? "animal" : "item";
+
+  useEffect(() => {
+    const previousOverflow = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+    const closeOnEscape = (event: KeyboardEvent) => { if (event.key === "Escape" && !loading) onCancel(); };
+    window.addEventListener("keydown", closeOnEscape);
+    return () => { document.body.style.overflow = previousOverflow; window.removeEventListener("keydown", closeOnEscape); };
+  }, [loading, onCancel]);
+
+  if (typeof document === "undefined") return null;
+  return createPortal(
+    <div className="fixed inset-0 z-[1000] grid place-items-center bg-[#0d1c13]/65 p-5 backdrop-blur-sm" role="presentation" onMouseDown={(event) => { if (event.target === event.currentTarget && !loading) onCancel(); }}>
+      <section role="alertdialog" aria-modal="true" aria-labelledby="delete-publication-title" aria-describedby="delete-publication-description" className="w-full max-w-md overflow-hidden rounded-xl border border-[#d7e6da] bg-white shadow-[0_28px_80px_rgba(5,22,12,.32)]">
+        <div className="p-6 sm:p-7">
+          <p className="text-[10px] font-extrabold uppercase tracking-[.14em] text-red-700">Excluir publicação</p>
+          <h2 id="delete-publication-title" className="mt-2 text-xl font-extrabold tracking-[-.02em] text-[#253129]">Excluir “{title}”?</h2>
+          <p id="delete-publication-description" className="mt-3 text-sm leading-6 text-[#5b675f]">Este {kind} deixará de aparecer no AdotaPerto. Essa ação não poderá ser desfeita.</p>
+        </div>
+        <footer className="grid grid-cols-2 gap-3 border-t border-[#e1e8e2] bg-[#f7fcf8] p-4 sm:px-7 sm:py-5">
+          <button type="button" disabled={loading} onClick={onCancel} className="min-h-11 rounded-lg border border-[#bfcfc3] bg-white px-4 text-sm font-bold text-[#404942] transition hover:border-[#86a590] hover:bg-[#eefdf1] disabled:opacity-50">Cancelar</button>
+          <button type="button" disabled={loading} onClick={onConfirm} autoFocus className="flex min-h-11 items-center justify-center gap-2 rounded-lg bg-red-700 px-4 text-sm font-bold text-white transition hover:bg-red-800 disabled:cursor-wait disabled:opacity-65">{loading ? <><span className="size-4 animate-spin rounded-full border-2 border-white/40 border-t-white" />Excluindo...</> : "Excluir publicação"}</button>
+        </footer>
+      </section>
+    </div>,
+    document.body,
   );
 }
 
@@ -485,7 +573,7 @@ function SegmentedControl({ value, options, onChange }: { value: string; options
 }
 
 function RequestDirectionTabs({ value, options, onChange }: { value: string; options: { id: string; label: string; count: number }[]; onChange: (id: string) => void }) {
-  return <div className="mb-4 flex w-fit flex-wrap items-center gap-2" role="tablist" aria-label="Direção da solicitação">{options.map((option) => <button key={option.id} type="button" role="tab" aria-selected={value === option.id} onClick={() => onChange(option.id)} className={`group inline-flex min-h-9 items-center gap-1.5 rounded-lg px-3 py-1.5 text-sm font-semibold transition ${value === option.id ? "bg-[#e3f2e6] text-[#256441]" : "text-[#526057] hover:bg-[#e8f7eb] hover:text-[#256441]"}`}><span>{option.label}</span><span className="rounded-full bg-[#256441]/10 px-1.5 py-0.5 text-[11px] font-bold text-[#256441]">{option.count}</span><svg viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth="1.8" className={`size-3.5 transition-transform group-hover:translate-x-0.5 ${value === option.id ? "opacity-100" : "opacity-50"}`} aria-hidden="true"><path d="m7.5 4.5 5 5.5-5 5.5" /></svg></button>)}</div>;
+  return <div className="flex w-fit flex-wrap items-center gap-2" role="tablist" aria-label="Direção da solicitação">{options.map((option) => <button key={option.id} type="button" role="tab" aria-selected={value === option.id} onClick={() => onChange(option.id)} className={`group inline-flex min-h-9 items-center gap-1.5 rounded-lg px-3 py-1.5 text-sm font-semibold transition ${value === option.id ? "bg-[#e3f2e6] text-[#256441]" : "text-[#526057] hover:bg-[#e8f7eb] hover:text-[#256441]"}`}><span>{option.label}</span><span className="rounded-full bg-[#256441]/10 px-1.5 py-0.5 text-[11px] font-bold text-[#256441]">{option.count}</span><svg viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth="1.8" className={`size-3.5 transition-transform group-hover:translate-x-0.5 ${value === option.id ? "opacity-100" : "opacity-50"}`} aria-hidden="true"><path d="m7.5 4.5 5 5.5-5 5.5" /></svg></button>)}</div>;
 }
 
 function RequestTypePicker({ value, onChange, animalCount, itemCount }: { value: "animais" | "itens"; onChange: (value: "animais" | "itens") => void; animalCount: number; itemCount: number }) {
@@ -497,10 +585,25 @@ function RequestTypePicker({ value, onChange, animalCount, itemCount }: { value:
 }
 
 function PublicationsPanel({ filter, onFilter, animals, items, loading, error, onEdit, onRemove }: { filter: "animais" | "itens"; onFilter: (value: "animais" | "itens") => void; animals: Animal[]; items: DonationItem[]; loading: boolean; error: string | null; onEdit: (publication: EditablePublication) => void; onRemove: (publication: EditablePublication) => void }) {
-  const publications: EditablePublication[] = filter === "animais" ? animals.map((data) => ({ kind: "animal", data })) : items.map((data) => ({ kind: "item", data }));
+  const [page, setPage] = useState(1);
+  const [search, setSearch] = useState("");
+  const debouncedSearch = useDebouncedValue(search, 300);
+  const query = debouncedSearch.trim().toLocaleLowerCase("pt-BR");
+  const publications: EditablePublication[] = (filter === "animais" ? animals.map((data): EditablePublication => ({ kind: "animal", data })) : items.map((data): EditablePublication => ({ kind: "item", data }))).filter((publication) => {
+    if (!query) return true;
+    const values = publication.kind === "animal" ? [publication.data.name, publication.data.species, publication.data.breed] : [publication.data.title, publication.data.itemName, publication.data.category];
+    return values.some((value) => value?.toLocaleLowerCase("pt-BR").includes(query));
+  });
+  const pageSize = 6;
+  const totalPages = Math.max(1, Math.ceil(publications.length / pageSize));
+  const visiblePublications = publications.slice((page - 1) * pageSize, page * pageSize);
+
+  useEffect(() => { setPage(1); }, [filter, debouncedSearch]);
+  useEffect(() => { if (page > totalPages) setPage(totalPages); }, [page, totalPages]);
+
   return <div className="space-y-7">
     <PageHeading title="Minhas publicações" description="Gerencie os anúncios que outras pessoas encontram na plataforma." action={<div className="flex gap-2"><Link href="/doacoes/animal" className="rounded-xl border border-[#256441] bg-white px-4 py-2.5 text-sm font-bold text-[#256441] hover:bg-[#eefdf1]">+ Animal</Link><Link href="/doacoes/item" className="rounded-xl bg-[#256441] px-4 py-2.5 text-sm font-bold text-white hover:bg-[#194b30]">+ Item</Link></div>} />
-    <SegmentedControl value={filter} options={[{ id: "animais", label: "Animais", count: animals.length }, { id: "itens", label: "Itens", count: items.length }]} onChange={(value) => onFilter(value as "animais" | "itens")} />
+    <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between"><SegmentedControl value={filter} options={[{ id: "animais", label: "Animais", count: filter === "animais" ? publications.length : animals.length }, { id: "itens", label: "Itens", count: filter === "itens" ? publications.length : items.length }]} onChange={(value) => onFilter(value as "animais" | "itens")} /><ProfileSearch value={search} onChange={setSearch} placeholder="Buscar publicações..." /></div>
     {loading ? (
       <PublicationSkeleton />
     ) : error ? (
@@ -508,9 +611,28 @@ function PublicationsPanel({ filter, onFilter, animals, items, loading, error, o
     ) : publications.length === 0 ? (
       <EmptyTab title={filter === "animais" ? "Nenhum animal publicado" : "Nenhum item publicado"} description="Sua primeira publicação aparecerá aqui com opções de edição e status." />
     ) : (
-      <div className="grid gap-4 sm:grid-cols-2">{publications.map((publication) => <PublicationCard key={publication.data.id} publication={publication} onEdit={onEdit} onRemove={onRemove} />)}</div>
+      <><div className="grid gap-4 sm:grid-cols-2">{visiblePublications.map((publication) => <PublicationCard key={publication.data.id} publication={publication} onEdit={onEdit} onRemove={onRemove} />)}</div>{totalPages > 1 && <nav className="flex items-center justify-center gap-2 pt-3" aria-label="Paginação das publicações"><button type="button" disabled={page === 1} onClick={() => setPage((value) => Math.max(1, value - 1))} className="grid size-9 place-items-center rounded-lg border border-[#c6d5ca] bg-white text-lg font-bold text-[#256441] transition hover:border-[#86a590] hover:bg-[#eefdf1] disabled:pointer-events-none disabled:opacity-35" aria-label="Página anterior">‹</button>{Array.from({ length: totalPages }, (_, index) => index + 1).map((number) => <button key={number} type="button" onClick={() => setPage(number)} aria-current={page === number ? "page" : undefined} className={`grid size-9 place-items-center rounded-lg border text-xs font-bold transition ${page === number ? "border-[#256441] bg-[#256441] text-white" : "border-[#c6d5ca] bg-white text-[#526057] hover:border-[#86a590] hover:text-[#256441]"}`}>{number}</button>)}<button type="button" disabled={page === totalPages} onClick={() => setPage((value) => Math.min(totalPages, value + 1))} className="grid size-9 place-items-center rounded-lg border border-[#c6d5ca] bg-white text-lg font-bold text-[#256441] transition hover:border-[#86a590] hover:bg-[#eefdf1] disabled:pointer-events-none disabled:opacity-35" aria-label="Próxima página">›</button></nav>}</>
     )}
   </div>;
+}
+
+function ProfileSearch({ value, onChange, placeholder }: { value: string; onChange: (value: string) => void; placeholder: string }) {
+  return <label className="relative block w-full sm:max-w-[310px]"><span className="sr-only">{placeholder}</span><Image src="/icons/map-search.svg" alt="" width={17} height={17} className="pointer-events-none absolute left-3.5 top-1/2 -translate-y-1/2 opacity-75" /><input type="search" value={value} onChange={(event) => onChange(event.target.value)} placeholder={placeholder} className="h-10 w-full rounded-lg border border-[#c6d5ca] bg-white pl-10 pr-3 text-sm text-[#253129] outline-none transition placeholder:text-[#8a968e] hover:border-[#86a590] focus:border-[#256441] focus:ring-3 focus:ring-[#256441]/10" /></label>;
+}
+
+function ProfilePagination({ page, totalPages, onChange, label }: { page: number; totalPages: number; onChange: (page: number) => void; label: string }) {
+  useEffect(() => { if (page > totalPages) onChange(totalPages); }, [page, totalPages, onChange]);
+  if (totalPages <= 1) return null;
+  return <nav className="flex items-center justify-center gap-2 pt-3" aria-label={`Paginação de ${label}`}><button type="button" disabled={page === 1} onClick={() => onChange(Math.max(1, page - 1))} className="grid size-9 place-items-center rounded-lg border border-[#c6d5ca] bg-white text-lg font-bold text-[#256441] transition hover:border-[#86a590] hover:bg-[#eefdf1] disabled:pointer-events-none disabled:opacity-35" aria-label="Página anterior">‹</button>{Array.from({ length: totalPages }, (_, index) => index + 1).map((number) => <button key={number} type="button" onClick={() => onChange(number)} aria-current={page === number ? "page" : undefined} className={`grid size-9 place-items-center rounded-lg border text-xs font-bold transition ${page === number ? "border-[#256441] bg-[#256441] text-white" : "border-[#c6d5ca] bg-white text-[#526057] hover:border-[#86a590] hover:text-[#256441]"}`}>{number}</button>)}<button type="button" disabled={page === totalPages} onClick={() => onChange(Math.min(totalPages, page + 1))} className="grid size-9 place-items-center rounded-lg border border-[#c6d5ca] bg-white text-lg font-bold text-[#256441] transition hover:border-[#86a590] hover:bg-[#eefdf1] disabled:pointer-events-none disabled:opacity-35" aria-label="Próxima página">›</button></nav>;
+}
+
+function useDebouncedValue<T>(value: T, delay: number) {
+  const [debounced, setDebounced] = useState(value);
+  useEffect(() => {
+    const timer = window.setTimeout(() => setDebounced(value), delay);
+    return () => window.clearTimeout(timer);
+  }, [value, delay]);
+  return debounced;
 }
 
 function PublicationSkeleton() { return <SkeletonLoader variant="cards" />; }
@@ -643,7 +765,7 @@ function SectionHeading({ title, description }: { title: string; description: st
   );
 }
 
-function PersonalData({ profile, userName, userImage, userBio }: { profile: UserProfile | null; userName: string; userImage: string; userBio: string }) {
+function PersonalData({ profile, userName, userImage, userBio, photoLoading, onPhotoCrop }: { profile: UserProfile | null; userName: string; userImage: string; userBio: string; photoLoading: boolean; onPhotoCrop: (file: File, preview: string) => void }) {
   const birthDate = profile?.birthDate || "";
   const instagram = profile?.instagram || "";
   const whatsapp = profile?.whatsapp || "";
@@ -655,22 +777,7 @@ function PersonalData({ profile, userName, userImage, userBio }: { profile: User
         <div>
           <p className="mb-3 text-sm font-bold text-[#253129]">Foto de perfil</p>
           <div className="flex items-center gap-4 lg:flex-col lg:items-start">
-            <div className="relative size-24 shrink-0 overflow-hidden rounded-full border-4 border-[#e3f2e6] bg-[#e3f2e6] shadow-sm lg:size-32">
-              {userImage ? (
-                <Image src={userImage} alt={userName} fill priority className="object-cover" />
-              ) : (
-                <div className="grid size-full place-items-center text-3xl font-bold text-[#256441]">
-                  {userName.charAt(0).toUpperCase()}
-                </div>
-              )}
-            </div>
-            <div>
-              <label className="inline-flex cursor-pointer items-center gap-2 rounded-lg border border-[#86a590] px-4 py-2.5 text-sm font-bold text-[#256441] transition hover:bg-[#e8f7eb]">
-                <Image src="/icons/edit.svg" alt="" width={14} height={14} />Alterar foto
-                <input type="file" name="foto" accept="image/png,image/jpeg,image/webp" className="sr-only" />
-              </label>
-              <p className="mt-2 text-xs leading-5 text-[#7b8980]">JPG, PNG ou WebP. Máx. 5 MB.</p>
-            </div>
+            <ProfilePhotoCropper currentImage={userImage} name={userName} loading={photoLoading} onCrop={onPhotoCrop} />
           </div>
         </div>
         <div className="grid content-start gap-5 sm:grid-cols-2">
@@ -690,20 +797,48 @@ function PersonalData({ profile, userName, userImage, userBio }: { profile: User
 }
 
 function AddressData({ profile }: { profile: UserProfile | null }) {
-  const cep = profile?.zipCode || "";
-  const rua = profile?.street || "";
-  const cidade = profile?.city || "";
-  const estado = profile?.state || "";
+  const [cep, setCep] = useState(profile?.zipCode || "");
+  const [rua, setRua] = useState(profile?.street || "");
+  const [cidade, setCidade] = useState(profile?.city || "");
+  const [estado, setEstado] = useState(profile?.state || "");
+  const [cepStatus, setCepStatus] = useState<"idle" | "loading" | "success" | "error">("idle");
+
+  useEffect(() => {
+    const digits = cep.replace(/\D/g, "");
+    if (digits.length !== 8) { setCepStatus("idle"); return; }
+    const controller = new AbortController();
+    const timer = window.setTimeout(async () => {
+      setCepStatus("loading");
+      try {
+        const response = await fetch(`${API_BASE_URL}/api/users/cep/${digits}`, { credentials: "include", signal: controller.signal });
+        const address = await response.json();
+        if (!response.ok) throw new Error("CEP não encontrado");
+        setRua(address.street || "");
+        setCidade(address.city || "");
+        setEstado(address.state || "");
+        setCepStatus("success");
+      } catch (error) {
+        if ((error as Error).name !== "AbortError") {
+          setCepStatus("error");
+          notify("CEP não encontrado. Preencha manualmente.", "error");
+        }
+      }
+    }, 350);
+    return () => { window.clearTimeout(timer); controller.abort(); };
+  }, [cep]);
+
+  const inputClass = "w-full rounded-xl border border-[#c0c9bf] bg-[#f7fcf8] px-4 py-3 text-sm text-[#121e17] outline-none transition placeholder:text-[#879188] focus:border-[#3f7d58] focus:ring-2 focus:ring-[#3f7d58]/15";
+  const states = ["AC","AL","AP","AM","BA","CE","DF","ES","GO","MA","MT","MS","MG","PA","PB","PR","PE","PI","RJ","RN","RS","RO","RR","SC","SP","SE","TO"];
 
   return (
     <section id="panel-endereco" role="tabpanel" aria-labelledby="tab-endereco">
       <SectionHeading title="Endereço" description="Essas informações ajudam a encontrar animais e iniciativas perto de você." />
       <div className="grid max-w-3xl gap-5 sm:grid-cols-2">
-        <div className="sm:max-w-[240px]"><ProfileField label="CEP" name="cep" inputMode="numeric" defaultValue={cep} placeholder="00000-000" autoComplete="postal-code" /></div>
+        <label className="sm:max-w-[240px]"><span className="mb-2 block text-sm font-bold text-[#253129]">CEP</span><div className="relative"><input name="cep" inputMode="numeric" value={cep} maxLength={9} aria-invalid={cepStatus === "error"} onChange={(event) => { const digits = event.target.value.replace(/\D/g, "").slice(0, 8); setCep(digits.length > 5 ? `${digits.slice(0,5)}-${digits.slice(5)}` : digits); }} placeholder="00000-000" autoComplete="postal-code" className={`${inputClass} pr-10 ${cepStatus === "error" ? "border-red-300" : ""}`} />{cepStatus === "loading" && <span className="absolute right-3 top-1/2 size-4 -translate-y-1/2 animate-spin rounded-full border-2 border-[#b8d8c1] border-t-[#256441]" aria-label="Buscando CEP" />}{cepStatus === "success" && <svg viewBox="0 0 24 24" className="absolute right-3 top-1/2 size-5 -translate-y-1/2 text-[#256441]" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round" aria-label="CEP encontrado"><circle cx="12" cy="12" r="9" /><path d="m8 12 2.6 2.6L16.5 9" /></svg>}</div></label>
         <div className="hidden sm:block" />
-        <div className="sm:col-span-2"><ProfileField label="Rua" name="rua" defaultValue={rua} placeholder="Digite o nome da rua" autoComplete="street-address" /></div>
-        <ProfileField label="Cidade" name="cidade" defaultValue={cidade} placeholder="Sua cidade" autoComplete="address-level2" />
-        <ProfileField label="Estado" name="estado" defaultValue={estado} placeholder="Seu estado" autoComplete="address-level1" />
+        <label className="sm:col-span-2"><span className="mb-2 block text-sm font-bold text-[#253129]">Rua</span><input name="rua" value={rua} onChange={(event) => setRua(event.target.value)} placeholder="Digite o nome da rua" autoComplete="street-address" className={inputClass} /></label>
+        <label><span className="mb-2 block text-sm font-bold text-[#253129]">Cidade</span><input name="cidade" value={cidade} onChange={(event) => setCidade(event.target.value)} placeholder="Sua cidade" autoComplete="address-level2" className={inputClass} /></label>
+        <label><span className="mb-2 block text-sm font-bold text-[#253129]">UF</span><span className="relative block"><select name="estado" value={estado} onChange={(event) => setEstado(event.target.value)} autoComplete="address-level1" className={`${inputClass} appearance-none pr-12`}><option value="">Selecione</option>{states.map((uf) => <option key={uf} value={uf}>{uf}</option>)}</select><svg viewBox="0 0 20 20" className="pointer-events-none absolute right-4 top-1/2 size-4 -translate-y-1/2 text-[#526057]" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="m5 7.5 5 5 5-5" /></svg></span></label>
       </div>
     </section>
   );

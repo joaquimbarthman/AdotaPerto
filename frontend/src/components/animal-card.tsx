@@ -75,7 +75,7 @@ export function AnimalCard({ animal, isInitiallyFavorite = false, onFavoriteChan
   }
 
   const traits = Array.isArray(animal.traits) ? animal.traits : [];
-  const distance = animal.distance || "5 km";
+  const distance = animal.distance?.trim();
 
   return (
     <article className="group flex h-full flex-col overflow-hidden rounded-xl bg-white shadow-[0_4px_12px_rgba(38,51,43,0.05)] transition-all duration-300 hover:-translate-y-1.5 hover:shadow-[0_12px_24px_rgba(38,51,43,0.12)]">
@@ -115,15 +115,15 @@ export function AnimalCard({ animal, isInitiallyFavorite = false, onFavoriteChan
           {animal.species} <span className="mx-1 text-[#c0c9bf]">•</span> {animal.sex} <span className="mx-1 text-[#c0c9bf]">•</span> {animal.age}
         </p>
 
-        <div className="mt-3 flex h-7 min-w-0 flex-nowrap gap-2 overflow-hidden">
+        <div className="mt-3 flex min-h-7 min-w-0 flex-wrap items-center gap-2">
           <Tag>Porte {animal.size}</Tag>
-          {traits.slice(0, 1).map((trait) => <Tag key={trait}>{trait}</Tag>)}
+          {traits.slice(0, 1).map((trait) => <span key={trait} className="contents"><span className="text-xs text-[#9aaa9f]" aria-hidden="true">•</span><Tag>{trait}</Tag></span>)}
         </div>
 
         <div className="mt-auto pt-5">
           <div className="flex min-h-10 items-center gap-2 border-t border-[#d7e6da] pt-3 text-xs font-medium text-[#4d5b53]">
             <Image src="/icons/location.svg" alt="" width={14} height={17} className="shrink-0" />
-            <span className="truncate">A aproximadamente {distance} de você</span>
+            <span className="min-w-0 leading-4">{distance ? <>A aproximadamente {distance} de você</> : "Distância ainda não disponível"}</span>
           </div>
         </div>
 
@@ -133,5 +133,5 @@ export function AnimalCard({ animal, isInitiallyFavorite = false, onFavoriteChan
 }
 
 function Tag({ children }: { children: React.ReactNode }) {
-  return <span className="h-7 max-w-[calc(50%-0.25rem)] shrink truncate rounded-lg bg-[#eefdf1] px-3 py-1.5 text-xs font-semibold leading-4 text-[#256441]">{children}</span>;
+  return <span className="inline-flex min-h-7 max-w-full items-center rounded-lg bg-[#eefdf1] px-3 py-1.5 text-xs font-semibold leading-4 text-[#256441]">{children}</span>;
 }

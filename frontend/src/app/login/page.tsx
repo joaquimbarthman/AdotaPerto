@@ -17,7 +17,7 @@ export default function LoginPage() {
   useEffect(() => {
     const reason = new URLSearchParams(window.location.search).get("reason");
     if (reason === "unauthenticated") {
-      setErrorMessage("Você não está autenticado.");
+      queueMicrotask(() => setErrorMessage("Você não está autenticado."));
     }
   }, []);
 

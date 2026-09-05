@@ -7,6 +7,7 @@ import { userRoutes } from "./users.ts";
 import { uploadRoutes } from "./uploads.ts";
 import { donationItemRoutes } from "./donationItems.ts";
 import { donationItemRequestRoutes } from "./donationItemRequests.ts";
+import { mapRoutes } from "./map.ts";
 
 export type AuthContext = {
   Variables: {
@@ -18,6 +19,10 @@ export type AuthContext = {
 export const apiRoutes = new Hono<AuthContext>();
 
 apiRoutes.use("*", async (c, next) => {
+  if (c.req.path.startsWith("/api/map/tiles/")) {
+    await next();
+    return;
+  }
   const session = await auth.api.getSession({
     headers: c.req.raw.headers,
   });
@@ -33,3 +38,4 @@ apiRoutes.route("/favorites", favoriteRoutes);
 apiRoutes.route("/uploads", uploadRoutes);
 apiRoutes.route("/donation-items", donationItemRoutes);
 apiRoutes.route("/donation-item-requests", donationItemRequestRoutes);
+apiRoutes.route("/map", mapRoutes);

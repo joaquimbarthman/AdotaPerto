@@ -9,6 +9,9 @@ import { EmptyState } from "@/components/empty-state";
 import { ExploreTabs } from "@/components/explore-tabs";
 import { SiteFooter } from "@/components/site-footer";
 import { SiteHeader } from "@/components/site-header";
+import { useSession } from "@/lib/auth-client";
+import { distanceInKm, type Coordinates } from "@/lib/map-distance";
+import { mapApi } from "@/lib/map-api";
 
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:4000";
 const CATEGORY_OPTIONS = ["Ração", "Petiscos", "Produtos de higiene", "Caminhas e cobertores", "Coleiras e guias", "Caixas de transporte", "Brinquedos", "Utensílios", "Produtos de limpeza", "Outros"];
@@ -21,12 +24,15 @@ export type DonationItem = {
 };
 
 export default function DonationItemsPage() {
+  const { data: session, isPending: sessionPending } = useSession();
   const [items, setItems] = useState<DonationItem[]>([]);
+  const [distances, setDistances] = useState<Record<string, number>>({});
+  const [locationReady, setLocationReady] = useState(false);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [categories, setCategories] = useState<string[]>([]);
   const [conditions, setConditions] = useState<string[]>([]);
-  const [delivery, setDelivery] = useState("Qualquer");
+  const [distance, setDistance] = useState(10);
   const [sort, setSort] = useState("Mais recentes");
   const [visible, setVisible] = useState(6);
   const [filtersOpen, setFiltersOpen] = useState(true);
@@ -39,14 +45,50 @@ export default function DonationItemsPage() {
       .finally(() => setLoading(false));
   }, []);
 
-  const activeFilters = categories.length + conditions.length + (delivery !== "Qualquer" ? 1 : 0);
+  useEffect(() => {
+    if (sessionPending) return;
+    let cancelled = false;
+    const browserLocation = () => new Promise<Coordinates>((resolve, reject) => {
+      if (!navigator.geolocation) return reject(new Error("Geolocalização indisponível"));
+      navigator.geolocation.getCurrentPosition(
+        ({ coords }) => resolve({ lat: coords.latitude, lng: coords.longitude }),
+        reject,
+        { enableHighAccuracy: false, timeout: 9000, maximumAge: 300000 },
+      );
+    });
+
+    async function resolveDistances() {
+      try {
+        let origin: Coordinates | null = null;
+        if (session) {
+          const response = await fetch(`${API_BASE_URL}/api/users/me`, { credentials: "include" });
+          if (response.ok) {
+            const profile = await response.json() as { zipCode?: string | null };
+            if (profile.zipCode) origin = await mapApi.geocode(profile.zipCode);
+          }
+        }
+        if (!origin) origin = await browserLocation();
+        const listings = await mapApi.listings();
+        if (cancelled) return;
+        setDistances(Object.fromEntries(listings.filter((item) => item.category === "donation").map((item) => [item.id, distanceInKm(origin, item)])));
+      } catch {
+        if (!cancelled) setDistances({});
+      } finally {
+        if (!cancelled) setLocationReady(true);
+      }
+    }
+    void resolveDistances();
+    return () => { cancelled = true; };
+  }, [session, sessionPending]);
+
+  const activeFilters = categories.length + conditions.length + (distance !== 10 ? 1 : 0);
   const filteredItems = useMemo(() => {
-    const result = items.filter((item) => (!categories.length || categories.includes(item.category)) && (!conditions.length || conditions.includes(item.condition)) && (delivery === "Qualquer" || item.deliveryMethod === delivery));
+    const result = items.filter((item) => (!categories.length || categories.includes(item.category)) && (!conditions.length || conditions.includes(item.condition)) && (!locationReady || distances[item.id] == null || distances[item.id] <= distance)).map((item) => distances[item.id] == null ? item : ({ ...item, distance: `${distances[item.id].toLocaleString("pt-BR", { minimumFractionDigits: 1, maximumFractionDigits: 1 })} km` }));
     return [...result].sort((a, b) => sort === "Maior quantidade" ? b.quantity - a.quantity : new Date(b.createdAt || 0).getTime() - new Date(a.createdAt || 0).getTime());
-  }, [items, categories, conditions, delivery, sort]);
+  }, [items, categories, conditions, sort, distance, distances, locationReady]);
 
   const toggle = (value: string, values: string[], setter: (next: string[]) => void) => { setter(values.includes(value) ? values.filter((item) => item !== value) : [...values, value]); setVisible(6); };
-  const clear = () => { setCategories([]); setConditions([]); setDelivery("Qualquer"); setVisible(6); };
+  const clear = () => { setCategories([]); setConditions([]); setDistance(10); setVisible(6); };
 
   return <div className="min-h-screen bg-[#eefdf1] text-[#121e17]">
     <SiteHeader />
@@ -62,7 +104,7 @@ export default function DonationItemsPage() {
             <div className="flex flex-col px-5 pb-4">
               <FilterChecks title="Categoria" options={CATEGORY_OPTIONS} selected={categories} onToggle={(value) => toggle(value, categories, setCategories)} />
               <FilterChecks title="Condição" options={CONDITION_OPTIONS} selected={conditions} onToggle={(value) => toggle(value, conditions, setConditions)} />
-              <FilterPills title="Forma de entrega" options={["Qualquer", "Retirada", "Entrega", "A combinar"]} selected={delivery} onSelect={(value) => { setDelivery(value); setVisible(6); }} />
+              <div className="border-t border-[#e7eee9] pt-4"><div className="mb-3 flex items-center justify-between"><h3 className="text-[13px] font-semibold tracking-[0.04em] text-[#4d5b53]">Distância</h3><output className="rounded-md bg-[#e8f7eb] px-2.5 py-1 text-[11px] font-semibold text-[#256441]">Até {distance} km</output></div><input type="range" min="1" max="100" value={distance} onChange={(event) => { setDistance(Number(event.target.value)); setVisible(6); }} className="filter-range w-full" style={{ background: `linear-gradient(to right, #256441 0 ${(distance - 1) / 99 * 100}%, #d6e6db ${(distance - 1) / 99 * 100}% 100%)` }} aria-label="Distância máxima" /><div className="mt-1.5 flex justify-between text-[10px] font-medium text-[#7b8980]"><span>1 km</span><span>100 km</span></div></div>
               {activeFilters > 0 && <button type="button" onClick={clear} className="mt-5 rounded-xl border border-[#256441] py-2.5 text-sm font-semibold text-[#256441] hover:bg-[#e8f7eb] lg:hidden">Limpar todos os filtros</button>}
             </div>
           </details>
@@ -82,7 +124,6 @@ export default function DonationItemsPage() {
 }
 
 function FilterChecks({ title, options, selected, onToggle }: { title: string; options: string[]; selected: string[]; onToggle: (value: string) => void }) { return <section className="border-b border-[#e7eee9] py-4"><h3 className="mb-2 text-[13px] font-semibold tracking-[0.04em] text-[#4d5b53]">{title}</h3><div className="space-y-2">{options.map((option) => <label key={option} className="flex cursor-pointer items-start gap-2.5 text-sm text-[#26332b]"><input type="checkbox" checked={selected.includes(option)} onChange={() => onToggle(option)} className="peer sr-only" /><span className="mt-0.5 grid size-[18px] shrink-0 place-items-center rounded-[5px] border border-[#c6d5ca] text-xs font-bold text-white peer-checked:border-[#256441] peer-checked:bg-[#256441]">{selected.includes(option) ? "✓" : ""}</span><span>{option}</span></label>)}</div></section>; }
-function FilterPills({ title, options, selected, onSelect }: { title: string; options: string[]; selected: string; onSelect: (value: string) => void }) { return <section className="py-4"><h3 className="mb-2 text-[13px] font-semibold tracking-[0.04em] text-[#4d5b53]">{title}</h3><div className="flex flex-wrap gap-1.5">{options.map((option) => <button type="button" key={option} onClick={() => onSelect(option)} className={`rounded-xl border px-3 py-1.5 text-xs font-semibold ${selected === option ? "border-[#256441] bg-[#256441] text-white" : "border-[#c6d5ca] text-[#4d5b53] hover:border-[#256441]"}`}>{option}</button>)}</div></section>; }
 function EmptyItems({ filtered }: { filtered: boolean }) {
   return <EmptyState message={filtered ? "Nenhum item encontrado com esses filtros." : "Nenhum item disponível agora."} description={filtered ? "Tente remover alguns filtros para ampliar os resultados." : undefined} />;
 }

@@ -9,7 +9,10 @@ const app = new Hono();
 app.use(
   "*",
   cors({
-    origin: "http://localhost:3000",
+    origin: (origin) => {
+      if (/^http:\/\/(localhost|127\.0\.0\.1|192\.168\.\d{1,3}\.\d{1,3}):3000$/.test(origin)) return origin;
+      return "http://localhost:3000";
+    },
     allowHeaders: ["Content-Type", "Authorization"],
     allowMethods: ["POST", "GET", "OPTIONS", "PUT", "DELETE", "PATCH"],
     credentials: true,

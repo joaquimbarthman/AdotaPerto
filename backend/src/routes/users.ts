@@ -41,6 +41,20 @@ userRoutes.get("/me", async (c) => {
   return c.json(userData);
 });
 
+userRoutes.get("/cep/:cep", async (c) => {
+  const cep = c.req.param("cep").replace(/\D/g, "");
+  if (cep.length !== 8) return c.json({ error: "CEP inválido." }, 400);
+  try {
+    const response = await fetch(`https://viacep.com.br/ws/${cep}/json/`, { headers: { "User-Agent": "AdotaPerto-TCC/1.0" } });
+    if (!response.ok) return c.json({ error: "CEP não encontrado." }, 404);
+    const address = await response.json() as { erro?: boolean; logradouro?: string; localidade?: string; uf?: string };
+    if (address.erro) return c.json({ error: "CEP não encontrado." }, 404);
+    return c.json({ street: address.logradouro || "", city: address.localidade || "", state: address.uf || "" });
+  } catch {
+    return c.json({ error: "Serviço de CEP indisponível." }, 503);
+  }
+});
+
 userRoutes.get("/:id", async (c) => {
   const id = c.req.param("id");
   const [userData] = await db

@@ -5,6 +5,7 @@ import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
 import { ThemeToggle } from "@/components/theme-toggle";
+import { BrandLogo } from "@/components/brand-logo";
 import { NotificationCenter } from "@/components/notification-center";
 import { signOut, useSession } from "@/lib/auth-client";
 
@@ -12,7 +13,7 @@ const links = [
   { label: "Início", href: "/" },
   { label: "Explorar", href: "/adocao" },
   { label: "Ajudar", href: "/doacoes" },
-  { label: "Mapa", href: "#" },
+  { label: "Mapa", href: "/mapa" },
 ] as const;
 
 const profileLinks = [
@@ -31,6 +32,7 @@ export function SiteHeader() {
   const [profileOpen, setProfileOpen] = useState(false);
   const profileMenuRef = useRef<HTMLDivElement>(null);
   const { data: session, isPending } = useSession();
+  const firstName = session?.user.name?.trim().split(/\s+/)[0] || "Usuário";
 
   useEffect(() => {
     function closeMenu(event: MouseEvent) {
@@ -58,8 +60,8 @@ export function SiteHeader() {
   return (
     <header className="sticky top-0 z-30 border-b border-black/[0.03] bg-[#eefdf1]/95 shadow-[0_1px_5px_rgba(38,51,43,0.05)] backdrop-blur">
       <div className="relative mx-auto flex h-20 max-w-[1200px] items-center justify-between px-4 sm:px-6 lg:px-20">
-        <Link href="/" className="flex items-center gap-2 text-[22px] font-extrabold tracking-[-0.01em] text-[#256441] transition-opacity hover:opacity-80 sm:text-[32px]">
-          <Image src="/icons/adocao.svg" alt="" width={30} height={30} className="size-6 sm:size-[30px]" /> AdotaPerto
+        <Link href="/" className="transition-opacity hover:opacity-80" aria-label="AdotaPerto — início">
+          <BrandLogo priority className="h-auto w-[168px] sm:w-[205px]" />
         </Link>
         <nav className="hidden items-center gap-6 lg:flex" aria-label="Navegação principal">
           {links.map((link) => {
@@ -85,7 +87,7 @@ export function SiteHeader() {
                     </div>
                   )}
                 </div>
-                <span className="max-w-[120px] truncate text-sm font-semibold text-[#256441]">{session.user.name}</span>
+                <span className="max-w-[120px] truncate text-sm font-semibold text-[#256441]">{firstName}</span>
                 <svg viewBox="0 0 20 20" className={`size-4 text-[#68726b] transition-transform ${profileOpen ? "rotate-180" : ""}`} fill="none" stroke="currentColor" strokeWidth="2" aria-hidden="true"><path d="m5 7.5 5 5 5-5" strokeLinecap="round" strokeLinejoin="round" /></svg>
               </button>
               <div role="menu" className={`absolute right-0 top-[calc(100%+10px)] w-72 origin-top-right overflow-hidden rounded-2xl border border-[#d7e6da] bg-white shadow-[0_18px_45px_rgba(27,49,35,0.16)] transition-all duration-150 ${profileOpen ? "visible translate-y-0 scale-100 opacity-100" : "invisible -translate-y-2 scale-95 opacity-0"}`}>
@@ -122,7 +124,7 @@ export function SiteHeader() {
                     </div>
                   )}
                 </div>
-                Meu perfil ({session.user.name})
+                Meu perfil ({firstName})
               </Link>
               <ThemeToggle mobile />
               <div className="mt-3 border-t border-[#d7e6da] pt-4">

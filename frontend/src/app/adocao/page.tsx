@@ -9,12 +9,18 @@ import { EmptyState } from "@/components/empty-state";
 import { ExploreTabs } from "@/components/explore-tabs";
 import { SiteFooter } from "@/components/site-footer";
 import { SiteHeader } from "@/components/site-header";
+import { useSession } from "@/lib/auth-client";
+import { distanceInKm, type Coordinates } from "@/lib/map-distance";
+import { mapApi } from "@/lib/map-api";
 import type { Animal } from "@/data/animals";
 
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:4000";
 
 export default function AdoptionPage() {
+  const { data: session, isPending: sessionPending } = useSession();
   const [dbAnimals, setDbAnimals] = useState<Animal[]>([]);
+  const [distances, setDistances] = useState<Record<string, number>>({});
+  const [locationReady, setLocationReady] = useState(false);
   const [loadingAnimals, setLoadingAnimals] = useState(true);
   const [loadError, setLoadError] = useState(false);
   const [species, setSpecies] = useState<string[]>([]);
@@ -41,6 +47,44 @@ export default function AdoptionPage() {
     loadAnimals();
   }, []);
 
+  useEffect(() => {
+    if (sessionPending) return;
+    let cancelled = false;
+
+    const browserLocation = () => new Promise<Coordinates>((resolve, reject) => {
+      if (!navigator.geolocation) return reject(new Error("Geolocalização indisponível"));
+      navigator.geolocation.getCurrentPosition(
+        ({ coords }) => resolve({ lat: coords.latitude, lng: coords.longitude }),
+        reject,
+        { enableHighAccuracy: false, timeout: 9000, maximumAge: 300000 },
+      );
+    });
+
+    async function resolveOrigin() {
+      try {
+        let origin: Coordinates | null = null;
+        if (session) {
+          const response = await fetch(`${API_BASE_URL}/api/users/me`, { credentials: "include" });
+          if (response.ok) {
+            const profile = await response.json() as { zipCode?: string | null };
+            if (profile.zipCode) origin = await mapApi.geocode(profile.zipCode);
+          }
+        }
+        if (!origin) origin = await browserLocation();
+        const listings = await mapApi.listings();
+        if (cancelled) return;
+        setDistances(Object.fromEntries(listings.filter((item) => item.category === "adoption").map((item) => [item.id, distanceInKm(origin, item)])));
+      } catch {
+        if (!cancelled) setDistances({});
+      } finally {
+        if (!cancelled) setLocationReady(true);
+      }
+    }
+
+    void resolveOrigin();
+    return () => { cancelled = true; };
+  }, [session, sessionPending]);
+
   const activeFilters = species.length + age.length + (sex !== "Qualquer" ? 1 : 0) + (size ? 1 : 0) + (distance !== 10 ? 1 : 0);
 
   const animals = useMemo(() => dbAnimals.filter((animal) => {
@@ -48,8 +92,10 @@ export default function AdoptionPage() {
     const matchesSex = sex === "Qualquer" || animal.sex === sex;
     const matchesSize = !size || animal.size === size;
     const matchesAge = age.length === 0 || age.includes(ageGroup(animal.age));
-    return matchesSpecies && matchesSex && matchesSize && matchesAge;
-  }), [dbAnimals, age, sex, size, species]);
+    const animalDistance = distances[animal.id];
+    const matchesDistance = !locationReady || animalDistance == null || animalDistance <= distance;
+    return matchesSpecies && matchesSex && matchesSize && matchesAge && matchesDistance;
+  }).map((animal) => distances[animal.id] == null ? animal : ({ ...animal, distance: `${distances[animal.id].toLocaleString("pt-BR", { minimumFractionDigits: 1, maximumFractionDigits: 1 })} km` })), [dbAnimals, age, sex, size, species, distance, distances, locationReady]);
 
   const clear = () => { setSpecies([]); setAge([]); setSex("Qualquer"); setSize(""); setDistance(10); };
   const toggle = (value: string, values: string[], setter: (values: string[]) => void) => setter(values.includes(value) ? values.filter((item) => item !== value) : [...values, value]);
@@ -68,17 +114,17 @@ export default function AdoptionPage() {
                 <FilterPills title="Sexo" options={["Qualquer", "Fêmea", "Macho"]} selected={sex} onSelect={setSex} />
                 <FilterChecks title="Idade" options={["Filhote (0-1 ano)", "Jovem (1-3 anos)", "Adulto (3-8 anos)", "Sênior (8+ anos)"]} selected={age} onToggle={(value) => toggle(value, age, setAge)} />
                 <FilterPills title="Porte" options={["P", "M", "G"]} selected={size} onSelect={setSize} />
-                <div className="pt-4"><div className="mb-3 flex items-center justify-between"><h3 className="text-[13px] font-semibold tracking-[0.04em] text-[#4d5b53]">Distância</h3><output className="rounded-full bg-[#e8f7eb] px-2.5 py-1 text-[11px] font-semibold text-[#256441]">Até {distance} km</output></div><input type="range" min="1" max="50" value={distance} onChange={(event) => setDistance(Number(event.target.value))} className="filter-range w-full" style={{ background: `linear-gradient(to right, #256441 0 ${(distance - 1) / 49 * 100}%, #d6e6db ${(distance - 1) / 49 * 100}% 100%)` }} aria-label="Distância máxima" /><div className="mt-1.5 flex justify-between text-[10px] font-medium text-[#7b8980]"><span>1 km</span><span>50 km</span></div></div>
-                {(activeFilters > 0 || distance !== 10) && <button onClick={clear} className="mt-5 rounded-xl border border-[#256441] py-2.5 text-sm font-semibold text-[#256441] transition hover:bg-[#e8f7eb] lg:hidden">Limpar todos os filtros</button>}
+                <div className="pt-4"><div className="mb-3 flex items-center justify-between"><h3 className="text-[13px] font-semibold tracking-[0.04em] text-[#4d5b53]">Distância</h3><output className="rounded-full bg-[#e8f7eb] px-2.5 py-1 text-[11px] font-semibold text-[#256441]">Até {distance} km</output></div><input type="range" min="1" max="100" value={distance} onChange={(event) => setDistance(Number(event.target.value))} className="filter-range w-full" style={{ background: `linear-gradient(to right, #256441 0 ${(distance - 1) / 99 * 100}%, #d6e6db ${(distance - 1) / 99 * 100}% 100%)` }} aria-label="Distância máxima" /><div className="mt-1.5 flex justify-between text-[10px] font-medium text-[#7b8980]"><span>1 km</span><span>100 km</span></div></div>
+                {activeFilters > 0 && <button onClick={clear} className="mt-5 rounded-xl border border-[#256441] py-2.5 text-sm font-semibold text-[#256441] transition hover:bg-[#e8f7eb] lg:hidden">Limpar todos os filtros</button>}
               </div>
             </details>
           </aside>
           <section>
-            <div className="mb-6 flex flex-col justify-between gap-4 sm:flex-row sm:items-center">
+            <div className="mb-6 flex flex-col justify-between gap-4 sm:flex-row sm:items-end">
               <div><h1 className="text-3xl font-extrabold tracking-[-0.02em] sm:text-[40px] sm:leading-12">Encontre seu novo amigo</h1><p className="mt-1 text-base text-[#404942]">{animals.length} animais aguardando adoção perto de você.</p></div>
               <label className="flex items-center gap-2 text-xs text-[#404942]">Ordenar por:<select className="rounded-lg border border-[#d6e6db] bg-white px-3 py-2 text-sm outline-none focus:border-[#256441]"><option>Mais próximos</option><option>Mais recentes</option></select></label>
             </div>
-            {loadingAnimals ? <SkeletonLoader variant="cards" /> : loadError ? <LoadErrorState message="Não foi possível carregar os animais." /> : animals.length ? <div className="grid gap-6 sm:grid-cols-2 xl:grid-cols-3">{animals.slice(0, visible).map((animal) => <AnimalCard key={animal.id} animal={animal} />)}</div> : <EmptyState message="Nenhum animal encontrado com esses filtros." />}
+            {loadingAnimals ? <SkeletonLoader variant="cards" /> : loadError ? <LoadErrorState message="Não foi possível carregar os animais." /> : animals.length ? <div className="grid gap-6 sm:grid-cols-2 xl:grid-cols-3">{animals.slice(0, visible).map((animal) => <AnimalCard key={animal.id} animal={animal} />)}</div> : <EmptyState message="Nenhum animal disponível agora." />}
             {visible < animals.length && <div className="flex justify-center pt-14"><button onClick={() => setVisible((value) => value + 3)} className="group flex min-w-56 items-center justify-center gap-2 rounded-xl border-2 border-[#256441] px-8 py-3.5 text-sm font-semibold tracking-[0.05em] text-[#256441] transition-all duration-200 hover:-translate-y-0.5 hover:bg-[#256441] hover:text-white active:scale-[0.98]">Carregar mais <DirectionalChevron direction="down" className="transition-transform group-hover:-translate-x-0.5" /></button></div>}
           </section>
         </div>

@@ -18,8 +18,6 @@ export function NotificationCenter({ userId }: { userId?: string }) {
   const storageKey = `adotaperto:notifications-read:${userId || "guest"}`;
 
   useEffect(() => {
-    if (!userId) { setNotices([]); return; }
-    try { setReadIds(JSON.parse(window.localStorage.getItem(storageKey) || "[]")); } catch { setReadIds([]); }
     let active = true;
     async function loadNotifications() {
       setLoading(true);
@@ -53,7 +51,12 @@ export function NotificationCenter({ userId }: { userId?: string }) {
         setNotices(next.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()).slice(0, 10));
       } finally { if (active) setLoading(false); }
     }
-    loadNotifications();
+    queueMicrotask(() => {
+      if (!active) return;
+      if (!userId) { setNotices([]); return; }
+      try { setReadIds(JSON.parse(window.localStorage.getItem(storageKey) || "[]")); } catch { setReadIds([]); }
+      loadNotifications();
+    });
     return () => { active = false; };
   }, [storageKey, userId]);
 
@@ -81,8 +84,7 @@ export function NotificationCenter({ userId }: { userId?: string }) {
           const read = readIds.includes(notice.id);
           return <Link key={notice.id} href={notice.href} onClick={() => markAsRead(notice.id)} className={`notification-item group relative flex min-h-[88px] items-start gap-3.5 border-b border-[#edf2ee] px-5 py-4 transition last:border-b-0 hover:bg-[#f5fbf7] ${read ? "notification-item-read opacity-65" : "bg-white"}`}>
             <span data-tone={notice.tone} className={`notification-type-icon grid size-9 shrink-0 place-items-center rounded-full ${notice.tone === "success" ? "bg-emerald-50 text-emerald-700" : notice.tone === "publication" ? "bg-violet-50 text-violet-700" : "bg-blue-50 text-blue-700"}`}><NoticeIcon tone={notice.tone} /></span>
-            <span className="min-w-0 flex-1"><span className="flex items-start justify-between gap-3"><strong className="truncate text-[13px] font-extrabold text-[#253129]">{notice.title}</strong><span className="shrink-0 text-[10px] font-medium text-[#859087]">{formatNoticeDate(notice.createdAt)}</span></span><span className="mt-1 block text-xs leading-[1.55] text-[#68726b]">{notice.description}</span></span>
-            {!read && <span className="absolute right-2.5 top-1/2 size-1.5 -translate-y-1/2 rounded-full bg-[#256441]" aria-label="Não lida" />}
+            <span className="min-w-0 flex-1"><span className="flex items-start justify-between gap-3"><strong className="truncate text-[13px] font-extrabold text-[#253129]">{notice.title}</strong><span className="inline-flex shrink-0 items-center gap-1.5 text-[10px] font-medium text-[#859087]">{!read && <span className="size-1.5 rounded-full bg-[#256441]" aria-label="Não lida" />}{formatNoticeDate(notice.createdAt)}</span></span><span className="mt-1 block text-xs leading-[1.55] text-[#68726b]">{notice.description}</span></span>
             <svg viewBox="0 0 20 20" className="absolute bottom-2.5 right-3 size-3.5 text-[#9aa49d] opacity-0 transition group-hover:translate-x-0.5 group-hover:opacity-100" fill="none" stroke="currentColor" strokeWidth="1.8" aria-hidden="true"><path d="m7.5 4.5 5 5.5-5 5.5" /></svg>
           </Link>;
         })}
