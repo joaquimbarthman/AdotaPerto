@@ -7,6 +7,7 @@ import Image from "next/image";
 import Link from "next/link";
 import { useParams, useRouter } from "next/navigation";
 import { PhotoGallery } from "@/components/photo-gallery";
+import { AuthBlurredContent } from "@/components/auth-blurred-content";
 import { SkeletonLoader } from "@/components/skeleton-loader";
 import { SiteFooter } from "@/components/site-footer";
 import { SiteHeader } from "@/components/site-header";
@@ -19,7 +20,7 @@ type ItemDetails = DonationItem & { owner?: { name: string; image?: string | nul
 export default function ItemDetailsPage() {
   const { id } = useParams<{ id: string }>();
   const router = useRouter();
-  const { data: session } = useSession();
+  const { data: session, isPending } = useSession();
   const [item, setItem] = useState<ItemDetails | null>(null);
   const [loading, setLoading] = useState(true);
   const [sending, setSending] = useState(false);
@@ -61,16 +62,15 @@ export default function ItemDetailsPage() {
   return <div className="min-h-screen bg-[#eefdf1] text-[#121e17]">
     <SiteHeader />
     <main className="mx-auto max-w-[1200px] px-5 py-8 sm:px-10 lg:px-20 lg:py-12">
-      <Link href="/itens" className="mb-8 inline-flex items-center gap-2 rounded-lg px-2 py-1 text-sm font-semibold text-[#256441] hover:bg-[#e8f7eb]"><span aria-hidden="true">‹</span> Voltar para doações</Link>
+      <Link href="/itens" className="mb-8 inline-flex items-center gap-2 rounded-lg px-2 py-1 text-sm font-semibold text-[#256441] hover:bg-[#e8f7eb]"><span aria-hidden="true">‹</span> Voltar</Link>
       <div className="grid items-start gap-6 lg:grid-cols-[2fr_1fr]">
         <div className="space-y-6">
-          <PhotoGallery animalName={item.title} photos={photos.length ? photos : ["/images/login-cover-v2.png"]} />
+          <PhotoGallery animalName={item.title} photos={photos.length ? photos : ["/images/login-cover-v2.png"]} locked={!isPending && !session} />
           <section className="rounded-xl bg-white p-6 shadow-[0_4px_6px_rgba(38,51,43,0.05)] sm:p-10 lg:p-12">
-            <div className="flex flex-col justify-between gap-5 sm:flex-row sm:items-center"><div><p className="text-xs font-bold uppercase tracking-[0.12em] text-[#3f7d58]">{item.category}</p><h1 className="mt-1 text-3xl font-extrabold tracking-[-0.02em] sm:text-[40px]">{item.title}</h1><p className="mt-1 text-lg text-[#404942]">{item.itemName}</p></div><span className="flex w-fit items-center gap-2 rounded-xl border border-[#aff1c4] bg-[#e8f7eb] px-4 py-2 text-sm font-semibold text-[#256441]"><Image src="/icons/available-detail.svg" alt="" width={17} height={17} />{item.status}</span></div>
-            <div className="mt-6 grid gap-5 border-t border-[#c0c9bf] pt-6 min-[460px]:grid-cols-3"><Stat label="Quantidade" value={`${item.quantity} ${item.unit}`} /><Stat label="Condição" value={item.condition} /><Stat label="Entrega" value={item.deliveryMethod} /></div>
+            <div className="flex flex-col justify-between gap-5 sm:flex-row sm:items-center"><div><h1 className="text-4xl font-extrabold tracking-[-0.02em] sm:text-[40px]">{item.title}</h1><p className="mt-1 text-lg text-[#404942]">{item.itemName} <span className="mx-1 text-[#c0c9bf]">•</span> {item.category}</p></div><span className="flex w-fit items-center gap-2 rounded-xl border border-[#aff1c4] bg-[#e8f7eb] px-4 py-2 text-sm font-semibold text-[#256441]"><Image src="/icons/available-detail.svg" alt="" width={17} height={17} />{item.status}</span></div>
+            <div className="mt-6 grid gap-5 border-t border-[#c0c9bf] pt-6 min-[460px]:grid-cols-3"><Stat icon="/icons/map-box.svg" label="Quantidade" value={`${item.quantity} ${item.unit}`} /><Stat icon="/icons/check-detail.svg" label="Condição" value={item.condition} /><Stat icon="/icons/location.svg" label="Entrega" value={item.deliveryMethod} /></div>
           </section>
-          <section className="rounded-xl bg-white p-6 shadow-[0_4px_6px_rgba(38,51,43,0.05)] sm:p-10 lg:p-12"><h2 className="mb-4 text-2xl font-semibold">Sobre esta doação</h2><p className="whitespace-pre-line leading-7 text-[#404942]">{item.description}</p></section>
-          {(item.expirationDate || item.availableUntil) && <section className="rounded-xl bg-white p-6 shadow-[0_4px_6px_rgba(38,51,43,0.05)] sm:p-10 lg:p-12"><h2 className="mb-5 text-2xl font-semibold">Datas importantes</h2><dl className="grid gap-5 sm:grid-cols-2">{item.expirationDate && <Detail label="Validade do produto" value={formatDate(item.expirationDate)} />}{item.availableUntil && <Detail label="Disponível para retirada até" value={formatDate(item.availableUntil)} />}</dl></section>}
+          <AuthBlurredContent locked={!isPending && !session}><div className="space-y-6"><section className="rounded-xl bg-white p-6 shadow-[0_4px_6px_rgba(38,51,43,0.05)] sm:p-10 lg:p-12"><h2 className="mb-4 text-2xl font-semibold">Sobre esta doação</h2><p className="whitespace-pre-line leading-7 text-[#404942]">{item.description}</p></section>{(item.expirationDate || item.availableUntil) && <section className="rounded-xl bg-white p-6 shadow-[0_4px_6px_rgba(38,51,43,0.05)] sm:p-10 lg:p-12"><h2 className="mb-5 text-2xl font-semibold">Datas importantes</h2><dl className="grid gap-5 sm:grid-cols-2">{item.expirationDate && <Detail label="Validade do produto" value={formatDate(item.expirationDate)} />}{item.availableUntil && <Detail label="Disponível para retirada até" value={formatDate(item.availableUntil)} />}</dl></section>}</div></AuthBlurredContent>
         </div>
         <aside className="space-y-6 lg:sticky lg:top-28">
           <section className="rounded-xl bg-white p-6 shadow-[0_4px_6px_rgba(38,51,43,0.05)]"><h2 className="text-sm font-semibold uppercase tracking-[0.05em] text-[#404942]">Doado por</h2><div className="mt-4 flex items-center gap-4"><div className="relative grid size-16 shrink-0 place-items-center overflow-hidden rounded-full bg-[#e3f2e6]">{item.owner?.image ? <Image src={item.owner.image} alt={ownerName} fill className="object-cover" /> : <span className="text-xl font-bold text-[#256441]">{ownerName.charAt(0).toUpperCase()}</span>}</div><div><h3 className="text-xl font-semibold">{ownerName}</h3>{ownerLocation && <p className="mt-1 text-xs text-[#526057]">{ownerLocation}</p>}<p className="mt-1 text-xs text-[#404942]">Responsável cadastrado</p></div></div></section>
@@ -83,6 +83,6 @@ export default function ItemDetailsPage() {
   </div>;
 }
 
-function Stat({ label, value }: { label: string; value: string }) { return <div><small className="block text-xs font-medium text-[#526057]">{label}</small><strong className="mt-1 block text-sm font-semibold">{value}</strong></div>; }
+function Stat({ icon, label, value }: { icon: string; label: string; value: string }) { return <div className={`flex items-center gap-3 ${label === "Entrega" ? "lg:pl-5" : ""} ${label === "Condição" ? "lg:-ml-[34px]" : ""}`}><span className="grid size-10 shrink-0 place-items-center rounded-full bg-[#e3f2e6]"><Image src={icon} alt="" width={20} height={20} className="max-h-5 max-w-5 object-contain" /></span><span className="min-w-0"><small className="block text-xs font-medium text-[#404942]">{label}</small><strong className="mt-0.5 block text-sm font-semibold tracking-[0.02em] lg:whitespace-nowrap">{value}</strong></span></div>; }
 function Detail({ label, value }: { label: string; value: string }) { return <div><dt className="text-sm font-semibold">{label}</dt><dd className="mt-1 text-[#404942]">{value}</dd></div>; }
 function formatDate(value: string) { const [year, month, day] = value.slice(0, 10).split("-"); return day && month && year ? `${day}/${month}/${year}` : value; }

@@ -40,7 +40,7 @@ export default async function Home() {
               <p className="home-hero-copy mt-6 max-w-[610px] text-base leading-7 text-[#4d5b53] sm:text-lg sm:leading-8">O AdotaPerto conecta pessoas, animais e redes de cuidado da sua região. Adote com responsabilidade, publique um pet, doe itens ou encontre apoio no mapa.</p>
               <div className="mt-8 flex flex-col gap-3 min-[440px]:flex-row">
                 <Link href="/adocao" className="group inline-flex min-h-14 items-center justify-center gap-2 rounded-xl bg-[#256441] px-7 text-sm font-extrabold text-white shadow-[0_12px_28px_rgba(37,100,65,.22)] transition hover:-translate-y-0.5 hover:bg-[#194b30]">Encontrar um animal <DirectionalChevron direction="right" className="brightness-0 invert transition-transform group-hover:translate-x-1" /></Link>
-                <Link href="/mapa" className="group inline-flex min-h-14 items-center justify-center gap-2 rounded-xl border border-[#abcab4] bg-white/80 px-7 text-sm font-extrabold text-[#256441] backdrop-blur transition hover:-translate-y-0.5 hover:border-[#6f9b7d] hover:bg-white"><Image src="/icons/mapa.svg" alt="" width={17} height={20} />Explorar perto de mim</Link>
+                <Link href="/mapa" className="home-hero-map-cta group inline-flex min-h-14 items-center justify-center gap-2 rounded-xl border px-7 text-sm font-extrabold backdrop-blur transition hover:-translate-y-0.5"><Image src="/icons/mapa.svg" alt="" width={17} height={20} />Explorar perto de mim</Link>
               </div>
               <div className="mt-7 flex flex-wrap gap-x-6 gap-y-3 text-sm font-semibold text-[#526057]">
                 <span className="inline-flex items-center gap-2"><Image src="/icons/heart.svg" alt="" width={17} height={16} />Adoção consciente</span>

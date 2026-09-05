@@ -11,6 +11,16 @@ const nextConfig: NextConfig = {
         port: "4000",
         pathname: "/api/uploads/images/**",
       },
+      {
+        protocol: "https",
+        hostname: "images.pexels.com",
+        pathname: "/photos/**",
+      },
+      {
+        protocol: "https",
+        hostname: "loremflickr.com",
+        pathname: "/**",
+      },
     ],
   },
 };

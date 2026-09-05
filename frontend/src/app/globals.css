@@ -43,6 +43,17 @@ body {
   color: #256441;
 }
 
+.home-hero-map-cta {
+  border-color: #abcab4;
+  background: rgb(255 255 255 / 82%);
+  color: #256441;
+}
+
+.home-hero-map-cta:hover {
+  border-color: #6f9b7d;
+  background: #fff;
+}
+
 html[data-theme="dark"] {
   color-scheme: dark;
 }
@@ -129,6 +140,18 @@ html[data-theme="dark"] .home-hero-kicker {
 
 html[data-theme="dark"] .home-hero-kicker img {
   filter: brightness(0) saturate(100%) invert(78%) sepia(19%) saturate(814%) hue-rotate(87deg) brightness(91%);
+}
+
+html[data-theme="dark"] .home-hero-map-cta {
+  border-color: #476552;
+  background: #1b2d22;
+  color: #8ad7a4;
+}
+
+html[data-theme="dark"] .home-hero-map-cta:hover {
+  border-color: #72a984;
+  background: #243a2b;
+  color: #aff1c4;
 }
 
 html[data-theme="dark"] .after\:bg-\[\#256441\]::after {

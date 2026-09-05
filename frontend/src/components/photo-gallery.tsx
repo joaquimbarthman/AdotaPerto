@@ -1,24 +1,29 @@
 "use client";
 
 import Image from "next/image";
+import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useState } from "react";
 import { createPortal } from "react-dom";
 
 type PhotoGalleryProps = {
   animalName: string;
   photos: string[];
+  locked?: boolean;
 };
 
-export function PhotoGallery({ animalName, photos }: PhotoGalleryProps) {
+export function PhotoGallery({ animalName, photos, locked = false }: PhotoGalleryProps) {
+  const router = useRouter();
   const [selectedPhoto, setSelectedPhoto] = useState<number | null>(null);
 
   const closeGallery = useCallback(() => setSelectedPhoto(null), []);
   const previousPhoto = useCallback(() => {
+    if (locked) return;
     setSelectedPhoto((current) => current === null ? null : (current - 1 + photos.length) % photos.length);
-  }, [photos.length]);
+  }, [locked, photos.length]);
   const nextPhoto = useCallback(() => {
+    if (locked) return;
     setSelectedPhoto((current) => current === null ? null : (current + 1) % photos.length);
-  }, [photos.length]);
+  }, [locked, photos.length]);
 
   useEffect(() => {
     if (selectedPhoto === null) return;
@@ -46,7 +51,7 @@ export function PhotoGallery({ animalName, photos }: PhotoGalleryProps) {
           <button
             key={`${photo}-${index}`}
             type="button"
-            onClick={() => setSelectedPhoto(index)}
+            onClick={() => locked && index > 0 ? router.push("/login?reason=unauthenticated") : setSelectedPhoto(index)}
             className={`group relative overflow-hidden rounded-xl shadow-sm focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#256441] ${index === 0 ? "col-span-2 row-span-2" : ""}`}
             aria-label={index === 2 ? `Ver mais fotos de ${animalName}` : `Ampliar foto ${index + 1} de ${animalName}`}
           >
@@ -55,10 +60,10 @@ export function PhotoGallery({ animalName, photos }: PhotoGalleryProps) {
               alt={`${animalName}, foto ${index + 1}`}
               fill
               priority={index === 0}
-              className="rounded-xl object-cover transition-transform duration-500 group-hover:scale-105"
+              className={`rounded-xl object-cover transition duration-500 ${locked && index > 0 ? "scale-105 blur-[9px]" : "group-hover:scale-105"}`}
               sizes={index === 0 ? "(max-width:1024px) 66vw,550px" : "(max-width:1024px) 33vw,250px"}
             />
-            {index === 2 && (
+            {!locked && index === 2 && (
               <span className="absolute inset-0 flex items-center justify-center bg-[#173d29]/45 transition-colors group-hover:bg-[#173d29]/60">
                 <span className="inline-flex items-center gap-2 rounded-xl bg-black/35 px-4 py-2.5 text-sm font-semibold text-white backdrop-blur-sm">
                   <Image src="/icons/gallery.svg" alt="" width={20} height={20} className="brightness-0 invert" />
@@ -100,7 +105,7 @@ export function PhotoGallery({ animalName, photos }: PhotoGalleryProps) {
               />
             </div>
 
-            {photos.length > 1 && (
+            {!locked && photos.length > 1 && (
               <>
                 <button type="button" onClick={previousPhoto} className="absolute left-1 grid size-11 place-items-center rounded-xl bg-black/45 text-white shadow-lg backdrop-blur-sm transition hover:bg-[#256441] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white sm:left-4 sm:size-12" aria-label="Foto anterior">
                   <svg viewBox="0 0 20 20" className="size-5" fill="none" stroke="currentColor" strokeWidth="2.2" aria-hidden="true"><path d="m12.5 4.5-5 5.5 5 5.5" strokeLinecap="round" strokeLinejoin="round" /></svg>

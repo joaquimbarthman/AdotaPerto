@@ -1,6 +1,7 @@
 "use client";
 
 import { PhotoGallery } from "@/components/photo-gallery";
+import { AuthBlurredContent } from "@/components/auth-blurred-content";
 import { SkeletonLoader } from "@/components/skeleton-loader";
 import { notify } from "@/components/notification";
 import { SiteFooter } from "@/components/site-footer";
@@ -123,7 +124,7 @@ export default function PetDetailsPage() {
 
         <div className="grid items-start gap-6 lg:grid-cols-[2fr_1fr]">
           <div className="space-y-6">
-            <PhotoGallery animalName={animal.name} photos={photos} />
+            <PhotoGallery animalName={animal.name} photos={photos} locked={!isPending && !session} />
 
             <section className="rounded-xl bg-white p-6 shadow-[0_4px_6px_rgba(38,51,43,0.05)] sm:p-10 lg:p-12">
               <div className="flex flex-col justify-between gap-5 sm:flex-row sm:items-center">
@@ -181,23 +182,13 @@ export default function PetDetailsPage() {
               </div>
             </section>
 
-            <section className="rounded-xl bg-white p-6 shadow-[0_4px_6px_rgba(38,51,43,0.05)] sm:p-10 lg:p-12">
+            <AuthBlurredContent locked={!isPending && !session}><div className="space-y-6"><section className="rounded-xl bg-white p-6 shadow-[0_4px_6px_rgba(38,51,43,0.05)] sm:p-10 lg:p-12">
               <h2 className="mb-4 text-2xl font-semibold">
                 Sobre {animal.sex === "Fêmea" ? "a" : "o"} {animal.name}
               </h2>
               <p className="leading-7 text-[#404942]">{description}</p>
-              {animal.personality && (
-                <p className="mt-4 leading-7 text-[#404942]">
-                  <strong className="text-[#121e17]">Personalidade:</strong>{" "}
-                  {animal.personality}
-                </p>
-              )}
-              {animal.behaviorNotes && (
-                <p className="mt-3 leading-7 text-[#404942]">
-                  <strong className="text-[#121e17]">Comportamento:</strong>{" "}
-                  {animal.behaviorNotes}
-                </p>
-              )}
+              {animal.personality && <p className="mt-4 leading-7 text-[#404942]"><strong className="text-[#121e17]">Personalidade:</strong>{" "}{animal.personality}</p>}
+              {animal.behaviorNotes && <p className="mt-3 leading-7 text-[#404942]"><strong className="text-[#121e17]">Comportamento:</strong>{" "}{animal.behaviorNotes}</p>}
             </section>
 
             <div className="grid gap-6 sm:grid-cols-2">
@@ -246,7 +237,7 @@ export default function PetDetailsPage() {
                   }
                 />
               </dl>
-            </section>
+            </section></div></AuthBlurredContent>
           </div>
 
           <aside className="space-y-6 lg:sticky lg:top-28">

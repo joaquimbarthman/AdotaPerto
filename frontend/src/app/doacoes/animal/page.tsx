@@ -27,7 +27,7 @@ function StoryIcon() { return <svg viewBox="0 0 24 24" className="size-5" fill="
 
 export default function AnimalDonationPage() {
   const router = useRouter();
-  const { data: session } = useSession();
+  const { data: session, isPending } = useSession();
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [mainPhoto, setMainPhoto] = useState<File | null>(null);
@@ -37,6 +37,10 @@ export default function AnimalDonationPage() {
   const [editId, setEditId] = useState<string | null>(null);
   const [editData, setEditData] = useState<Record<string, unknown> | null>(null);
   const formRef = useRef<HTMLFormElement>(null);
+
+  useEffect(() => {
+    if (!isPending && !session) router.replace("/login?reason=unauthenticated");
+  }, [isPending, router, session]);
 
   useEffect(() => {
     const id = new URLSearchParams(window.location.search).get("edit");
@@ -144,6 +148,8 @@ export default function AnimalDonationPage() {
       setLoading(false);
     }
   }
+
+  if (isPending || !session) return <div className="min-h-screen bg-[#eefdf1]"><SiteHeader /><main className="grid min-h-[60vh] place-items-center"><span className="size-6 animate-spin rounded-full border-2 border-[#b8d8c1] border-t-[#256441]" aria-label="Verificando acesso" /></main></div>;
 
   return (
     <div className="min-h-screen bg-[#eefdf1] text-[#121e17]">

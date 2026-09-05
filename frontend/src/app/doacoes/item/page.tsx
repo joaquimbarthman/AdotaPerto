@@ -19,7 +19,7 @@ const conditions = ["Novo", "Lacrado", "Aberto em boas condições", "Usado em b
 
 export default function ItemDonationPage() {
   const router = useRouter();
-  const { data: session } = useSession();
+  const { data: session, isPending } = useSession();
   const [category, setCategory] = useState("");
   const [mainPhoto, setMainPhoto] = useState<File | null>(null);
   const [extraPhotos, setExtraPhotos] = useState<File[]>([]);
@@ -32,6 +32,10 @@ export default function ItemDonationPage() {
   const [editData, setEditData] = useState<Record<string, unknown> | null>(null);
   const formRef = useRef<HTMLFormElement>(null);
   const today = useMemo(() => new Date().toISOString().slice(0, 10), []);
+
+  useEffect(() => {
+    if (!isPending && !session) router.replace("/login?reason=unauthenticated");
+  }, [isPending, router, session]);
 
   useEffect(() => {
     const id = new URLSearchParams(window.location.search).get("edit");
@@ -96,6 +100,8 @@ export default function ItemDonationPage() {
       setGlobalError(cause instanceof Error ? cause.message : "Não foi possível publicar a doação.");
     } finally { setLoading(false); }
   }
+
+  if (isPending || !session) return <div className="min-h-screen bg-[#eefdf1]"><SiteHeader /><main className="grid min-h-[60vh] place-items-center"><span className="size-6 animate-spin rounded-full border-2 border-[#b8d8c1] border-t-[#256441]" aria-label="Verificando acesso" /></main></div>;
 
   return <div className="min-h-screen bg-[#eefdf1] text-[#121e17]"><SiteHeader /><main className="mx-auto max-w-[1120px] px-5 py-9 sm:px-8 sm:py-12 lg:px-16">
     <Link href={editId ? "/perfil#publicacoes" : "/doacoes"} className="group inline-flex items-center gap-1.5 text-sm font-semibold text-[#404942] transition hover:text-[#256441]"><DirectionalChevron className="transition-transform group-hover:-translate-x-0.5" />{editId ? "Voltar às publicações" : "Voltar às opções"}</Link>
