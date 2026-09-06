@@ -54,9 +54,9 @@ export function HomeNearbyAnimals({ animals }: { animals: Animal[] }) {
   }).sort((a, b) => (distances[a.id] ?? Number.POSITIVE_INFINITY) - (distances[b.id] ?? Number.POSITIVE_INFINITY)).slice(0, 4), [animals, distances]);
 
   return (
-    <section className="order-3 mx-auto w-full max-w-[1200px] px-5 pb-24 pt-20 sm:px-10 lg:px-20">
-      <div className="mb-12 flex items-end justify-between gap-4"><div><p className="text-xs font-extrabold uppercase tracking-[0.14em] text-[#2b724a]">Mais perto de você</p><h2 className="mt-2 text-xl font-bold tracking-[-0.01em] min-[420px]:text-2xl sm:text-[32px] sm:leading-10">Animais esperando uma família</h2></div><Link href="/adocao" className="group inline-flex shrink-0 items-center gap-1 text-sm font-semibold tracking-[0.05em] text-[#256441]">Ver todos <DirectionalChevron direction="right" className="transition-transform group-hover:translate-x-1" /></Link></div>
-      {nearby.length > 0 ? <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-4">{nearby.map((animal) => <AnimalCard key={animal.id} animal={animal} />)}</div> : <div className="rounded-xl bg-white p-10 text-center text-[#526057]">Não foi possível carregar os animais agora.</div>}
+    <section className="order-3 mx-auto w-full max-w-[1200px] px-3 pb-24 pt-10 sm:px-10 sm:pt-20 lg:px-20">
+      <div className="mb-5 flex min-w-0 items-end justify-between gap-2 sm:mb-12 sm:gap-4"><div className="min-w-0"><p className="text-[10px] font-extrabold uppercase tracking-[0.14em] text-[#2b724a] sm:text-xs">Mais perto de você</p><h2 className="mt-1.5 text-lg font-bold leading-6 tracking-[-0.01em] min-[420px]:text-xl sm:mt-2 sm:text-[32px] sm:leading-10">Animais esperando uma família</h2></div><Link href="/adocao" className="group inline-flex shrink-0 items-center gap-1 text-[11px] font-semibold tracking-[0.03em] text-[#256441] sm:text-sm sm:tracking-[0.05em]">Ver todos <DirectionalChevron direction="right" className="transition-transform group-hover:translate-x-1" /></Link></div>
+      {nearby.length > 0 ? <div className="grid grid-cols-2 gap-2.5 sm:gap-6 lg:grid-cols-4">{nearby.map((animal) => <AnimalCard key={animal.id} animal={animal} compactMobile />)}</div> : <div className="rounded-xl bg-white p-6 text-center text-sm text-[#526057] sm:p-10 sm:text-base">Não foi possível carregar os animais agora.</div>}
     </section>
   );
 }

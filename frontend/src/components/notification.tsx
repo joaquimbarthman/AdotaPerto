@@ -43,15 +43,15 @@ export function NotificationProvider() {
     info: { surface: "notification-info", progress: "bg-blue-500" },
   };
 
-  return <div className="pointer-events-none fixed right-4 top-24 z-[900] flex w-[calc(100%-2rem)] max-w-max flex-col gap-2 sm:right-6" aria-label="Notificações">{notices.map((notice) => {
+  return <div className="pointer-events-none fixed left-2 right-2 top-[max(8px,env(safe-area-inset-top))] z-[900] flex max-w-full flex-col gap-1.5 sm:left-auto sm:right-6 sm:top-24 sm:w-[calc(100%-2rem)] sm:max-w-max sm:gap-2" aria-label="Notificações">{notices.map((notice) => {
     const color = colors[notice.type];
-    return <div key={notice.id} role={notice.type === "error" ? "alert" : "status"} className={`${notice.exiting ? "notification-exit" : "notification-enter"} relative overflow-hidden rounded-lg border border-current/10 shadow-[0_10px_30px_rgba(18,30,23,0.14)] ${color.surface}`}>
-      <p className="flex min-h-14 items-center gap-3 px-4 py-3.5 text-left text-sm font-semibold leading-5 sm:whitespace-nowrap"><NoticeIcon type={notice.type} />{notice.text}</p>
+    return <div key={notice.id} role={notice.type === "error" ? "alert" : "status"} className={`${notice.exiting ? "notification-exit" : "notification-enter"} relative overflow-hidden rounded-md border border-current/10 shadow-[0_7px_22px_rgba(18,30,23,0.14)] sm:rounded-lg sm:shadow-[0_10px_30px_rgba(18,30,23,0.14)] ${color.surface}`}>
+      <p className="flex min-h-10 items-center gap-2 px-3 py-2 text-left text-[11px] font-semibold leading-4 sm:min-h-14 sm:gap-3 sm:px-4 sm:py-3.5 sm:text-sm sm:leading-5 sm:whitespace-nowrap"><NoticeIcon type={notice.type} />{notice.text}</p>
       <span className={`notification-progress absolute bottom-0 left-0 h-0.5 w-full origin-left ${color.progress}`} aria-hidden="true" />
     </div>;
   })}</div>;
 }
 
 function NoticeIcon({ type }: { type: Level }) {
-  return <span className="grid size-8 shrink-0 place-items-center rounded-md bg-current/10" aria-hidden="true"><svg viewBox="0 0 24 24" className="size-[18px]" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">{type === "success" ? <><circle cx="12" cy="12" r="9" /><path d="m8 12 2.6 2.6L16.5 9" /></> : type === "error" ? <><circle cx="12" cy="12" r="9" /><path d="m9 9 6 6m0-6-6 6" /></> : <><circle cx="12" cy="12" r="9" /><path d="M12 11v5m0-8v.01" /></>}</svg></span>;
+  return <span className="grid size-6 shrink-0 place-items-center rounded bg-current/10 sm:size-8 sm:rounded-md" aria-hidden="true"><svg viewBox="0 0 24 24" className="size-3.5 sm:size-[18px]" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">{type === "success" ? <><circle cx="12" cy="12" r="9" /><path d="m8 12 2.6 2.6L16.5 9" /></> : type === "error" ? <><circle cx="12" cy="12" r="9" /><path d="m9 9 6 6m0-6-6 6" /></> : <><circle cx="12" cy="12" r="9" /><path d="M12 11v5m0-8v.01" /></>}</svg></span>;
 }

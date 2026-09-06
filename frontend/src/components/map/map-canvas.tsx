@@ -126,7 +126,7 @@ export function MapCanvas({ center, results, selectedId, userLocation, onSelect,
   }, [ready, userLocation]);
 
   return (
-    <div className="map-surface relative min-h-[48dvh] flex-1 lg:min-h-0">
+    <div className="map-surface relative min-h-0 flex-1">
       <div ref={elementRef} className="absolute inset-0" aria-label="Mapa interativo com resultados próximos" />
       {mapError ? <div className="map-load-error absolute left-1/2 top-1/2 z-[500] -translate-x-1/2 -translate-y-1/2 text-center"><strong>Não foi possível carregar o mapa</strong><span>Atualize a página para tentar novamente.</span></div> : null}
       <div className="absolute right-4 top-4 z-[500] flex flex-col gap-2">
@@ -139,7 +139,7 @@ export function MapCanvas({ center, results, selectedId, userLocation, onSelect,
           </svg>
         </button>
       </div>
-      <div className="map-privacy-note absolute bottom-4 left-1/2 z-[500] w-[min(500px,calc(100%-28px))] -translate-x-1/2 rounded-full px-5 py-2.5 text-center text-xs leading-4 shadow-sm backdrop-blur-md">Para sua segurança, localizações residenciais são aproximadas em um raio de 2 km.</div>
+      <div className="map-privacy-note absolute bottom-2 left-1.5 right-1.5 z-[500] whitespace-nowrap rounded-full px-2 py-1 text-center text-[clamp(5px,1.7vw,8px)] leading-none shadow-sm backdrop-blur-md lg:bottom-4 lg:left-1/2 lg:right-auto lg:w-[min(500px,calc(100%-28px))] lg:-translate-x-1/2 lg:whitespace-normal lg:px-5 lg:py-2.5 lg:text-xs lg:leading-4">Para sua segurança, localizações residenciais são aproximadas em um raio de 2 km.</div>
     </div>
   );
 }

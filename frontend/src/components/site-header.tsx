@@ -58,9 +58,10 @@ export function SiteHeader() {
   }
 
   return (
-    <header className="sticky top-0 z-30 border-b border-black/[0.03] bg-[#eefdf1]/95 shadow-[0_1px_5px_rgba(38,51,43,0.05)] backdrop-blur">
-      <div className="relative mx-auto flex h-20 max-w-[1200px] items-center justify-between px-4 sm:px-6 lg:px-20">
-        <Link href="/" className="transition-opacity hover:opacity-80" aria-label="AdotaPerto — início">
+    <>
+    <header className="sticky top-0 z-30 hidden border-b border-black/[0.03] bg-[#eefdf1]/95 shadow-[0_1px_5px_rgba(38,51,43,0.05)] backdrop-blur lg:block">
+      <div className="relative mx-auto flex h-14 max-w-[1200px] items-center justify-end px-4 sm:px-6 lg:h-20 lg:justify-between lg:px-20">
+        <Link href="/" className="hidden transition-opacity hover:opacity-80 lg:block" aria-label="AdotaPerto — início">
           <BrandLogo priority className="h-auto w-[168px] sm:w-[205px]" />
         </Link>
         <nav className="hidden items-center gap-6 lg:flex" aria-label="Navegação principal">
@@ -102,11 +103,6 @@ export function SiteHeader() {
             </Link>
           )}
         </div>
-        <button type="button" onClick={() => setOpen((value) => !value)} className="flex size-10 flex-col items-center justify-center gap-[5px] rounded-xl bg-[#e8f7eb] shadow-[inset_0_0_0_1px_rgba(37,100,65,0.08)] transition hover:bg-[#d7eeda] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#256441] lg:hidden" aria-expanded={open} aria-label={open ? "Fechar menu principal" : "Abrir menu principal"}>
-          <span className={`h-0.5 w-[17px] rounded-full bg-[#256441] transition-transform duration-200 ${open ? "translate-y-[7px] rotate-45" : ""}`} />
-          <span className={`h-0.5 w-[17px] rounded-full bg-[#256441] transition-opacity duration-200 ${open ? "opacity-0" : ""}`} />
-          <span className={`h-0.5 w-[17px] rounded-full bg-[#256441] transition-transform duration-200 ${open ? "-translate-y-[7px] -rotate-45" : ""}`} />
-        </button>
         <div className={`absolute left-4 right-4 top-[72px] origin-top rounded-2xl border border-[#256441]/10 bg-white p-4 shadow-xl transition-all duration-200 sm:left-auto sm:right-6 sm:w-72 lg:hidden ${open ? "visible translate-y-0 scale-100 opacity-100" : "invisible -translate-y-2 scale-95 opacity-0"}`}>
           <nav className="flex flex-col" aria-label="Navegação móvel">
             {links.map((link) => <Link key={link.label} href={link.href} onClick={() => setOpen(false)} className={`rounded-lg px-4 py-3 text-sm font-semibold tracking-[0.05em] transition ${pathname === link.href || (link.href !== "/" && pathname.startsWith(`${link.href}/`)) || (link.label === "Explorar" && pathname.startsWith("/itens")) ? "bg-[#e8f7eb] text-[#256441]" : "text-[#404942] hover:bg-[#eefdf1]"}`}>{link.label}</Link>)}
@@ -153,7 +149,34 @@ export function SiteHeader() {
         </div>
       </div>
     </header>
+      <nav className="mobile-bottom-nav fixed inset-x-0 bottom-0 z-40 grid h-[68px] grid-cols-6 border-t border-[#d7e6da] bg-white px-1 pb-[env(safe-area-inset-bottom)] shadow-[0_-8px_24px_rgba(24,55,35,0.10)] lg:hidden" aria-label="Navegação principal móvel">
+        {links.map((link) => {
+          const active = pathname === link.href || (link.href !== "/" && pathname.startsWith(`${link.href}/`)) || (link.label === "Explorar" && pathname.startsWith("/itens"));
+          return <Link key={link.href} href={link.href} className={`flex min-w-0 flex-col items-center justify-center gap-1 rounded-xl px-1 text-[10px] font-bold transition ${active ? "text-[#256441]" : "text-[#68726b]"}`}><MobileNavIcon name={link.label} active={active} /><span className="truncate">{link.label}</span></Link>;
+        })}
+        <div className="flex min-w-0 flex-col items-center justify-center gap-1 rounded-xl px-1 text-[10px] font-bold text-[#68726b]">
+          <NotificationCenter userId={session?.user.id} mobileNav />
+          <span className="truncate">Alertas</span>
+        </div>
+        <Link href={session ? "/perfil" : "/login"} className={`flex min-w-0 flex-col items-center justify-center gap-1 rounded-xl px-1 text-[10px] font-bold transition ${pathname.startsWith("/perfil") || pathname === "/login" ? "text-[#256441]" : "text-[#68726b]"}`}>
+          {session ? <span className={`relative size-6 overflow-hidden rounded-full border-2 ${pathname.startsWith("/perfil") ? "border-[#256441]" : "border-[#9ab0a0]"}`}>{session.user.image ? <Image src={session.user.image} alt="" fill className="object-cover" /> : <span className="grid size-full place-items-center bg-[#e3f2e6] text-[10px] font-extrabold text-[#256441]">{session.user.name?.charAt(0).toUpperCase() || "U"}</span>}</span> : <MobileLoginIcon />}
+          <span className="truncate">{session ? "Perfil" : "Entrar"}</span>
+        </Link>
+      </nav>
+    </>
   );
+}
+
+function MobileLoginIcon() {
+  return <svg viewBox="0 0 24 24" className="size-5" fill="none" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><circle cx="9" cy="8" r="3.5" /><path d="M3 20a6 6 0 0 1 12 0M16 12h6m-2.5-2.5L22 12l-2.5 2.5" /></svg>;
+}
+
+function MobileNavIcon({ name, active }: { name: string; active: boolean }) {
+  const common = { viewBox: "0 0 24 24", className: `size-5 ${active ? "stroke-[2.4]" : ""}`, fill: "none", stroke: "currentColor", strokeWidth: 1.9, strokeLinecap: "round" as const, strokeLinejoin: "round" as const, "aria-hidden": true };
+  if (name === "Início") return <svg {...common}><path d="m3 11 9-8 9 8v10h-6v-6H9v6H3Z" /></svg>;
+  if (name === "Explorar") return <svg {...common}><path d="M12 21s7-4.2 7-11a7 7 0 1 0-14 0c0 6.8 7 11 7 11Z" /><circle cx="12" cy="10" r="2.5" /></svg>;
+  if (name === "Ajudar") return <svg {...common}><path d="M20.8 4.8a5.2 5.2 0 0 0-7.4 0L12 6.2l-1.4-1.4a5.2 5.2 0 0 0-7.4 7.4L12 21l8.8-8.8a5.2 5.2 0 0 0 0-7.4Z" /></svg>;
+  return <svg {...common}><path d="M4 6.5 9 4l6 2.5L20 4v14l-5 2-6-2.5L4 20Z" /><path d="M9 4v13.5M15 6.5V20" /></svg>;
 }
 
 function HeaderMenuIcon({ name }: { name: string }) {

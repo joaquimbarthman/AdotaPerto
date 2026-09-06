@@ -103,12 +103,12 @@ export default function ItemDonationPage() {
 
   if (isPending || !session) return <div className="min-h-screen bg-[#eefdf1]"><SiteHeader /><main className="grid min-h-[60vh] place-items-center"><span className="size-6 animate-spin rounded-full border-2 border-[#b8d8c1] border-t-[#256441]" aria-label="Verificando acesso" /></main></div>;
 
-  return <div className="min-h-screen bg-[#eefdf1] text-[#121e17]"><SiteHeader /><main className="mx-auto max-w-[1120px] px-5 py-9 sm:px-8 sm:py-12 lg:px-16">
+  return <div className="min-h-screen bg-[#eefdf1] text-[#121e17]"><SiteHeader /><main className="donation-form-page mx-auto w-full max-w-[1120px] px-3 pb-24 pt-4 sm:px-8 sm:py-12 lg:px-16">
     <Link href={editId ? "/perfil#publicacoes" : "/doacoes"} className="group inline-flex items-center gap-1.5 text-sm font-semibold text-[#404942] transition hover:text-[#256441]"><DirectionalChevron className="transition-transform group-hover:-translate-x-0.5" />{editId ? "Voltar às publicações" : "Voltar às opções"}</Link>
-    <header className="mb-10 mt-6"><h1 className="text-3xl font-extrabold tracking-[-0.025em] sm:text-4xl lg:text-5xl">{editId ? "Editar anúncio do item" : "Publicar doação"}</h1><p className="mt-2 text-base leading-7 text-[#4d5b53] sm:text-lg">{editId ? "Revise todas as informações e mantenha o anúncio atualizado." : "Compartilhe itens e recursos que podem ajudar quem precisa."}</p></header>
+    <header className="mb-5 mt-4 sm:mb-10 sm:mt-6"><h1 className="text-2xl font-extrabold leading-7 tracking-[-0.025em] sm:text-4xl lg:text-5xl">{editId ? "Editar anúncio do item" : "Publicar doação"}</h1><p className="mt-1.5 text-xs leading-4 text-[#4d5b53] sm:mt-2 sm:text-lg sm:leading-7">{editId ? "Revise todas as informações e mantenha o anúncio atualizado." : "Compartilhe itens e recursos que podem ajudar quem precisa."}</p></header>
     {globalError && <Notification text={globalError} />}
-    <form ref={formRef} onSubmit={submit} className="mx-auto grid max-w-[1120px] items-start gap-8 lg:grid-cols-[minmax(0,1fr)_300px]">
-      <div className="flex min-w-0 flex-col gap-7">
+    <form ref={formRef} onSubmit={submit} className="donation-form mx-auto grid max-w-[1120px] items-start gap-4 sm:gap-8 lg:grid-cols-[minmax(0,1fr)_300px]">
+      <div className="donation-form-fields flex min-w-0 flex-col gap-4 sm:gap-7">
       <DonationFormSection icon={<SectionIcon src="/icons/donations-profile.svg" />} title="Informações" description="Identifique o item e informe a quantidade disponível."><div className="grid gap-5 sm:grid-cols-2">
         <DonationField label="Título da doação" className="sm:col-span-2"><input name="title" required minLength={3} placeholder="Ex.: Ração para cães adultos" className={donationInputClass} /></DonationField>
         <DonationField label="Categoria"><DonationSelect name="category" onChange={(event) => setCategory(event.target.value)}><option>Ração</option><option>Petiscos</option><option>Produtos de higiene</option><option>Caminhas e cobertores</option><option>Coleiras e guias</option><option>Caixas de transporte</option><option>Brinquedos</option><option>Utensílios</option><option>Produtos de limpeza</option><option>Outros</option></DonationSelect></DonationField>
@@ -133,10 +133,10 @@ export default function ItemDonationPage() {
         <DonationField label="Disponível até" optional error={errors.availableUntil}><input name="availableUntil" type="date" min={today} className={donationInputClass} onChange={() => setErrors((current) => ({ ...current, availableUntil: "" }))} /></DonationField>
       </div></DonationFormSection>
 
-      <div className="grid gap-3 border-t border-[#d7e6da] pt-6 sm:grid-cols-[0.8fr_1.2fr]"><Link href={editId ? "/perfil#publicacoes" : "/doacoes"} className="flex min-h-[54px] items-center justify-center rounded-xl border border-[#256441] bg-white px-6 py-3 text-sm font-semibold text-[#256441] transition hover:bg-[#e8f7eb] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#256441]">Cancelar</Link><button type="submit" disabled={loading} className="flex min-h-[54px] items-center justify-center rounded-xl bg-[#0f5d39] px-6 py-3 text-sm font-semibold text-white shadow-[0_4px_12px_rgba(15,93,57,0.18)] transition hover:-translate-y-0.5 hover:bg-[#194b30] disabled:translate-y-0 disabled:cursor-wait disabled:opacity-60">{loading ? "Salvando..." : editId ? "Salvar alterações" : "Publicar doação"}</button></div>
+      <div className="donation-form-actions grid grid-cols-2 gap-2 border-t border-[#d7e6da] pt-4 sm:gap-3 sm:pt-6"><Link href={editId ? "/perfil#publicacoes" : "/doacoes"} className="flex min-h-11 items-center justify-center rounded-lg border border-[#256441] bg-white px-3 py-2 text-xs font-semibold text-[#256441] transition hover:bg-[#e8f7eb] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#256441] sm:min-h-[54px] sm:rounded-xl sm:px-6 sm:py-3 sm:text-sm">Cancelar</Link><button type="submit" disabled={loading} className="flex min-h-11 items-center justify-center rounded-lg bg-[#0f5d39] px-3 py-2 text-xs font-semibold text-white shadow-[0_4px_12px_rgba(15,93,57,0.18)] transition hover:-translate-y-0.5 hover:bg-[#194b30] disabled:translate-y-0 disabled:cursor-wait disabled:opacity-60 sm:min-h-[54px] sm:rounded-xl sm:px-6 sm:py-3 sm:text-sm">{loading ? "Salvando..." : editId ? "Salvar alterações" : "Publicar doação"}</button></div>
       </div>
 
-      <aside className="lg:sticky lg:top-28">
+      <aside className="donation-form-tips lg:sticky lg:top-28">
         <div className="mb-3 rounded-2xl border border-[#d7e6da] bg-white px-5 py-4 shadow-[0_4px_14px_rgba(38,51,43,0.04)]">
           <h2 className="text-lg font-bold text-[#194b30]">Dicas para uma boa doação</h2>
           <p className="mt-1 text-sm leading-5 text-[#526057]">Informações claras ajudam o item a chegar mais rápido a quem precisa.</p>

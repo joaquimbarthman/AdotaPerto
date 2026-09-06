@@ -15,7 +15,7 @@ import { DonationField as Field, DonationFormSection as Section, DonationPhotoPr
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:4000";
 
 function YesNoUnknown({ name, unknown = true }: { name: string; unknown?: boolean }) {
-  return <div className="flex min-h-12 flex-wrap items-center gap-x-5 gap-y-2 rounded-lg border border-[#c5cec7] px-3.5">{["Sim", "Não", ...(unknown ? ["Não sei"] : [])].map((value) => <label key={value} className="inline-flex items-center gap-2 font-normal"><input type="radio" name={name} value={value} required className="size-4 accent-[#256441]" />{value}</label>)}</div>;
+  return <div className="donation-radio-group flex min-h-11 flex-wrap items-center gap-x-4 gap-y-1.5 rounded-lg border border-[#c5cec7] px-3 sm:min-h-12 sm:gap-x-5 sm:gap-y-2 sm:px-3.5">{["Sim", "Não", ...(unknown ? ["Não sei"] : [])].map((value) => <label key={value} className="inline-flex items-center gap-1.5 text-xs font-normal sm:gap-2 sm:text-sm"><input type="radio" name={name} value={value} required className="size-3.5 accent-[#256441] sm:size-4" />{value}</label>)}</div>;
 }
 
 function PawIcon() {
@@ -154,18 +154,18 @@ export default function AnimalDonationPage() {
   return (
     <div className="min-h-screen bg-[#eefdf1] text-[#121e17]">
       <SiteHeader />
-      <main className="mx-auto max-w-[1120px] px-5 py-9 sm:px-8 sm:py-12 lg:px-16">
-        <Link href={editId ? "/perfil#publicacoes" : "/doacoes"} className="mb-7 inline-flex items-center gap-2 rounded-lg px-2 py-1 text-sm font-semibold text-[#256441] transition hover:bg-[#e8f7eb]"><span aria-hidden="true">‹</span> {editId ? "Voltar às publicações" : "Voltar às opções"}</Link>
+      <main className="donation-form-page mx-auto w-full max-w-[1120px] px-3 pb-24 pt-4 sm:px-8 sm:py-12 lg:px-16">
+        <Link href={editId ? "/perfil#publicacoes" : "/doacoes"} className="mb-4 inline-flex items-center gap-1.5 rounded-lg px-1 py-1 text-xs font-semibold text-[#256441] transition hover:bg-[#e8f7eb] sm:mb-7 sm:gap-2 sm:px-2 sm:text-sm"><span aria-hidden="true">‹</span> {editId ? "Voltar às publicações" : "Voltar às opções"}</Link>
         
         {error && <Notification text={error} />}
 
-        <header className="mb-10 max-w-4xl">
-          <h1 className="text-3xl font-extrabold tracking-[-0.025em] sm:text-4xl lg:text-5xl">{editId ? "Editar anúncio do animal" : "Cadastrar animal para adoção"}</h1>
-          <p className="mt-2 text-base leading-7 text-[#4d5b53] sm:text-lg">Preencha as informações com carinho para ajudar este animal a encontrar um novo lar seguro e amoroso.</p>
+        <header className="mb-5 max-w-4xl sm:mb-10">
+          <h1 className="text-2xl font-extrabold leading-7 tracking-[-0.025em] sm:text-4xl lg:text-5xl">{editId ? "Editar anúncio do animal" : "Cadastrar animal para adoção"}</h1>
+          <p className="mt-1.5 text-xs leading-4 text-[#4d5b53] sm:mt-2 sm:text-lg sm:leading-7">Preencha as informações com carinho para ajudar este animal a encontrar um novo lar seguro e amoroso.</p>
         </header>
 
-        <form ref={formRef} onSubmit={submit} className="mx-auto grid max-w-[1120px] items-start gap-8 lg:grid-cols-[minmax(0,1fr)_300px]">
-          <div className="flex min-w-0 flex-col gap-7">
+        <form ref={formRef} onSubmit={submit} className="donation-form mx-auto grid max-w-[1120px] items-start gap-4 sm:gap-8 lg:grid-cols-[minmax(0,1fr)_300px]">
+          <div className="donation-form-fields flex min-w-0 flex-col gap-4 sm:gap-7">
             <Section icon={<PawIcon />} title="Informações básicas">
               <div className="grid gap-5 sm:grid-cols-2">
                 <Field label="Nome"><input name="nome" required placeholder="Ex.: Caramelo" className={inputClass} /></Field>
@@ -178,7 +178,7 @@ export default function AnimalDonationPage() {
             </Section>
 
             <Section icon={<HealthIcon />} title="Saúde e cuidados" description="Caso não saiba alguma informação, selecione “Não sei”.">
-              <div className="grid gap-5 sm:grid-cols-2">
+              <div className="grid gap-5 sm:grid-cols-2 sm:items-end">
                 <Field label="Castrado?"><YesNoUnknown name="castrado" /></Field>
                 <Field label="Situação vacinal"><Select name="vacinas"><option>Vacinas em dia</option><option>Vacinação incompleta</option><option>Não vacinado</option><option>Não sei</option></Select></Field>
                 <Field label="Vermifugado?"><YesNoUnknown name="vermifugado" /></Field>
@@ -232,7 +232,7 @@ export default function AnimalDonationPage() {
               <label className="flex cursor-pointer items-start gap-3 text-sm leading-6 text-[#343e37]"><input type="checkbox" name="declaracao" required className="mt-1 size-5 shrink-0 accent-[#256441]" /><span>Declaro que sou responsável pelas informações fornecidas, que elas são verdadeiras e que agirei com transparência e responsabilidade durante o processo de adoção.</span></label>
             </section>
             
-            <div className="grid gap-3 border-t border-[#d7e6da] pt-6 sm:grid-cols-[0.8fr_1.2fr]">
+            <div className="donation-form-actions grid grid-cols-2 gap-2 border-t border-[#d7e6da] pt-4 sm:gap-3 sm:pt-6">
               <Link href={editId ? "/perfil#publicacoes" : "/doacoes"} className="flex min-h-[52px] w-full items-center justify-center rounded-xl border border-[#256441] bg-white px-6 py-3 text-center text-sm font-semibold text-[#256441] transition hover:bg-[#e8f7eb] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#256441]">Cancelar</Link>
               <button type="submit" disabled={loading} className="flex min-h-[52px] w-full items-center justify-center gap-2 rounded-xl bg-[#0f5d39] px-6 py-3 text-sm font-semibold text-white shadow-[0_4px_12px_rgba(15,93,57,0.18)] transition hover:-translate-y-0.5 hover:bg-[#194b30] hover:shadow-[0_7px_16px_rgba(15,93,57,0.22)] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#256441] disabled:opacity-60">
                 <svg viewBox="0 0 20 20" className="size-4" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden="true"><path d="m5 10 3.2 3.2L15 6.5" strokeLinecap="round" strokeLinejoin="round" /></svg>
@@ -241,7 +241,7 @@ export default function AnimalDonationPage() {
             </div>
           </div>
 
-          <aside className="lg:sticky lg:top-28">
+          <aside className="donation-form-tips lg:sticky lg:top-28">
             <div className="mb-3 rounded-2xl border border-[#d7e6da] bg-white px-5 py-4 shadow-[0_4px_14px_rgba(38,51,43,0.04)]">
               <h2 className="text-lg font-bold text-[#194b30]">Dicas para um bom anúncio</h2>
               <p className="mt-1 text-sm leading-5 text-[#526057]">Pequenos cuidados aumentam as chances de adoção.</p>

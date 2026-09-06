@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 
-export function ThemeToggle({ mobile = false }: { mobile?: boolean }) {
+export function ThemeToggle({ mobile = false, profileAction = false }: { mobile?: boolean; profileAction?: boolean }) {
   const [theme, setTheme] = useState<"light" | "dark">("light");
 
   useEffect(() => {
@@ -27,6 +27,10 @@ export function ThemeToggle({ mobile = false }: { mobile?: boolean }) {
 
   if (mobile) {
     return <button type="button" onClick={toggle} className="mt-2 flex w-full items-center gap-3 rounded-lg bg-[#f7fcf8] px-4 py-3 text-sm font-semibold text-[#256441] transition hover:bg-[#e8f7eb]" aria-label={theme === "dark" ? "Ativar tema claro" : "Ativar tema escuro"}><ThemeIcon dark={theme === "dark"} />{theme === "dark" ? "Usar tema claro" : "Usar tema escuro"}</button>;
+  }
+
+  if (profileAction) {
+    return <button type="button" onClick={toggle} className="flex min-h-10 flex-1 items-center justify-center gap-2 rounded-lg border border-[#86a590] bg-white px-3 py-2 text-xs font-bold text-[#256441] transition hover:bg-[#e8f7eb] active:scale-[0.98] lg:hidden" aria-label={theme === "dark" ? "Ativar tema claro" : "Ativar tema escuro"}><ThemeIcon dark={theme === "dark"} /><span>{theme === "dark" ? "Modo claro" : "Modo escuro"}</span></button>;
   }
 
   return <button type="button" onClick={toggle} className="relative z-10 grid size-10 place-items-center rounded-full text-[#404942] transition hover:bg-[#e1f2e5] hover:text-[#256441] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#256441]" aria-label={theme === "dark" ? "Ativar tema claro" : "Ativar tema escuro"} title={theme === "dark" ? "Tema claro" : "Tema escuro"}><ThemeIcon dark={theme === "dark"} /></button>;

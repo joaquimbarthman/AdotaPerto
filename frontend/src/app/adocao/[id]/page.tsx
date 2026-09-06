@@ -23,6 +23,8 @@ export default function PetDetailsPage() {
 
   const [animal, setAnimal] = useState<Animal | null>(null);
   const [loading, setLoading] = useState(true);
+  const [favorite, setFavorite] = useState(false);
+  const [favoriteLoading, setFavoriteLoading] = useState(false);
 
   useEffect(() => {
     async function loadAnimal() {
@@ -40,6 +42,30 @@ export default function PetDetailsPage() {
       loadAnimal().finally(() => setLoading(false));
     }
   }, [id]);
+
+  useEffect(() => {
+    if (!session || !id) return;
+    const controller = new AbortController();
+    fetch(`${API_BASE_URL}/api/favorites/check/${id}`, { credentials: "include", signal: controller.signal })
+      .then((response) => response.ok ? response.json() : null)
+      .then((data) => { if (data) setFavorite(Boolean(data.favorite)); })
+      .catch(() => {});
+    return () => controller.abort();
+  }, [id, session]);
+
+  async function toggleFavorite() {
+    if (!session) { router.push("/login?reason=unauthenticated"); return; }
+    if (!animal || favoriteLoading) return;
+    const next = !favorite;
+    setFavorite(next); setFavoriteLoading(true);
+    try {
+      const response = await fetch(`${API_BASE_URL}/api/favorites/${animal.id}`, { method: next ? "POST" : "DELETE", credentials: "include" });
+      if (!response.ok) throw new Error();
+    } catch {
+      setFavorite(!next);
+      notify("Não foi possível atualizar o favorito.", "error");
+    } finally { setFavoriteLoading(false); }
+  }
 
   function handleRequestAdoption() {
     if (isPending) return;
@@ -100,10 +126,10 @@ export default function PetDetailsPage() {
   return (
     <div className="min-h-screen bg-[#eefdf1] text-[#121e17]">
       <SiteHeader />
-      <main className="mx-auto max-w-[1200px] px-5 py-8 sm:px-10 lg:px-20 lg:py-12">
+      <main className="detail-page mx-auto w-full min-w-0 max-w-[1200px] overflow-x-hidden px-3 py-4 sm:px-10 sm:py-8 lg:px-20 lg:py-12">
         <Link
           href="/adocao"
-          className="mb-8 inline-flex items-center gap-2 rounded-lg px-2 py-1 text-sm font-semibold text-[#256441] transition hover:bg-[#e8f7eb]"
+          className="mb-3 inline-flex items-center gap-1 rounded-lg px-1 py-1 text-xs font-semibold text-[#256441] transition hover:bg-[#e8f7eb] sm:mb-8 sm:gap-2 sm:px-2 sm:text-sm"
         >
           <svg
             viewBox="0 0 20 20"
@@ -122,8 +148,8 @@ export default function PetDetailsPage() {
           Voltar
         </Link>
 
-        <div className="grid items-start gap-6 lg:grid-cols-[2fr_1fr]">
-          <div className="space-y-6">
+        <div className="grid min-w-0 items-start gap-3 sm:gap-6 lg:grid-cols-[minmax(0,2fr)_minmax(0,1fr)]">
+          <div className="detail-main-column min-w-0 space-y-3 sm:space-y-6">
             <PhotoGallery animalName={animal.name} photos={photos} locked={!isPending && !session} />
 
             <section className="rounded-xl bg-white p-6 shadow-[0_4px_6px_rgba(38,51,43,0.05)] sm:p-10 lg:p-12">
@@ -163,7 +189,7 @@ export default function PetDetailsPage() {
                       : animal.status}
                 </span>
               </div>
-              <div className="mt-6 grid gap-5 border-t border-[#c0c9bf] pt-6 min-[460px]:grid-cols-3">
+              <div className="detail-stats mt-4 grid grid-cols-3 gap-2 border-t border-[#c0c9bf] pt-4 sm:mt-6 sm:gap-5 sm:pt-6">
                 <Stat
                   icon="/icons/age.svg"
                   label="Idade aproximada"
@@ -191,7 +217,7 @@ export default function PetDetailsPage() {
               {animal.behaviorNotes && <p className="mt-3 leading-7 text-[#404942]"><strong className="text-[#121e17]">Comportamento:</strong>{" "}{animal.behaviorNotes}</p>}
             </section>
 
-            <div className="grid gap-6 sm:grid-cols-2">
+            <div className="detail-info-grid grid min-w-0 grid-cols-2 gap-2 sm:gap-6">
               <InfoCard
                 title="Saúde e cuidados"
                 icon="/icons/health.svg"
@@ -240,7 +266,7 @@ export default function PetDetailsPage() {
             </section></div></AuthBlurredContent>
           </div>
 
-          <aside className="space-y-6 lg:sticky lg:top-28">
+          <aside className="detail-sidebar min-w-0 space-y-3 sm:space-y-6 lg:sticky lg:top-28">
             <section className="rounded-xl bg-white p-6 shadow-[0_4px_6px_rgba(38,51,43,0.05)]">
               <h2 className="text-sm font-semibold uppercase tracking-[0.05em] text-[#404942]">
                 Aos cuidados de
@@ -289,11 +315,11 @@ export default function PetDetailsPage() {
               </p>
             </section>
 
-            <button
+            <div className="detail-primary-actions flex gap-2"><button
               type="button"
               disabled={isPending || Boolean(animal.viewerRequestStatus) || animal.status !== "Disponível"}
               onClick={handleRequestAdoption}
-              className="w-full rounded-xl bg-[#256441] px-6 py-4 text-sm font-semibold tracking-[0.05em] text-white shadow-sm transition-all hover:-translate-y-0.5 hover:bg-[#194b30] hover:shadow-md active:scale-[0.98] disabled:opacity-60"
+              className="min-w-0 flex-1 rounded-xl bg-[#256441] px-6 py-4 text-sm font-semibold tracking-[0.05em] text-white shadow-sm transition-all hover:-translate-y-0.5 hover:bg-[#194b30] hover:shadow-md active:scale-[0.98] disabled:opacity-60"
             >
               {animal.viewerRequestStatus === "Aprovada"
                 ? "Você adotou"
@@ -306,7 +332,7 @@ export default function PetDetailsPage() {
                       : animal.status === "Adotado"
                         ? "Animal já adotado"
                         : "Tenho interesse em adotar"}
-            </button>
+            </button><button type="button" disabled={favoriteLoading} onClick={toggleFavorite} className={`grid size-[52px] shrink-0 place-items-center rounded-xl border transition active:scale-95 disabled:opacity-60 ${favorite ? "border-[#ef9aaa] bg-[#fff0f3] text-[#d33f56]" : "border-[#86a590] bg-white text-[#526057] hover:bg-[#e8f7eb] hover:text-[#256441]"}`} aria-label={favorite ? "Remover dos favoritos" : "Adicionar aos favoritos"} aria-pressed={favorite}><svg viewBox="0 0 24 24" className="size-5" fill={favorite ? "currentColor" : "none"} stroke="currentColor" strokeWidth="2.2" aria-hidden="true"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78L12 21.23l8.84-8.84a5.5 5.5 0 0 0 0-7.78Z" strokeLinecap="round" strokeLinejoin="round" /></svg></button></div>
           </aside>
         </div>
       </main>

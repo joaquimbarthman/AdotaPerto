@@ -3,7 +3,10 @@ import "./globals.css";
 import { NotificationProvider } from "@/components/notification";
 
 export const metadata: Metadata = {
-  title: "AdotaPerto",
+  title: {
+    default: "AdotaPerto",
+    template: "%s | AdotaPerto",
+  },
   description: "Uma rede de apoio ao bem-estar animal.",
   icons: {
     icon: "/icons/adotaperto-heart.png",

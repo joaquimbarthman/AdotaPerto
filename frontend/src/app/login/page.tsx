@@ -51,19 +51,19 @@ export default function LoginPage() {
 
   return (
     <AuthShell image="/images/login-cover-v2.png" imageAlt="Mulher acolhendo um cachorro caramelo em casa">
-      <header className="mb-8">
+      <header className="mb-5 sm:mb-8">
         <AuthBrand />
-        <h1 className="mt-7 text-[32px] font-extrabold leading-10 tracking-[-0.02em]">Bem-vindo de volta</h1>
-        <p className="mt-2 leading-6 text-[#4d5b53]">Entre para acompanhar seus favoritos e processos de adoção.</p>
+        <h1 className="mt-4 text-2xl font-extrabold leading-7 tracking-[-0.02em] sm:mt-7 sm:text-[32px] sm:leading-10">Bem-vindo de volta</h1>
+        <p className="mt-1.5 text-sm leading-5 text-[#4d5b53] sm:mt-2 sm:text-base sm:leading-6">Entre para acompanhar seus favoritos e processos de adoção.</p>
       </header>
 
       {errorMessage && <Notification text={errorMessage} />}
 
-      <form onSubmit={handleSubmit} className="space-y-5">
+      <form onSubmit={handleSubmit} className="space-y-3.5 sm:space-y-5">
         <AuthField label="Email" icon="/icons/email.svg" name="email" type="email" placeholder="seu@email.com" autoComplete="email" required />
         <AuthField label="Senha" icon="/icons/password.svg" name="password" type="password" placeholder="••••••••" autoComplete="current-password" required />
 
-        <div className="flex flex-wrap items-center justify-between gap-3 text-sm">
+        <div className="flex flex-wrap items-center justify-between gap-2 text-xs sm:gap-3 sm:text-sm">
           <label className="flex cursor-pointer items-center gap-2 text-[#404942]">
             <input type="checkbox" name="rememberMe" className="size-4 accent-[#0f5d39]" />
             Lembrar de mim
@@ -74,12 +74,12 @@ export default function LoginPage() {
         <button
           type="submit"
           disabled={loading}
-          className="w-full rounded-xl bg-[#0f5d39] px-6 py-3.5 text-sm font-semibold text-white shadow-sm transition-all hover:-translate-y-0.5 hover:bg-[#0b482c] hover:shadow-md active:scale-[0.99] disabled:opacity-60"
+          className="min-h-11 w-full rounded-lg bg-[#0f5d39] px-5 py-2.5 text-sm font-semibold text-white shadow-sm transition-all hover:-translate-y-0.5 hover:bg-[#0b482c] hover:shadow-md active:scale-[0.99] disabled:opacity-60 sm:rounded-xl sm:px-6 sm:py-3.5"
         >
           {loading ? "Entrando..." : "Entrar"}
         </button>
       </form>
-      <p className="mt-7 border-t border-[#e1e8e2] pt-6 text-center text-sm text-[#4d5b53]">
+      <p className="mt-5 border-t border-[#e1e8e2] pt-4 text-center text-xs text-[#4d5b53] sm:mt-7 sm:pt-6 sm:text-sm">
         Ainda não tem uma conta? <Link href="/cadastro" className="font-semibold text-[#0f5d39] hover:underline">Criar conta</Link>
       </p>
     </AuthShell>

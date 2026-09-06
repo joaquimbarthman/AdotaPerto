@@ -72,7 +72,7 @@ export function ProfilePhotoCropper({ currentImage, name, loading, onCrop }: { c
       <p className="mt-2 text-xs leading-5 text-[#7b8980]">JPG, PNG ou WebP. Máx. 5 MB.</p>
       {error && <p className="mt-1 text-xs font-semibold text-red-700" role="alert">{error}</p>}
     </div>
-    {mounted && source ? createPortal(<div className="fixed inset-0 z-[1000] grid h-dvh w-screen place-items-center overflow-y-auto bg-[#0b110d]/75 p-4 backdrop-blur-md" role="dialog" aria-modal="true" aria-labelledby="crop-title">
+    {mounted && source ? createPortal(<div className="fixed inset-0 z-[1000] grid h-dvh max-w-full place-items-center overflow-x-hidden overflow-y-auto bg-[#0b110d]/75 p-4 backdrop-blur-md" role="dialog" aria-modal="true" aria-labelledby="crop-title">
       <div className="w-full max-w-[460px] overflow-hidden rounded-2xl border border-[#d7e6da] bg-white shadow-[0_28px_90px_rgba(0,0,0,.32)]">
         <header className="border-b border-[#e3ece5] px-6 py-5"><p className="text-[10px] font-extrabold uppercase tracking-[.14em] text-[#3f7d58]">Foto de perfil</p><h2 id="crop-title" className="mt-1 text-xl font-extrabold text-[#243129]">Posicione sua foto</h2><p className="mt-1 text-sm leading-5 text-[#68726b]">Arraste e ajuste o zoom. Apenas a área dentro do círculo será usada.</p></header>
         <div className="p-5 sm:p-6">

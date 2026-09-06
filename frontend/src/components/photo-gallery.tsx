@@ -46,13 +46,13 @@ export function PhotoGallery({ animalName, photos, locked = false }: PhotoGaller
 
   return (
     <>
-      <section className="grid h-[360px] grid-cols-3 grid-rows-2 gap-3 sm:h-[500px]" aria-label={`Fotos de ${animalName}`}>
+      <section className="detail-photo-gallery grid h-[230px] w-full min-w-0 max-w-full grid-cols-3 grid-rows-2 gap-1.5 overflow-hidden sm:h-[500px] sm:gap-3" aria-label={`Fotos de ${animalName}`}>
         {photos.slice(0, 3).map((photo, index) => (
           <button
             key={`${photo}-${index}`}
             type="button"
             onClick={() => locked && index > 0 ? router.push("/login?reason=unauthenticated") : setSelectedPhoto(index)}
-            className={`group relative overflow-hidden rounded-xl shadow-sm focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#256441] ${index === 0 ? "col-span-2 row-span-2" : ""}`}
+            className={`group relative overflow-hidden rounded-lg shadow-sm focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#256441] sm:rounded-xl ${index === 0 ? "col-span-2 row-span-2" : ""}`}
             aria-label={index === 2 ? `Ver mais fotos de ${animalName}` : `Ampliar foto ${index + 1} de ${animalName}`}
           >
             <Image
@@ -65,9 +65,9 @@ export function PhotoGallery({ animalName, photos, locked = false }: PhotoGaller
             />
             {!locked && index === 2 && (
               <span className="absolute inset-0 flex items-center justify-center bg-[#173d29]/45 transition-colors group-hover:bg-[#173d29]/60">
-                <span className="inline-flex items-center gap-2 rounded-xl bg-black/35 px-4 py-2.5 text-sm font-semibold text-white backdrop-blur-sm">
-                  <Image src="/icons/gallery.svg" alt="" width={20} height={20} className="brightness-0 invert" />
-                  Ver mais fotos
+                <span className="inline-flex items-center gap-1 rounded-lg bg-black/35 px-2 py-1.5 text-[10px] font-semibold text-white backdrop-blur-sm sm:gap-2 sm:rounded-xl sm:px-4 sm:py-2.5 sm:text-sm">
+                  <Image src="/icons/gallery.svg" alt="" width={16} height={16} className="brightness-0 invert sm:h-5 sm:w-5" />
+                  <span className="hidden min-[380px]:inline">Ver mais fotos</span><span className="min-[380px]:hidden">Mais</span>
                 </span>
               </span>
             )}
@@ -77,7 +77,7 @@ export function PhotoGallery({ animalName, photos, locked = false }: PhotoGaller
 
       {selectedPhoto !== null && createPortal(
         <div
-          className="fixed inset-0 z-[9999] flex h-dvh w-screen items-center justify-center bg-[#08150e]/90 p-4 backdrop-blur-sm sm:p-8"
+          className="fixed inset-0 z-[9999] flex h-dvh max-w-full items-center justify-center overflow-x-hidden bg-[#08150e]/90 p-4 backdrop-blur-sm sm:p-8"
           role="dialog"
           aria-modal="true"
           aria-label={`Galeria de fotos de ${animalName}`}

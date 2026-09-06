@@ -22,7 +22,6 @@ export default function AdoptionRequestPage() {
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [sent, setSent] = useState(false);
   const [housing, setHousing] = useState("");
   const [hasOtherAnimals, setHasOtherAnimals] = useState("");
   const [hasChildren, setHasChildren] = useState("");
@@ -76,9 +75,9 @@ export default function AdoptionRequestPage() {
       });
       const result = await response.json().catch(() => ({}));
       if (!response.ok) throw new Error(result.error || "N\u00e3o foi poss\u00edvel enviar a solicita\u00e7\u00e3o.");
-      setSent(true);
       notify("Solicitação de adoção enviada com sucesso.", "success");
-      window.scrollTo({ top: 0, behavior: "smooth" });
+      router.replace(`/adocao/${animal.id}`);
+      router.refresh();
     } catch (cause: unknown) {
       setError(cause instanceof Error ? cause.message : "N\u00e3o foi poss\u00edvel enviar a solicita\u00e7\u00e3o.");
     } finally {
@@ -86,7 +85,7 @@ export default function AdoptionRequestPage() {
     }
   }
 
-  if (loading || isPending || !session || ownAnimal || (!sent && animal && (animal.viewerRequestStatus || animal.status !== "Disponível"))) return <PageLoading />;
+  if (loading || isPending || !session || ownAnimal || (animal && (animal.viewerRequestStatus || animal.status !== "Disponível"))) return <PageLoading />;
 
   if (!animal) {
     return <div className="grid min-h-screen place-items-center bg-[#eefdf1] p-6 text-center"><div><h1 className="text-2xl font-bold">Animal n&atilde;o encontrado</h1><Link href="/adocao" className="mt-5 inline-block rounded-xl bg-[#2f7650] px-5 py-3 font-semibold text-white">Voltar para ado&ccedil;&atilde;o</Link></div></div>;
@@ -97,16 +96,15 @@ export default function AdoptionRequestPage() {
   return (
     <div className="min-h-screen bg-[#eefdf1] text-[#121e17]">
       <SiteHeader />
-      <main className="mx-auto max-w-[1200px] px-5 pb-20 pt-8 sm:px-10 lg:px-20 lg:pt-12">
+      <main className="adoption-request-page mx-auto w-full max-w-[1200px] overflow-x-hidden px-3 pb-24 pt-4 sm:px-10 sm:pb-20 sm:pt-8 lg:px-20 lg:pt-12">
         <Link href={`/adocao/${animal.id}`} className="group inline-flex items-center gap-1.5 text-sm font-semibold text-[#404942] transition hover:text-[#2f7650]"><DirectionalChevron className="transition-transform group-hover:-translate-x-0.5" />Voltar para o perfil de {animal.name}</Link>
-        <header className="mb-10 mt-5">
-          <h1 className="text-3xl font-extrabold tracking-[-0.02em] sm:text-5xl">Solicita&ccedil;&atilde;o de Ado&ccedil;&atilde;o</h1>
-          <p className="mt-2 text-[#404942] sm:text-lg">Preencha o formul&aacute;rio abaixo para demonstrar seu interesse.</p>
+        <header className="mb-5 mt-4 sm:mb-10 sm:mt-5">
+          <h1 className="text-2xl font-extrabold leading-7 tracking-[-0.02em] sm:text-5xl">Solicita&ccedil;&atilde;o de Ado&ccedil;&atilde;o</h1>
+          <p className="mt-1.5 text-xs leading-4 text-[#404942] sm:mt-2 sm:text-lg sm:leading-7">Preencha o formul&aacute;rio abaixo para demonstrar seu interesse.</p>
         </header>
 
-        {sent ? <SuccessCard animalName={animal.name} /> : (
-          <form onSubmit={handleSubmit} className="grid items-start gap-8 lg:grid-cols-[minmax(0,2fr)_minmax(280px,1fr)] lg:gap-12">
-            <div className="space-y-8">
+        <form onSubmit={handleSubmit} className="grid min-w-0 items-start gap-4 sm:gap-8 lg:grid-cols-[minmax(0,2fr)_minmax(280px,1fr)] lg:gap-12">
+            <div className="min-w-0 space-y-4 sm:space-y-8">
               <AnimalSummary animal={animal} />
 
               {error && <Notification text={error} />}
@@ -114,7 +112,7 @@ export default function AdoptionRequestPage() {
               {unavailable ? (
                 <div className="rounded-xl border border-[#d7e6da] bg-white p-8 text-center shadow-sm"><h2 className="text-xl font-bold">Solicita&ccedil;&atilde;o indispon&iacute;vel</h2><p className="mt-2 text-sm text-[#526057]">Voc&ecirc; j&aacute; possui uma solicita&ccedil;&atilde;o para este animal ou ele n&atilde;o est&aacute; mais dispon&iacute;vel.</p></div>
               ) : (
-                <section className="overflow-hidden rounded-xl border border-[#bfc9bf]/30 bg-white p-5 shadow-[0_4px_10px_rgba(38,51,43,0.04)] sm:p-8 lg:p-10">
+                <section className="request-form-card overflow-hidden rounded-xl border border-[#bfc9bf]/30 bg-white p-4 shadow-[0_4px_10px_rgba(38,51,43,0.04)] sm:p-8 lg:p-10">
                   <FormSection title="Moradia e ambiente">
                     <RadioQuestion legend={"Onde voc\u00ea mora?"} name="housing" options={["Casa", "Apartamento", "Outro"]} value={housing} onChange={setHousing} />
                     <RadioQuestion legend={"Sua resid\u00eancia possui espa\u00e7o externo seguro?"} name="secureOutdoorSpace" options={["Sim", "N\u00e3o"]} />
@@ -157,8 +155,7 @@ export default function AdoptionRequestPage() {
             </div>
 
             <NextSteps animal={animal} submitting={submitting} disabled={unavailable} />
-          </form>
-        )}
+        </form>
       </main>
       <SiteFooter />
     </div>
@@ -174,11 +171,11 @@ function NextSteps({ animal, submitting, disabled }: { animal: Animal; submittin
 }
 
 function FormSection({ title, children }: { title: string; children: ReactNode }) {
-  return <section className="border-b border-[#ddece0] py-8 first:pt-0 last:border-0 last:pb-0"><h2 className="mb-6 text-xl font-semibold sm:text-2xl">{title}</h2><div className="space-y-7">{children}</div></section>;
+  return <section className="request-form-section border-b border-[#ddece0] py-5 first:pt-0 last:border-0 last:pb-0 sm:py-8"><h2 className="mb-3 text-base font-semibold sm:mb-6 sm:text-2xl">{title}</h2><div className="space-y-4 sm:space-y-7">{children}</div></section>;
 }
 
 function RadioQuestion({ legend, name, options, value, onChange }: { legend: string; name: string; options: string[]; value?: string; onChange?: (value: string) => void }) {
-  return <fieldset><legend className="mb-3 text-sm font-semibold tracking-[0.01em]">{legend}</legend><div className="grid gap-2 sm:flex sm:flex-wrap">{options.map((option) => <label key={option} className="flex min-h-11 cursor-pointer items-center gap-2.5 rounded-lg border border-[#d7e6da] bg-[#f7fcf8] px-3.5 py-2.5 text-sm text-[#404942] transition hover:border-[#86a590] has-[:checked]:border-[#2f7650] has-[:checked]:bg-[#e3f2e6] has-[:checked]:font-semibold has-[:checked]:text-[#194b30]"><input type="radio" name={name} value={option} checked={value === undefined ? undefined : value === option} onChange={(event) => onChange?.(event.target.value)} required className="size-4 accent-[#2f7650]" />{option}</label>)}</div></fieldset>;
+  return <fieldset><legend className="mb-2 text-xs font-semibold leading-4 tracking-[0.01em] sm:mb-3 sm:text-sm">{legend}</legend><div className="grid grid-cols-2 gap-1.5 sm:flex sm:flex-wrap sm:gap-2">{options.map((option) => <label key={option} className="flex min-h-10 min-w-0 cursor-pointer items-center gap-1.5 rounded-lg border border-[#d7e6da] bg-[#f7fcf8] px-2.5 py-2 text-[11px] leading-4 text-[#404942] transition hover:border-[#86a590] has-[:checked]:border-[#2f7650] has-[:checked]:bg-[#e3f2e6] has-[:checked]:font-semibold has-[:checked]:text-[#194b30] sm:min-h-11 sm:gap-2.5 sm:px-3.5 sm:py-2.5 sm:text-sm"><input type="radio" name={name} value={option} checked={value === undefined ? undefined : value === option} onChange={(event) => onChange?.(event.target.value)} required className="size-3.5 shrink-0 accent-[#2f7650] sm:size-4" />{option}</label>)}</div></fieldset>;
 }
 
 function CheckboxQuestion({ legend, name, options }: { legend: string; name: string; options: string[] }) {
@@ -198,24 +195,6 @@ function TextQuestion({ label, name, placeholder, rows, required = true }: { lab
 }
 
 function Tag({ children }: { children: ReactNode }) { return <span className="rounded-full bg-[#e3f2e6] px-3 py-1 text-xs font-medium text-[#0f5d39]">{children}</span>; }
-
-function SuccessCard({ animalName }: { animalName: string }) {
-  return (
-    <section role="status" className="w-full overflow-hidden rounded-xl border border-[#86c99c] bg-white shadow-[0_8px_30px_rgba(38,51,43,0.07)]">
-      <div className="grid min-h-[280px] items-center gap-7 p-7 sm:p-10 lg:grid-cols-[80px_minmax(0,1fr)_280px] lg:gap-9 lg:p-12">
-        <div className="grid size-20 place-items-center rounded-2xl border border-[#86c99c]/60 bg-[#e3f2e6] shadow-[inset_0_0_0_1px_rgba(47,118,80,0.05)]">
-          <Image src="/icons/available-detail.svg" alt="Solicitação enviada com sucesso" width={38} height={38} className="size-10" />
-        </div>
-        <div>
-          <p className="text-sm font-bold uppercase tracking-[0.08em] text-[#2f7650]">Envio confirmado</p>
-          <h2 className="mt-2 text-2xl font-extrabold tracking-[-0.02em] sm:text-3xl">Solicita&ccedil;&atilde;o enviada!</h2>
-          <p className="mt-3 max-w-2xl leading-7 text-[#526057]">O respons&aacute;vel por {animalName} recebeu suas respostas. Acompanhe a an&aacute;lise e o retorno pelo seu perfil.</p>
-        </div>
-        <Link href="/perfil" className="flex min-h-14 w-full items-center justify-center rounded-xl bg-[#2f7650] px-6 py-4 text-center text-sm font-bold text-white shadow-sm transition hover:-translate-y-0.5 hover:bg-[#245d3f] hover:shadow-md focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#2f7650]">Acompanhar solicita&ccedil;&atilde;o</Link>
-      </div>
-    </section>
-  );
-}
 
 function PageLoading() { return <SkeletonLoader fullScreen variant="form" />; }
 

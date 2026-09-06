@@ -103,13 +103,13 @@ export default function AdoptionPage() {
   return (
     <div className="min-h-screen bg-[#eefdf1] text-[#121e17]">
       <SiteHeader />
-      <main className="mx-auto max-w-[1200px] px-5 py-8 sm:px-10 lg:px-20 lg:py-12">
+      <main className="explore-page mx-auto max-w-[1200px] px-3 py-4 sm:px-10 sm:py-8 lg:px-20 lg:py-12">
         <ExploreTabs />
-        <div className="grid items-start gap-6 lg:grid-cols-[256px_1fr]">
+        <div className="grid items-start gap-4 sm:gap-6 lg:grid-cols-[256px_1fr]">
           <aside className="lg:sticky lg:top-28">
-            <details className="group relative overflow-hidden rounded-2xl border border-[#d7e6da] bg-white shadow-[0_8px_24px_rgba(38,51,43,0.06)]" open={filtersOpen}>
-              <summary onClick={(event) => { event.preventDefault(); if (window.innerWidth < 1024) setFiltersOpen((value) => !value); }} className="flex cursor-pointer list-none items-center justify-between border-b border-[#e7eee9] bg-[#f7fcf8] px-5 py-4 [&::-webkit-details-marker]:hidden lg:cursor-default"><div className="flex items-center gap-2"><h2 className="text-xl font-semibold leading-7">Filtros</h2>{activeFilters > 0 && <span className="grid size-5 place-items-center rounded-full bg-[#256441] text-[10px] font-bold text-white">{activeFilters}</span>}</div><div className="flex items-center"><button type="button" onClick={(event) => { event.preventDefault(); event.stopPropagation(); clear(); }} disabled={activeFilters === 0} className="hidden min-h-8 items-center justify-center rounded-lg px-2.5 text-xs font-semibold leading-none text-[#256441] transition hover:bg-[#e8f7eb] disabled:pointer-events-none disabled:text-[#9aa69e] lg:inline-flex">Limpar</button><DirectionalChevron direction="down" className={`text-[#256441] transition-transform lg:hidden ${filtersOpen ? "rotate-90" : ""}`} /></div></summary>
-              <div className="flex flex-col px-5 pb-4">
+            <details className="group relative overflow-hidden rounded-xl border border-[#d7e6da] bg-white shadow-[0_8px_24px_rgba(38,51,43,0.06)] sm:rounded-2xl" open={filtersOpen}>
+              <summary onClick={(event) => { event.preventDefault(); if (window.innerWidth < 1024) setFiltersOpen((value) => !value); }} className="flex cursor-pointer list-none items-center justify-between border-b border-[#e7eee9] bg-[#f7fcf8] px-4 py-2.5 [&::-webkit-details-marker]:hidden sm:px-5 sm:py-4 lg:cursor-default"><div className="flex items-center gap-2"><h2 className="text-base font-semibold sm:text-xl sm:leading-7">Filtros</h2>{activeFilters > 0 && <span className="grid size-5 place-items-center rounded-full bg-[#256441] text-[10px] font-bold text-white">{activeFilters}</span>}</div><div className="flex items-center"><button type="button" onClick={(event) => { event.preventDefault(); event.stopPropagation(); clear(); }} disabled={activeFilters === 0} className="hidden min-h-8 items-center justify-center rounded-lg px-2.5 text-xs font-semibold leading-none text-[#256441] transition hover:bg-[#e8f7eb] disabled:pointer-events-none disabled:text-[#9aa69e] lg:inline-flex">Limpar</button><DirectionalChevron direction="down" className={`text-[#256441] transition-transform lg:hidden ${filtersOpen ? "rotate-90" : ""}`} /></div></summary>
+              <div className="flex flex-col px-4 pb-3 sm:px-5 sm:pb-4">
                 <FilterChecks title="Espécie" options={["Cachorro", "Gato"]} selected={species} onToggle={(value) => toggle(value, species, setSpecies)} />
                 <FilterPills title="Sexo" options={["Qualquer", "Fêmea", "Macho"]} selected={sex} onSelect={setSex} />
                 <FilterChecks title="Idade" options={["Filhote (0-1 ano)", "Jovem (1-3 anos)", "Adulto (3-8 anos)", "Sênior (8+ anos)"]} selected={age} onToggle={(value) => toggle(value, age, setAge)} />
@@ -120,12 +120,12 @@ export default function AdoptionPage() {
             </details>
           </aside>
           <section>
-            <div className="mb-6 flex flex-col justify-between gap-4 sm:flex-row sm:items-end">
-              <div><h1 className="text-3xl font-extrabold tracking-[-0.02em] sm:text-[40px] sm:leading-12">Encontre seu novo amigo</h1><p className="mt-1 text-base text-[#404942]">{animals.length} animais aguardando adoção perto de você.</p></div>
-              <label className="flex items-center gap-2 text-xs text-[#404942]">Ordenar por:<select className="rounded-lg border border-[#d6e6db] bg-white px-3 py-2 text-sm outline-none focus:border-[#256441]"><option>Mais próximos</option><option>Mais recentes</option></select></label>
+            <div className="mb-4 flex flex-col justify-between gap-2.5 sm:mb-6 sm:flex-row sm:items-end sm:gap-4">
+              <div><h1 className="text-xl font-extrabold tracking-[-0.02em] sm:text-[40px] sm:leading-12">Encontre seu novo amigo</h1><p className="mt-0.5 text-xs text-[#404942] sm:mt-1 sm:text-base">{animals.length} animais aguardando adoção perto de você.</p></div>
+              <label className="flex items-center gap-2 text-[10px] text-[#404942] sm:text-xs">Ordenar por:<select className="h-8 rounded-lg border border-[#d6e6db] bg-white px-2 text-xs outline-none focus:border-[#256441] sm:h-auto sm:px-3 sm:py-2 sm:text-sm"><option>Mais próximos</option><option>Mais recentes</option></select></label>
             </div>
-            {loadingAnimals ? <SkeletonLoader variant="cards" /> : loadError ? <LoadErrorState message="Não foi possível carregar os animais." /> : animals.length ? <div className="grid gap-6 sm:grid-cols-2 xl:grid-cols-3">{animals.slice(0, visible).map((animal) => <AnimalCard key={animal.id} animal={animal} />)}</div> : <EmptyState message="Nenhum animal disponível agora." />}
-            {visible < animals.length && <div className="flex justify-center pt-14"><button onClick={() => setVisible((value) => value + 3)} className="group flex min-w-56 items-center justify-center gap-2 rounded-xl border-2 border-[#256441] px-8 py-3.5 text-sm font-semibold tracking-[0.05em] text-[#256441] transition-all duration-200 hover:-translate-y-0.5 hover:bg-[#256441] hover:text-white active:scale-[0.98]">Carregar mais <DirectionalChevron direction="down" className="transition-transform group-hover:-translate-x-0.5" /></button></div>}
+            {loadingAnimals ? <SkeletonLoader variant="cards" /> : loadError ? <LoadErrorState message="Não foi possível carregar os animais." /> : animals.length ? <div className="grid grid-cols-2 gap-2.5 sm:gap-6 xl:grid-cols-3">{animals.slice(0, visible).map((animal) => <AnimalCard key={animal.id} animal={animal} compactMobile />)}</div> : <EmptyState message="Nenhum animal disponível agora." />}
+            {visible < animals.length && <div className="flex justify-center pt-8 sm:pt-14"><button onClick={() => setVisible((value) => value + 3)} className="group flex min-h-9 min-w-40 items-center justify-center gap-1.5 rounded-lg border-2 border-[#256441] px-5 py-2 text-xs font-semibold tracking-[0.04em] text-[#256441] transition-all hover:bg-[#256441] hover:text-white active:scale-[0.98] sm:min-w-56 sm:gap-2 sm:rounded-xl sm:px-8 sm:py-3.5 sm:text-sm">Carregar mais <DirectionalChevron direction="down" /></button></div>}
           </section>
         </div>
       </main>
