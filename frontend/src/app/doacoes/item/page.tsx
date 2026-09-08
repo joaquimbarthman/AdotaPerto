@@ -3,7 +3,7 @@
 import { Notification, notify } from "@/components/notification";
 
 import { DirectionalChevron } from "@/components/directional-chevron";
-import { DonationField, DonationFormSection, DonationPhotoPreview, DonationSelect, donationInputClass } from "@/components/donation-form-ui";
+import { DonationField, DonationFormSection, DonationPhotoPreview, DonationSelect, DonationStepProgress, donationInputClass } from "@/components/donation-form-ui";
 import { SiteFooter } from "@/components/site-footer";
 import { SiteHeader } from "@/components/site-header";
 import { useSession } from "@/lib/auth-client";
@@ -30,8 +30,24 @@ export default function ItemDonationPage() {
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [editId, setEditId] = useState<string | null>(null);
   const [editData, setEditData] = useState<Record<string, unknown> | null>(null);
+  const [step, setStep] = useState(0);
   const formRef = useRef<HTMLFormElement>(null);
   const today = useMemo(() => new Date().toISOString().slice(0, 10), []);
+  const steps = ["Informações do item", "Estado e descrição", "Fotos", "Entrega"] as const;
+
+  function goToNextStep() {
+    if (step === 2 && !mainPhoto && !editData?.mainImage) {
+      setErrors((current) => ({ ...current, mainPhoto: "Adicione uma foto principal antes de continuar." }));
+      return;
+    }
+    const container = formRef.current?.querySelector<HTMLElement>(`[data-donation-step="${step}"]`);
+    const controls = container?.querySelectorAll<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>("input, select, textarea");
+    for (const control of controls || []) {
+      if (!control.checkValidity()) { control.reportValidity(); return; }
+    }
+    setStep((current) => Math.min(current + 1, steps.length - 1));
+    window.scrollTo({ top: 0, behavior: "smooth" });
+  }
 
   useEffect(() => {
     if (!isPending && !session) router.replace("/login?reason=unauthenticated");
@@ -109,6 +125,8 @@ export default function ItemDonationPage() {
     {globalError && <Notification text={globalError} />}
     <form ref={formRef} onSubmit={submit} className="donation-form mx-auto grid max-w-[1120px] items-start gap-4 sm:gap-8 lg:grid-cols-[minmax(0,1fr)_300px]">
       <div className="donation-form-fields flex min-w-0 flex-col gap-4 sm:gap-7">
+      <DonationStepProgress steps={steps} current={step} />
+      <div data-donation-step="0" className={step === 0 ? "donation-step-panel" : "hidden"}>
       <DonationFormSection icon={<SectionIcon src="/icons/donations-profile.svg" />} title="Informações" description="Identifique o item e informe a quantidade disponível."><div className="grid gap-5 sm:grid-cols-2">
         <DonationField label="Título da doação" className="sm:col-span-2"><input name="title" required minLength={3} placeholder="Ex.: Ração para cães adultos" className={donationInputClass} /></DonationField>
         <DonationField label="Categoria"><DonationSelect name="category" onChange={(event) => setCategory(event.target.value)}><option>Ração</option><option>Petiscos</option><option>Produtos de higiene</option><option>Caminhas e cobertores</option><option>Coleiras e guias</option><option>Caixas de transporte</option><option>Brinquedos</option><option>Utensílios</option><option>Produtos de limpeza</option><option>Outros</option></DonationSelect></DonationField>
@@ -116,24 +134,31 @@ export default function ItemDonationPage() {
         <DonationField label="Quantidade" error={errors.quantity}><input name="quantity" type="number" min={1} step={1} required inputMode="numeric" placeholder="Ex.: 2" className={donationInputClass} onChange={() => setErrors((current) => ({ ...current, quantity: "" }))} /></DonationField>
         <DonationField label="Unidade"><DonationSelect name="unit"><option>Unidade</option><option>Kg</option><option>g</option><option>Litros</option><option>mL</option><option>Pacote</option><option>Caixa</option></DonationSelect></DonationField>
       </div></DonationFormSection>
+      </div>
 
+      <div data-donation-step="1" className={step === 1 ? "donation-step-panel" : "hidden"}>
       <DonationFormSection icon={<SectionIcon src="/icons/check-detail.svg" />} title="Detalhes" description="Descreva o estado do item com transparência."><div className="grid gap-5 sm:grid-cols-2">
         <fieldset className="sm:col-span-2"><legend className="mb-2 text-sm font-semibold">Condição do item <span className="text-red-600">*</span></legend><div className="grid gap-2 sm:grid-cols-2">{conditions.map((condition) => <label key={condition} className="flex min-h-12 cursor-pointer items-center gap-3 rounded-lg border border-[#c5cec7] bg-[#f7fcf8] px-4 py-3 text-sm text-[#404942] transition hover:border-[#86a590] has-[:checked]:border-[#256441] has-[:checked]:bg-[#e3f2e6] has-[:checked]:font-semibold has-[:checked]:text-[#194b30]"><input type="radio" name="condition" value={condition} required className="size-4 accent-[#256441]" />{condition}</label>)}</div></fieldset>
         {expiryCategories.has(category) && <DonationField label="Validade"><input name="expirationDate" type="date" min={today} required className={donationInputClass} /></DonationField>}
         <DonationField label="Descrição" className="sm:col-span-2"><textarea name="description" required minLength={10} maxLength={2000} rows={6} placeholder="Descreva o item, marca, tamanho, estado da embalagem e outras informações importantes..." className={`${donationInputClass} resize-y py-3 leading-6`} /></DonationField>
       </div></DonationFormSection>
+      </div>
 
+      <div data-donation-step="2" className={step === 2 ? "donation-step-panel" : "hidden"}>
       <DonationFormSection icon={<SectionIcon src="/icons/gallery.svg" />} title="Fotos" description="Use imagens claras e reais. A foto principal aparecerá em destaque no anúncio."><div className="grid gap-6 sm:grid-cols-2">
         <DonationField label="Foto principal" error={errors.mainPhoto}><input key={mainInputKey} type="file" accept="image/png,image/jpeg,image/webp" onChange={(event) => { setMainPhoto(event.target.files?.[0] || null); setErrors((current) => ({ ...current, mainPhoto: "" })); }} className="block min-h-14 w-full rounded-lg border border-dashed border-[#86a590] bg-[#f7fcf8] p-3 text-sm file:mr-3 file:rounded-lg file:border-0 file:bg-[#256441] file:px-4 file:py-2 file:font-semibold file:text-white" />{mainPhoto && <div className="mt-3 max-w-64"><DonationPhotoPreview featured file={mainPhoto} label="Foto principal" onRemove={() => { setMainPhoto(null); setMainInputKey((value) => value + 1); }} /></div>}{!mainPhoto && typeof editData?.mainImage === "string" && <div className="relative mt-3 h-36 max-w-64 overflow-hidden rounded-xl"><Image src={editData.mainImage} alt="Foto atual" fill className="object-cover" /><span className="absolute bottom-2 left-2 rounded-md bg-black/65 px-2 py-1 text-xs text-white">Foto atual</span></div>}</DonationField>
         <DonationField label="Fotos adicionais" optional><input key={extraInputKey} type="file" accept="image/png,image/jpeg,image/webp" multiple onChange={(event) => setExtraPhotos(Array.from(event.target.files || []).slice(0, 5))} className="block min-h-14 w-full rounded-lg border border-dashed border-[#86a590] bg-[#f7fcf8] p-3 text-sm file:mr-3 file:rounded-lg file:border-0 file:bg-[#e3f2e6] file:px-4 file:py-2 file:font-semibold file:text-[#256441]" /><span className="text-xs font-normal text-[#526057]">Até 5 imagens adicionais.</span></DonationField>
       </div>{extraPhotos.length > 0 && <div className="mt-6 grid grid-cols-2 gap-3 sm:grid-cols-3 md:grid-cols-5">{extraPhotos.map((file, index) => <DonationPhotoPreview key={`${file.name}-${file.lastModified}-${index}`} file={file} label={`Foto adicional ${index + 1}`} onRemove={() => { setExtraPhotos((files) => files.filter((_, itemIndex) => itemIndex !== index)); setExtraInputKey((value) => value + 1); }} />)}</div>}</DonationFormSection>
+      </div>
 
+      <div data-donation-step="3" className={step === 3 ? "donation-step-panel" : "hidden"}>
       <DonationFormSection icon={<SectionIcon src="/icons/location.svg" />} title="Entrega" description="Defina como e até quando o item estará disponível."><div className="grid gap-5 sm:grid-cols-2">
         <DonationField label="Forma de entrega"><DonationSelect name="deliveryMethod"><option>Retirada</option><option>Entrega</option><option>A combinar</option></DonationSelect></DonationField>
         <DonationField label="Disponível até" optional error={errors.availableUntil}><input name="availableUntil" type="date" min={today} className={donationInputClass} onChange={() => setErrors((current) => ({ ...current, availableUntil: "" }))} /></DonationField>
       </div></DonationFormSection>
+      </div>
 
-      <div className="donation-form-actions grid grid-cols-2 gap-2 border-t border-[#d7e6da] pt-4 sm:gap-3 sm:pt-6"><Link href={editId ? "/perfil#publicacoes" : "/doacoes"} className="flex min-h-11 items-center justify-center rounded-lg border border-[#256441] bg-white px-3 py-2 text-xs font-semibold text-[#256441] transition hover:bg-[#e8f7eb] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#256441] sm:min-h-[54px] sm:rounded-xl sm:px-6 sm:py-3 sm:text-sm">Cancelar</Link><button type="submit" disabled={loading} className="flex min-h-11 items-center justify-center rounded-lg bg-[#0f5d39] px-3 py-2 text-xs font-semibold text-white shadow-[0_4px_12px_rgba(15,93,57,0.18)] transition hover:-translate-y-0.5 hover:bg-[#194b30] disabled:translate-y-0 disabled:cursor-wait disabled:opacity-60 sm:min-h-[54px] sm:rounded-xl sm:px-6 sm:py-3 sm:text-sm">{loading ? "Salvando..." : editId ? "Salvar alterações" : "Publicar doação"}</button></div>
+      <div className="donation-form-actions grid grid-cols-2 gap-2 border-t border-[#d7e6da] pt-4 sm:gap-3 sm:pt-6">{step === 0 ? <Link href={editId ? "/perfil#publicacoes" : "/doacoes"} className="flex min-h-11 items-center justify-center rounded-lg border border-[#256441] bg-white px-3 py-2 text-xs font-semibold text-[#256441] transition hover:bg-[#e8f7eb] sm:min-h-[54px] sm:rounded-xl sm:text-sm">Cancelar</Link> : <button type="button" onClick={() => setStep((current) => current - 1)} className="flex min-h-11 items-center justify-center rounded-lg border border-[#256441] bg-white px-3 py-2 text-xs font-semibold text-[#256441] transition hover:bg-[#e8f7eb] sm:min-h-[54px] sm:rounded-xl sm:text-sm">Voltar</button>}{step < steps.length - 1 ? <button type="button" onClick={goToNextStep} className="flex min-h-11 items-center justify-center rounded-lg bg-[#0f5d39] px-3 py-2 text-xs font-semibold text-white transition hover:bg-[#194b30] sm:min-h-[54px] sm:rounded-xl sm:text-sm">Continuar</button> : <button type="submit" disabled={loading} className="flex min-h-11 items-center justify-center rounded-lg bg-[#0f5d39] px-3 py-2 text-xs font-semibold text-white shadow-[0_4px_12px_rgba(15,93,57,0.18)] transition hover:-translate-y-0.5 hover:bg-[#194b30] disabled:opacity-60 sm:min-h-[54px] sm:rounded-xl sm:text-sm">{loading ? "Salvando..." : editId ? "Salvar alterações" : "Publicar doação"}</button>}</div>
       </div>
 
       <aside className="donation-form-tips lg:sticky lg:top-28">

@@ -8,6 +8,7 @@ import { SiteFooter } from "@/components/site-footer";
 import { SiteHeader } from "@/components/site-header";
 import type { Animal } from "@/data/animals";
 import { useSession } from "@/lib/auth-client";
+import { useApproximateDistance } from "@/hooks/use-approximate-distance";
 import Image from "next/image";
 import Link from "next/link";
 import { useParams, useRouter } from "next/navigation";
@@ -25,6 +26,7 @@ export default function PetDetailsPage() {
   const [loading, setLoading] = useState(true);
   const [favorite, setFavorite] = useState(false);
   const [favoriteLoading, setFavoriteLoading] = useState(false);
+  const approximateDistance = useApproximateDistance(id, Boolean(session), isPending);
 
   useEffect(() => {
     async function loadAnimal() {
@@ -300,6 +302,12 @@ export default function PetDetailsPage() {
                       ? "Responsável verificado"
                       : "Responsável cadastrado"}
                   </p>
+                  {approximateDistance && (
+                    <p className="mt-1.5 flex items-center gap-1 text-xs font-semibold text-[#256441]">
+                      <Image src="/icons/location.svg" alt="" width={13} height={13} />
+                      Aproximadamente {approximateDistance} de distância
+                    </p>
+                  )}
                 </div>
               </div>
             </section>
@@ -309,9 +317,8 @@ export default function PetDetailsPage() {
                 Privacidade e segurança
               </h2>
               <p>
-                Telefone, e-mail e endereço do responsável não aparecem no
-                anúncio. O contato será liberado somente depois que o pedido de
-                adoção for aprovado.
+                Os meios de contato do responsável não são exibidos no anúncio.
+                Eles serão liberados somente após a aprovação do pedido de adoção.
               </p>
             </section>
 

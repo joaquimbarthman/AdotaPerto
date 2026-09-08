@@ -10,7 +10,7 @@ import { SiteFooter } from "@/components/site-footer";
 import { SiteHeader } from "@/components/site-header";
 import { useSession } from "@/lib/auth-client";
 import { uploadImages } from "@/lib/uploads";
-import { DonationField as Field, DonationFormSection as Section, DonationPhotoPreview as PhotoPreview, DonationSelect as Select, donationInputClass as inputClass } from "@/components/donation-form-ui";
+import { DonationField as Field, DonationFormSection as Section, DonationPhotoPreview as PhotoPreview, DonationSelect as Select, DonationStepProgress, donationInputClass as inputClass } from "@/components/donation-form-ui";
 
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:4000";
 
@@ -36,7 +36,21 @@ export default function AnimalDonationPage() {
   const [extraInputKey, setExtraInputKey] = useState(0);
   const [editId, setEditId] = useState<string | null>(null);
   const [editData, setEditData] = useState<Record<string, unknown> | null>(null);
+  const [step, setStep] = useState(0);
   const formRef = useRef<HTMLFormElement>(null);
+
+  const steps = ["Informações básicas", "Saúde", "Comportamento", "História", "Fotos e confirmação"] as const;
+
+  function goToNextStep() {
+    setError(null);
+    const container = formRef.current?.querySelector<HTMLElement>(`[data-donation-step="${step}"]`);
+    const controls = container?.querySelectorAll<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>("input, select, textarea");
+    for (const control of controls || []) {
+      if (!control.checkValidity()) { control.reportValidity(); return; }
+    }
+    setStep((current) => Math.min(current + 1, steps.length - 1));
+    window.scrollTo({ top: 0, behavior: "smooth" });
+  }
 
   useEffect(() => {
     if (!isPending && !session) router.replace("/login?reason=unauthenticated");
@@ -166,6 +180,8 @@ export default function AnimalDonationPage() {
 
         <form ref={formRef} onSubmit={submit} className="donation-form mx-auto grid max-w-[1120px] items-start gap-4 sm:gap-8 lg:grid-cols-[minmax(0,1fr)_300px]">
           <div className="donation-form-fields flex min-w-0 flex-col gap-4 sm:gap-7">
+            <DonationStepProgress steps={steps} current={step} />
+            <div data-donation-step="0" className={step === 0 ? "donation-step-panel" : "hidden"}>
             <Section icon={<PawIcon />} title="Informações básicas">
               <div className="grid gap-5 sm:grid-cols-2">
                 <Field label="Nome"><input name="nome" required placeholder="Ex.: Caramelo" className={inputClass} /></Field>
@@ -176,7 +192,9 @@ export default function AnimalDonationPage() {
                 <Field label="Raça" optional><input name="raca" placeholder="Ex.: Sem raça definida" className={inputClass} /></Field>
               </div>
             </Section>
+            </div>
 
+            <div data-donation-step="1" className={step === 1 ? "donation-step-panel" : "hidden"}>
             <Section icon={<HealthIcon />} title="Saúde e cuidados" description="Caso não saiba alguma informação, selecione “Não sei”.">
               <div className="grid gap-5 sm:grid-cols-2 sm:items-end">
                 <Field label="Castrado?"><YesNoUnknown name="castrado" /></Field>
@@ -186,7 +204,9 @@ export default function AnimalDonationPage() {
                 <Field label="Descrição da condição de saúde" optional className="sm:col-span-2"><textarea name="descricaoSaude" rows={4} placeholder="Medicamentos, alimentação especial, limitações ou cuidados necessários..." className={`${inputClass} resize-y py-3`} /></Field>
               </div>
             </Section>
+            </div>
 
+            <div data-donation-step="2" className={step === 2 ? "donation-step-panel" : "hidden"}>
             <Section icon={<HeartIcon />} title="Convivência e comportamento">
               <div className="grid gap-5 sm:grid-cols-2">
                 <Field label="Nível de energia"><Select name="energia"><option>Baixo</option><option>Moderado</option><option>Alto</option></Select></Field>
@@ -197,7 +217,9 @@ export default function AnimalDonationPage() {
                 <Field label="Observações sobre comportamento" optional className="sm:col-span-2"><textarea name="comportamento" rows={4} placeholder="Medos, hábitos, adaptação, treinamento ou outras informações..." className={`${inputClass} resize-y py-3`} /></Field>
               </div>
             </Section>
+            </div>
 
+            <div data-donation-step="3" className={step === 3 ? "donation-step-panel" : "hidden"}>
             <Section icon={<PawIcon />} title="História e contexto da adoção">
               <div className="grid gap-5 sm:grid-cols-2">
                 <Field label="Motivo da adoção" className="sm:col-span-2"><textarea name="motivo" required rows={3} placeholder="Explique por que está buscando um novo lar para o animal." className={`${inputClass} resize-y py-3`} /></Field>
@@ -206,7 +228,9 @@ export default function AnimalDonationPage() {
                 <Field label="Descrição do animal" className="sm:col-span-2"><textarea name="descricao" required rows={5} placeholder="Conte a história, rotina e tudo que ajudará o futuro adotante a conhecê-lo." className={`${inputClass} resize-y py-3`} /></Field>
               </div>
             </Section>
+            </div>
 
+            <div data-donation-step="4" className={step === 4 ? "donation-step-panel space-y-4 sm:space-y-7" : "hidden"}>
             <Section icon={<Image src="/icons/gallery.svg" alt="" width={24} height={24} className="size-6 object-contain" />} title="Fotos" description="Adicione imagens claras e atuais. A primeira será usada como foto principal.">
               <div className="grid gap-5 sm:grid-cols-2">
                 <div className="flex flex-col gap-1.5 text-sm font-semibold text-[#121e17]">
@@ -227,17 +251,17 @@ export default function AnimalDonationPage() {
                 </div>
               )}
             </Section>
-
             <section className="rounded-2xl border border-[#d7e6da] bg-white p-5 sm:p-7">
               <label className="flex cursor-pointer items-start gap-3 text-sm leading-6 text-[#343e37]"><input type="checkbox" name="declaracao" required className="mt-1 size-5 shrink-0 accent-[#256441]" /><span>Declaro que sou responsável pelas informações fornecidas, que elas são verdadeiras e que agirei com transparência e responsabilidade durante o processo de adoção.</span></label>
             </section>
+            </div>
             
             <div className="donation-form-actions grid grid-cols-2 gap-2 border-t border-[#d7e6da] pt-4 sm:gap-3 sm:pt-6">
-              <Link href={editId ? "/perfil#publicacoes" : "/doacoes"} className="flex min-h-[52px] w-full items-center justify-center rounded-xl border border-[#256441] bg-white px-6 py-3 text-center text-sm font-semibold text-[#256441] transition hover:bg-[#e8f7eb] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#256441]">Cancelar</Link>
-              <button type="submit" disabled={loading} className="flex min-h-[52px] w-full items-center justify-center gap-2 rounded-xl bg-[#0f5d39] px-6 py-3 text-sm font-semibold text-white shadow-[0_4px_12px_rgba(15,93,57,0.18)] transition hover:-translate-y-0.5 hover:bg-[#194b30] hover:shadow-[0_7px_16px_rgba(15,93,57,0.22)] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#256441] disabled:opacity-60">
+              {step === 0 ? <Link href={editId ? "/perfil#publicacoes" : "/doacoes"} className="flex min-h-[52px] w-full items-center justify-center rounded-xl border border-[#256441] bg-white px-6 py-3 text-center text-sm font-semibold text-[#256441] transition hover:bg-[#e8f7eb]">Cancelar</Link> : <button type="button" onClick={() => setStep((current) => current - 1)} className="flex min-h-[52px] w-full items-center justify-center rounded-xl border border-[#256441] bg-white px-6 py-3 text-sm font-semibold text-[#256441] transition hover:bg-[#e8f7eb]">Voltar</button>}
+              {step < steps.length - 1 ? <button type="button" onClick={goToNextStep} className="flex min-h-[52px] w-full items-center justify-center rounded-xl bg-[#0f5d39] px-6 py-3 text-sm font-semibold text-white transition hover:bg-[#194b30]">Continuar</button> : <button type="submit" disabled={loading} className="flex min-h-[52px] w-full items-center justify-center gap-2 rounded-xl bg-[#0f5d39] px-6 py-3 text-sm font-semibold text-white shadow-[0_4px_12px_rgba(15,93,57,0.18)] transition hover:-translate-y-0.5 hover:bg-[#194b30] hover:shadow-[0_7px_16px_rgba(15,93,57,0.22)] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#256441] disabled:opacity-60">
                 <svg viewBox="0 0 20 20" className="size-4" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden="true"><path d="m5 10 3.2 3.2L15 6.5" strokeLinecap="round" strokeLinejoin="round" /></svg>
                 {loading ? "Salvando..." : editId ? "Salvar alterações" : "Finalizar cadastro"}
-              </button>
+              </button>}
             </div>
           </div>
 

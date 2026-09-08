@@ -71,7 +71,7 @@ export function SiteHeader() {
           })}
         </nav>
         <div className="hidden items-center gap-3 lg:flex">
-          <NotificationCenter userId={session?.user.id} />
+          {session && <NotificationCenter userId={session.user.id} />}
           <ThemeToggle />
 
           {isPending ? (
@@ -93,7 +93,7 @@ export function SiteHeader() {
               </button>
               <div role="menu" className={`absolute right-0 top-[calc(100%+10px)] w-72 origin-top-right overflow-hidden rounded-2xl border border-[#d7e6da] bg-white shadow-[0_18px_45px_rgba(27,49,35,0.16)] transition-all duration-150 ${profileOpen ? "visible translate-y-0 scale-100 opacity-100" : "invisible -translate-y-2 scale-95 opacity-0"}`}>
                 <div className="border-b border-[#e7eee9] bg-[#f7fcf8] px-4 py-3"><p className="truncate text-sm font-extrabold text-[#253129]">{session.user.name}</p><p className="mt-0.5 truncate text-xs text-[#68726b]">{session.user.email}</p></div>
-                <nav className="p-2" aria-label="Áreas do perfil">{profileLinks.map((item) => <Link key={item.href} href={item.href} role="menuitem" onClick={() => setProfileOpen(false)} className="flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-semibold text-[#404942] transition hover:bg-[#eefdf1] hover:text-[#256441]"><HeaderMenuIcon name={item.icon} />{item.label}</Link>)}</nav>
+                <nav className="p-2" aria-label="Áreas do perfil">{profileLinks.map((item) => <Link key={item.href} href={item.href} role="menuitem" onClick={(event) => { setProfileOpen(false); if (pathname === "/perfil") { event.preventDefault(); window.history.replaceState(null, "", item.href); window.dispatchEvent(new Event("profile-tab-change")); } }} className="flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-semibold text-[#404942] transition hover:bg-[#eefdf1] hover:text-[#256441]"><HeaderMenuIcon name={item.icon} />{item.label}</Link>)}</nav>
                 <div className="border-t border-[#e7eee9] p-2"><button type="button" role="menuitem" onClick={() => { setProfileOpen(false); handleSignOut(); }} className="flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-left text-sm font-bold text-red-700 transition hover:bg-red-50"><HeaderMenuIcon name="logout" />Sair da conta</button></div>
               </div>
             </div>
@@ -149,17 +149,19 @@ export function SiteHeader() {
         </div>
       </div>
     </header>
-      <nav className="mobile-bottom-nav fixed inset-x-0 bottom-0 z-40 grid h-[68px] grid-cols-6 border-t border-[#d7e6da] bg-white px-1 pb-[env(safe-area-inset-bottom)] shadow-[0_-8px_24px_rgba(24,55,35,0.10)] lg:hidden" aria-label="Navegação principal móvel">
+      <nav className={`mobile-bottom-nav fixed inset-x-0 bottom-0 z-40 grid h-[68px] border-t border-[#d7e6da] bg-white px-1 pb-[env(safe-area-inset-bottom)] shadow-[0_-8px_24px_rgba(24,55,35,0.10)] lg:hidden ${session ? "grid-cols-6" : "grid-cols-5"}`} aria-label="Navegação principal móvel">
         {links.map((link) => {
           const active = pathname === link.href || (link.href !== "/" && pathname.startsWith(`${link.href}/`)) || (link.label === "Explorar" && pathname.startsWith("/itens"));
-          return <Link key={link.href} href={link.href} className={`flex min-w-0 flex-col items-center justify-center gap-1 rounded-xl px-1 text-[10px] font-bold transition ${active ? "text-[#256441]" : "text-[#68726b]"}`}><MobileNavIcon name={link.label} active={active} /><span className="truncate">{link.label}</span></Link>;
+          return <Link key={link.href} href={link.href} className={`flex min-w-0 flex-col items-center justify-center gap-1 rounded-xl px-1 text-[10px] font-bold transition ${active ? "text-[#256441]" : "text-[#68726b]"}`}><span className="grid size-6 shrink-0 place-items-center"><MobileNavIcon name={link.label} active={active} /></span><span className="truncate">{link.label}</span></Link>;
         })}
-        <div className="flex min-w-0 flex-col items-center justify-center gap-1 rounded-xl px-1 text-[10px] font-bold text-[#68726b]">
-          <NotificationCenter userId={session?.user.id} mobileNav />
+        {session && <div className="flex min-w-0 flex-col items-center justify-center gap-1 rounded-xl px-1 text-[10px] font-bold text-[#68726b]">
+          <NotificationCenter userId={session.user.id} mobileNav />
           <span className="truncate">Alertas</span>
-        </div>
+        </div>}
         <Link href={session ? "/perfil" : "/login"} className={`flex min-w-0 flex-col items-center justify-center gap-1 rounded-xl px-1 text-[10px] font-bold transition ${pathname.startsWith("/perfil") || pathname === "/login" ? "text-[#256441]" : "text-[#68726b]"}`}>
-          {session ? <span className={`relative size-6 overflow-hidden rounded-full border-2 ${pathname.startsWith("/perfil") ? "border-[#256441]" : "border-[#9ab0a0]"}`}>{session.user.image ? <Image src={session.user.image} alt="" fill className="object-cover" /> : <span className="grid size-full place-items-center bg-[#e3f2e6] text-[10px] font-extrabold text-[#256441]">{session.user.name?.charAt(0).toUpperCase() || "U"}</span>}</span> : <MobileLoginIcon />}
+          <span className="grid size-6 shrink-0 place-items-center">
+            {session ? <span className={`relative size-5 overflow-hidden rounded-full border-2 ${pathname.startsWith("/perfil") ? "border-[#256441]" : "border-[#9ab0a0]"}`}>{session.user.image ? <Image src={session.user.image} alt="" fill className="object-cover" /> : <span className="grid size-full place-items-center bg-[#e3f2e6] text-[9px] font-extrabold text-[#256441]">{session.user.name?.charAt(0).toUpperCase() || "U"}</span>}</span> : <MobileLoginIcon />}
+          </span>
           <span className="truncate">{session ? "Perfil" : "Entrar"}</span>
         </Link>
       </nav>

@@ -159,7 +159,13 @@ export default function ProfilePage() {
     }
     queueMicrotask(selectTabFromHash);
     window.addEventListener("hashchange", selectTabFromHash);
-    return () => window.removeEventListener("hashchange", selectTabFromHash);
+    window.addEventListener("popstate", selectTabFromHash);
+    window.addEventListener("profile-tab-change", selectTabFromHash);
+    return () => {
+      window.removeEventListener("hashchange", selectTabFromHash);
+      window.removeEventListener("popstate", selectTabFromHash);
+      window.removeEventListener("profile-tab-change", selectTabFromHash);
+    };
   }, []);
 
   useEffect(() => {
@@ -473,7 +479,7 @@ export default function ProfilePage() {
             ))}
           </nav>
 
-          <section className="profile-content min-w-0">
+          <section key={activeTab} className="profile-content profile-tab-panel min-w-0">
             {activeTab === "publicacoes" && (
               <PublicationsPanel
                 filter={publicationFilter}
@@ -709,9 +715,9 @@ function ApprovedContactLinks({ contact }: { contact: NonNullable<AdoptionReques
   const phoneDigits = phone?.replace(/\D/g, "") || "";
   const whatsappNumber = phoneDigits.length === 10 || phoneDigits.length === 11 ? `55${phoneDigits}` : phoneDigits;
   const instagramUser = instagram?.replace(/^https?:\/\/(www\.)?instagram\.com\//i, "").replace(/^@/, "").replace(/\/$/, "");
-  return <div className="mt-4 flex flex-wrap gap-2" aria-label="Contatos do responsável">
-    {phone && <a href={`https://wa.me/${whatsappNumber}`} target="_blank" rel="noreferrer" className="inline-flex min-h-10 items-center gap-2 rounded-lg bg-[#e3f2e6] px-3.5 text-xs font-bold text-[#256441] transition hover:bg-[#d7eeda]" aria-label={`Conversar pelo WhatsApp no número ${phone}`}><svg viewBox="0 0 24 24" className="size-[17px] shrink-0" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M20 11.5a8 8 0 0 1-11.8 7L4 19.8l1.3-4A8 8 0 1 1 20 11.5Z" /><path d="M9 8.5c.4 3 2.1 4.7 5.2 5.3" /></svg><span>{phone}</span></a>}
-    {instagram && instagramUser && <a href={`https://instagram.com/${instagramUser}`} target="_blank" rel="noreferrer" className="inline-flex min-h-10 items-center gap-2 rounded-lg bg-[#e3f2e6] px-3.5 text-xs font-bold text-[#256441] transition hover:bg-[#d7eeda]" aria-label={`Abrir Instagram de ${instagram}`}><svg viewBox="0 0 24 24" className="size-[17px] shrink-0" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><rect x="3" y="3" width="18" height="18" rx="5" /><circle cx="12" cy="12" r="4" /><circle cx="17.5" cy="6.5" r="1" fill="currentColor" stroke="none" /></svg><span>@{instagramUser}</span></a>}
+  return <div className="mt-2.5 flex flex-wrap gap-1.5 sm:mt-4 sm:gap-2" aria-label="Contatos do responsável">
+    {phone && <a href={`https://wa.me/${whatsappNumber}`} target="_blank" rel="noreferrer" className="inline-flex min-h-8 min-w-0 items-center gap-1.5 rounded-md bg-[#e3f2e6] px-2 text-[10px] font-bold text-[#256441] transition hover:bg-[#d7eeda] sm:min-h-10 sm:gap-2 sm:rounded-lg sm:px-3.5 sm:text-xs" aria-label={`Conversar pelo WhatsApp no número ${phone}`}><svg viewBox="0 0 24 24" className="size-3.5 shrink-0 sm:size-[17px]" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M20 11.5a8 8 0 0 1-11.8 7L4 19.8l1.3-4A8 8 0 1 1 20 11.5Z" /><path d="M9 8.5c.4 3 2.1 4.7 5.2 5.3" /></svg><span className="truncate">{phone}</span></a>}
+    {instagram && instagramUser && <a href={`https://instagram.com/${instagramUser}`} target="_blank" rel="noreferrer" className="inline-flex min-h-8 min-w-0 items-center gap-1.5 rounded-md bg-[#e3f2e6] px-2 text-[10px] font-bold text-[#256441] transition hover:bg-[#d7eeda] sm:min-h-10 sm:gap-2 sm:rounded-lg sm:px-3.5 sm:text-xs" aria-label={`Abrir Instagram de ${instagram}`}><svg viewBox="0 0 24 24" className="size-3.5 shrink-0 sm:size-[17px]" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><rect x="3" y="3" width="18" height="18" rx="5" /><circle cx="12" cy="12" r="4" /><circle cx="17.5" cy="6.5" r="1" fill="currentColor" stroke="none" /></svg><span className="truncate">@{instagramUser}</span></a>}
   </div>;
 }
 
