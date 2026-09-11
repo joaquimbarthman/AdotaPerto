@@ -1,5 +1,28 @@
 # Backend
 
+API em Node.js e TypeScript, com Hono, Better Auth, Drizzle ORM, PostgreSQL e MinIO. Veja também a [visão geral do projeto](../README.md) e a [documentação do frontend](../frontend/README.md).
+
+## Funcionalidades
+
+| Funcionalidade | Responsabilidade da API | Rotas principais |
+| --- | --- | --- |
+| Autenticação | Cadastro e acesso com e-mail e senha, sessões e recuperação por código temporário. | `/api/auth/*` |
+| Usuários | Consulta de perfil, atualização dos dados, exclusão da própria conta e consulta de CEP. | `/api/users/me`, `/api/users/:id`, `/api/users/cep/:cep` |
+| Animais | Listagem, detalhes, criação, edição e exclusão de anúncios, com identificação do responsável. | `/api/animals`, `/api/animals/mine`, `/api/animals/:id` |
+| Adoção | Registro de solicitações e respostas do questionário, cálculo de compatibilidade, consulta de recebidas/enviadas e alteração de status. | `/api/adoption-requests`, `/api/adoption-requests/received`, `/api/adoption-requests/:id/status` |
+| Itens para doação | Cadastro e gerenciamento de anúncios com categoria, quantidade, condição, imagens e forma de entrega. | `/api/donation-items`, `/api/donation-items/mine`, `/api/donation-items/:id` |
+| Solicitações de itens | Envio e consulta das solicitações, alteração de status e atualização do item para doado após aprovação. | `/api/donation-item-requests`, `/api/donation-item-requests/received`, `/api/donation-item-requests/:id/status` |
+| Favoritos | Consulta, inclusão, remoção e verificação dos animais e itens salvos pelo usuário. | `/api/favorites`, `/api/favorites/items` |
+| Imagens | Upload autenticado e entrega de imagens armazenadas no MinIO; aceita JPEG, PNG e WebP, com até 6 arquivos de até 5 MB por envio. | `/api/uploads/images`, `/api/uploads/images/:userId/:fileName` |
+| Geocodificação | Conversão de cidade, bairro ou CEP em coordenadas, integrando ViaCEP e Nominatim. | `/api/map/geocode` |
+| Anúncios no mapa | Consulta de animais e itens disponíveis com posição residencial aproximada e tratamento de indisponibilidade do banco. | `/api/map/listings` |
+| Estabelecimentos próximos | Consulta de veterinários, pet shops e abrigos via Overpass, com cache e limite de tempo das requisições externas. | `/api/map/places` |
+| Status | Verificação simples de resposta do servidor, retornando texto `ok`. | `/status` |
+
+As operações sobre dados pessoais, favoritos, publicações e solicitações aplicam autenticação e verificações de permissão conforme a rota. Os endpoints de mapas são públicos.
+
+A recuperação de senha envia o código por e-mail quando `RESEND_API_KEY` está configurada; `AUTH_EMAIL_FROM` define o remetente. Sem a chave, o código é registrado no terminal do backend para desenvolvimento.
+
 ## Requisitos
 
 - Node.js 22 ou superior
@@ -63,11 +86,26 @@ O serviço de mapas carrega essas URLs do `.env`, sem valores padrão no código
 
 Uma variável ausente gera erro quando a funcionalidade correspondente precisa dela.
 
-### Mapa de fundo (OpenFreeMap)
+## Mapas
 
-O frontend usa MapLibre com OpenFreeMap para os temas claro e escuro, sem cadastro ou chave de API. Os estilos e tiles são carregados diretamente pelo navegador. A antiga rota `/api/map/tiles/:theme/:z/:x/:y` foi removida; `CARTO_API_KEY` não é mais necessária.
+A página inicial e `/mapa` usam **MapLibre GL JS** com os mapas vetoriais do [OpenFreeMap](https://openfreemap.org/quick_start/), sem cadastro ou chave de API. O tema do site alterna entre Positron (claro) e Dark (escuro), preservando os marcadores e a posição do mapa. Os créditos do OpenMapTiles e OpenStreetMap aparecem no mapa.
 
-As variáveis acima continuam sendo usadas para buscar endereços, estabelecimentos e seus links. A configuração opcional dos estilos fica no `frontend/.env.local`, conforme o [README principal](../README.md#mapas).
+Os estilos padrão funcionam sem configuração adicional. Para trocar os endpoints, crie `frontend/.env.local`:
+
+```env
+NEXT_PUBLIC_MAP_STYLE_LIGHT_URL=https://tiles.openfreemap.org/styles/positron
+NEXT_PUBLIC_MAP_STYLE_DARK_URL=https://tiles.openfreemap.org/styles/dark
+```
+
+Essas URLs devem apontar para estilos compatíveis com MapLibre. Reinicie o frontend após alterar as variáveis; em produção, faça um novo build, pois variáveis `NEXT_PUBLIC_*` são incorporadas durante a compilação.
+
+O navegador precisa de WebGL e acesso ao OpenFreeMap para carregar estilos, fontes e tiles. O mapa de fundo não depende do backend; as buscas por cidade/CEP, estabelecimentos, animais e doações continuam usando a API. As variáveis dos serviços da API estão documentadas acima.
+
+Use `npm run dev` ou `npm run build` dentro de `frontend`: os comandos preparam automaticamente o worker do MapLibre em `public/maplibre/<versão>/`, junto do módulo compartilhado da mesma versão instalada. Esses arquivos são gerados e não entram no Git. Se iniciar o Next diretamente, execute antes `node scripts/prepare-map-worker.mjs`.
+
+Se os marcadores aparecem sem ruas e o console acusa um módulo com MIME `text/html`, confira se o worker foi preparado e reinicie o frontend. Ele deve ser servido como JavaScript, nunca como a página HTML de `/mapa`.
+
+A preparação também copia os source maps (`.mjs.map`) usados pelas ferramentas de desenvolvimento. Se o estilo solicitar `wood-pattern` sem fornecer essa imagem no sprite, os dois mapas registram uma textura local para áreas arborizadas. Esse tratamento continua ativo ao trocar o tema.
 
 ## Status da API
 
