@@ -116,6 +116,6 @@ export default function ItemDetailsPage() {
   </div>;
 }
 
-function Stat({ icon, label, value }: { icon: string; label: string; value: string }) { return <div className={`flex items-center gap-3 ${label === "Entrega" ? "lg:pl-5" : ""} ${label === "Condição" ? "lg:-ml-[34px]" : ""}`}><span className="grid size-10 shrink-0 place-items-center rounded-full bg-[#e3f2e6]"><Image src={icon} alt="" width={20} height={20} className="max-h-5 max-w-5 object-contain" /></span><span className="min-w-0"><small className="block text-xs font-medium text-[#404942]">{label}</small><strong className="mt-0.5 block text-sm font-semibold tracking-[0.02em] lg:whitespace-nowrap">{value}</strong></span></div>; }
+function Stat({ icon, label, value }: { icon: string; label: string; value: string }) { return <div className="flex items-center gap-3"><span className="grid size-10 shrink-0 place-items-center rounded-full bg-[#e3f2e6]"><Image src={icon} alt="" width={20} height={20} /></span><span className="min-w-0"><small className="block truncate text-xs font-medium text-[#404942]">{label}</small><strong title={value} className="block truncate text-sm font-semibold tracking-[0.05em]">{value}</strong></span></div>; }
 function Detail({ label, value }: { label: string; value: string }) { return <div><dt className="text-sm font-semibold">{label}</dt><dd className="mt-1 text-[#404942]">{value}</dd></div>; }
 function formatDate(value: string) { const [year, month, day] = value.slice(0, 10).split("-"); return day && month && year ? `${day}/${month}/${year}` : value; }

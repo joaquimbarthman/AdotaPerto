@@ -370,11 +370,11 @@ function Stat({
       <span className="grid size-10 shrink-0 place-items-center rounded-full bg-[#e3f2e6]">
         <Image src={icon} alt="" width={20} height={20} />
       </span>
-      <span>
-        <small className="block text-xs font-medium text-[#404942]">
+      <span className="min-w-0">
+        <small className="block truncate text-xs font-medium text-[#404942]">
           {label}
         </small>
-        <strong className="text-sm font-semibold tracking-[0.05em]">
+        <strong title={value} className="block truncate text-sm font-semibold tracking-[0.05em]">
           {value || "Não informado"}
         </strong>
       </span>

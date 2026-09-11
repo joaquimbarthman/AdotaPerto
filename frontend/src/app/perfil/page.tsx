@@ -668,9 +668,9 @@ function ProfileForm({ children, showActions = true, onSubmit, loading }: { chil
     <form onSubmit={onSubmit || ((event) => event.preventDefault())} className="overflow-hidden rounded-xl bg-white shadow-[0_4px_12px_rgba(38,51,43,0.05)]">
       <div className="min-h-0 p-4 sm:min-h-[420px] sm:p-7">{children}</div>
       {showActions && (
-        <footer className="grid grid-cols-2 gap-2 border-t border-[#d7e6da] bg-[#f7fcf8] px-4 py-3 sm:flex sm:justify-end sm:gap-3 sm:px-7 sm:py-4">
-          <button type="reset" className="rounded-lg border border-[#86a590] px-3 py-2.5 text-xs font-bold text-[#256441] transition hover:bg-[#e8f7eb] sm:rounded-xl sm:px-6 sm:py-3 sm:text-sm">Cancelar</button>
-          <button type="submit" disabled={loading} className="rounded-lg bg-[#256441] px-3 py-2.5 text-xs font-bold text-white shadow-sm transition hover:bg-[#194b30] active:scale-[0.98] disabled:opacity-60 sm:rounded-xl sm:px-7 sm:py-3 sm:text-sm">
+        <footer className="grid w-full grid-cols-[minmax(0,0.75fr)_minmax(0,1.25fr)] gap-2.5 border-t border-[#d7e6da] bg-[#f7fcf8] px-4 py-3 sm:gap-3 sm:px-7 sm:py-4">
+          <button type="reset" className="min-h-12 w-full rounded-xl border border-[#86a590] bg-white px-3 py-2.5 text-xs font-bold text-[#256441] transition hover:bg-[#e8f7eb] active:scale-[0.98] sm:px-6 sm:text-sm">Cancelar</button>
+          <button type="submit" disabled={loading} className="min-h-12 w-full rounded-xl bg-[#256441] px-3 py-2.5 text-xs font-extrabold text-white shadow-md transition hover:-translate-y-0.5 hover:bg-[#194b30] hover:shadow-lg active:scale-[0.98] disabled:opacity-60 sm:px-7 sm:text-sm">
             {loading ? "Salvando..." : "Salvar alterações"}
           </button>
         </footer>
