@@ -1,4 +1,4 @@
-import { relations } from "drizzle-orm/_relations";
+import { relations } from "drizzle-orm";
 import { account } from "./account.ts";
 import { adoptionRequest } from "./adoptionRequest.ts";
 import { animal } from "./animal.ts";

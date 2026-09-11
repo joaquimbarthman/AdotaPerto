@@ -1,6 +1,9 @@
 # dependencies
 /node_modules
 
+# Generated from the installed MapLibre package before dev/build
+/public/maplibre/
+
 # next.js
 /.next/
 /out/

@@ -1,31 +1,18 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import "leaflet/dist/leaflet.css";
-import type { CircleMarker, Map as LeafletMap, Marker, TileLayer } from "leaflet";
+import "maplibre-gl/dist/maplibre-gl.css";
+import type { Map as MapLibreMap, Marker } from "maplibre-gl";
 import type { Coordinates } from "@/lib/map-distance";
-import { apiBaseUrl } from "@/lib/map-api";
+import { currentMapStyle } from "@/lib/map-style";
+import { loadMapLibre } from "@/lib/map-runtime";
+import { configureMapImages } from "@/lib/map-images";
 import type { MapResult } from "@/types/map";
 
-type LeafletApi = typeof import("leaflet");
-type MapTheme = "light" | "dark";
+type MapLibreApi = typeof import("maplibre-gl");
 
 const colors = { adoption: "#256441", donation: "#3f7d58", veterinary: "#2f6f63", pet_shop: "#527a5c", shelter: "#315d46" };
 const iconPaths = { adoption: "/icons/adocao.svg", donation: "/icons/map-box.svg", veterinary: "/icons/map-stethoscope.svg", pet_shop: "/icons/map-store.svg", shelter: "/icons/map-house.svg" };
-
-function currentTheme(): MapTheme {
-  return document.documentElement.dataset.theme === "dark" ? "dark" : "light";
-}
-
-function createBaseLayer(L: LeafletApi, theme: MapTheme) {
-  return L.tileLayer(`${apiBaseUrl()}/api/map/tiles/${theme}/{z}/{x}/{y}.png?v=6`, {
-    maxNativeZoom: 18,
-    maxZoom: 18,
-    attribution: "© OpenStreetMap contributors © CARTO",
-    crossOrigin: true,
-    className: `carto-map-layer carto-map-layer-${theme}`,
-  });
-}
 
 function escapeHtml(value: string) {
   return value.replace(/[&<>'"]/g, (char) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", "'": "&#39;", '"': "&quot;" })[char] || char);
@@ -43,91 +30,125 @@ function popupHtml(result: MapResult) {
 export function MapCanvas({ center, results, selectedId, userLocation, onSelect, onLocate }: { center: Coordinates; results: MapResult[]; selectedId: string | null; userLocation: Coordinates | null; onSelect: (result: MapResult) => void; onLocate: () => void }) {
   const elementRef = useRef<HTMLDivElement>(null);
   const initialCenterRef = useRef(center);
-  const mapRef = useRef<LeafletMap | null>(null);
-  const leafletRef = useRef<LeafletApi | null>(null);
-  const baseLayerRef = useRef<TileLayer | null>(null);
+  const mapRef = useRef<MapLibreMap | null>(null);
+  const mapLibreRef = useRef<MapLibreApi | null>(null);
   const markersRef = useRef<Map<string, Marker>>(new Map());
-  const userMarkerRef = useRef<CircleMarker | null>(null);
+  const userMarkerRef = useRef<Marker | null>(null);
   const [ready, setReady] = useState(false);
   const [mapError, setMapError] = useState(false);
 
   useEffect(() => {
     let cancelled = false;
+    const markers = markersRef.current;
+    let resizeObserver: ResizeObserver | undefined;
     async function setup() {
-      const L = await import("leaflet");
+      const M = await loadMapLibre();
       if (cancelled || !elementRef.current || mapRef.current) return;
-      leafletRef.current = L;
+      mapLibreRef.current = M;
       const initial = initialCenterRef.current;
-      const map = L.map(elementRef.current, { zoomControl: false, attributionControl: true, minZoom: 4, maxZoom: 18 }).setView([initial.lat, initial.lng], 12);
-      baseLayerRef.current = createBaseLayer(L, currentTheme()).addTo(map);
+      const map = new M.Map({
+        container: elementRef.current,
+        style: currentMapStyle(),
+        center: [initial.lng, initial.lat],
+        zoom: 12,
+        minZoom: 4,
+        maxZoom: 18,
+        attributionControl: false,
+      });
+      configureMapImages(map);
+      map.addControl(new M.AttributionControl({ compact: false }), "bottom-right");
+      map.on("error", () => { if (!cancelled) setMapError(true); });
+      map.on("idle", () => { if (!cancelled) setMapError(false); });
       mapRef.current = map;
       setReady(true);
       setMapError(false);
-      requestAnimationFrame(() => map.invalidateSize());
+      resizeObserver = new ResizeObserver(() => map.resize());
+      resizeObserver.observe(elementRef.current);
     }
-    setup().catch(() => setMapError(true));
+    setup().catch(() => { if (!cancelled) setMapError(true); });
     return () => {
       cancelled = true;
-      baseLayerRef.current = null;
+      resizeObserver?.disconnect();
+      markers.forEach((marker) => marker.remove());
+      markers.clear();
+      userMarkerRef.current?.remove();
+      userMarkerRef.current = null;
       mapRef.current?.remove();
       mapRef.current = null;
-      leafletRef.current = null;
+      mapLibreRef.current = null;
     };
   }, []);
 
   useEffect(() => {
     const observer = new MutationObserver(() => {
       const map = mapRef.current;
-      const L = leafletRef.current;
-      if (!map || !L) return;
-      baseLayerRef.current?.remove();
-      baseLayerRef.current = createBaseLayer(L, currentTheme()).addTo(map);
+      if (!map) return;
+      setMapError(false);
+      map.setStyle(currentMapStyle());
     });
     observer.observe(document.documentElement, { attributes: true, attributeFilter: ["data-theme"] });
     return () => observer.disconnect();
   }, []);
 
-  useEffect(() => { mapRef.current?.flyTo([center.lat, center.lng], 13); }, [center]);
+  useEffect(() => { mapRef.current?.flyTo({ center: [center.lng, center.lat], zoom: 13 }); }, [center, ready]);
 
   useEffect(() => {
     const map = mapRef.current;
-    const L = leafletRef.current;
-    if (!map || !L) return;
+    const M = mapLibreRef.current;
+    if (!map || !M) return;
     markersRef.current.forEach((marker) => marker.remove());
     markersRef.current.clear();
     results.forEach((result) => {
       const selected = selectedId === result.id;
       const size = selected ? 46 : 40;
-      const icon = L.divIcon({
-        className: "map-marker-shell",
-        html: `<span class="map-marker ${selected ? "map-marker-selected" : ""}" style="--marker:${colors[result.category]}"><img src="${iconPaths[result.category]}" alt="" /></span>`,
-        iconSize: [size, size],
-        iconAnchor: [size / 2, size / 2],
-        popupAnchor: [0, -(size / 2 + 8)],
+      const element = document.createElement("button");
+      element.type = "button";
+      element.className = "map-marker-shell";
+      element.title = result.name;
+      element.setAttribute("aria-label", result.name);
+      element.setAttribute("aria-pressed", String(selected));
+      element.innerHTML = `<span class="map-marker ${selected ? "map-marker-selected" : ""}" style="--marker:${colors[result.category]}"><img src="${iconPaths[result.category]}" alt="" /></span>`;
+      const marker = new M.Marker({ element, anchor: "center" })
+        .setLngLat([result.lng, result.lat])
+        .addTo(map);
+      const popup = new M.Popup({ closeButton: false, maxWidth: "290px", offset: size / 2 + 8 })
+        .setLngLat([result.lng, result.lat])
+        .setHTML(popupHtml(result));
+      marker.setPopup(popup);
+      element.addEventListener("click", (event) => {
+        event.stopPropagation();
+        if (selected) popup.addTo(map);
+        onSelect(result);
       });
-      const marker = L.marker([result.lat, result.lng], { icon, title: result.name }).addTo(map).bindPopup(popupHtml(result), { closeButton: false, maxWidth: 290 }).on("click", () => onSelect(result));
       markersRef.current.set(result.id, marker);
-      if (selected) marker.openPopup();
+      if (selected) popup.addTo(map);
     });
   }, [ready, results, selectedId, onSelect]);
 
   useEffect(() => {
     const selected = results.find((result) => result.id === selectedId);
-    if (selected) mapRef.current?.flyTo([selected.lat, selected.lng], 15);
-  }, [results, selectedId]);
+    if (selected) mapRef.current?.flyTo({ center: [selected.lng, selected.lat], zoom: 15 });
+  }, [ready, results, selectedId]);
 
   useEffect(() => {
     const map = mapRef.current;
-    const L = leafletRef.current;
+    const M = mapLibreRef.current;
     userMarkerRef.current?.remove();
     userMarkerRef.current = null;
-    if (!map || !L || !userLocation) return;
-    userMarkerRef.current = L.circleMarker([userLocation.lat, userLocation.lng], { radius: 8, color: "#fff", weight: 3, fillColor: "#2f80ed", fillOpacity: 1 }).addTo(map).bindPopup("Sua localização aproximada");
+    if (!map || !M || !userLocation) return;
+    const element = document.createElement("button");
+    element.type = "button";
+    element.className = "map-user-marker";
+    element.setAttribute("aria-label", "Sua localização aproximada");
+    userMarkerRef.current = new M.Marker({ element, anchor: "center" })
+      .setLngLat([userLocation.lng, userLocation.lat])
+      .setPopup(new M.Popup({ offset: 14 }).setText("Sua localização aproximada"))
+      .addTo(map);
   }, [ready, userLocation]);
 
   return (
     <div className="map-surface relative min-h-0 flex-1">
-      <div ref={elementRef} className="absolute inset-0" aria-label="Mapa interativo com resultados próximos" />
+      <div ref={elementRef} className="map-viewport" aria-label="Mapa interativo com resultados próximos" />
       {mapError ? <div className="map-load-error absolute left-1/2 top-1/2 z-[500] -translate-x-1/2 -translate-y-1/2 text-center"><strong>Não foi possível carregar o mapa</strong><span>Atualize a página para tentar novamente.</span></div> : null}
       <div className="absolute right-4 top-4 z-[500] flex flex-col gap-2">
         <button type="button" onClick={() => mapRef.current?.zoomIn()} className="map-control" aria-label="Aumentar zoom">+</button>

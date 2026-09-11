@@ -19,7 +19,8 @@ export type AuthContext = {
 export const apiRoutes = new Hono<AuthContext>();
 
 apiRoutes.use("*", async (c, next) => {
-  if (c.req.path.startsWith("/api/map/tiles/")) {
+  // Map endpoints are public and do not use session data.
+  if (c.req.path.startsWith("/api/map/")) {
     await next();
     return;
   }
