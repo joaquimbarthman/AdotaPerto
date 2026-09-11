@@ -86,6 +86,9 @@ export default function ItemDetailsPage() {
   const ownerName = item.owner?.name || "Responsável pela doação";
   const ownerLocation = [item.owner?.city, item.owner?.state].filter(Boolean).join(", ");
   const unavailable = item.status !== "Disponível";
+  const description = item.description?.trim();
+  const expirationDate = item.expirationDate?.trim();
+  const availableUntil = item.availableUntil?.trim();
 
   return <div className="min-h-screen bg-[#eefdf1] text-[#121e17]">
     <SiteHeader />
@@ -98,7 +101,7 @@ export default function ItemDetailsPage() {
             <div className="flex flex-col justify-between gap-5 sm:flex-row sm:items-center"><div><h1 className="text-4xl font-extrabold tracking-[-0.02em] sm:text-[40px]">{item.title}</h1><p className="mt-1 text-lg text-[#404942]">{item.itemName} <span className="mx-1 text-[#c0c9bf]">•</span> {item.category}</p></div><span className="flex w-fit items-center gap-2 rounded-xl border border-[#aff1c4] bg-[#e8f7eb] px-4 py-2 text-sm font-semibold text-[#256441]"><Image src="/icons/available-detail.svg" alt="" width={17} height={17} />{item.status}</span></div>
             <div className="detail-stats mt-4 grid grid-cols-3 gap-2 border-t border-[#c0c9bf] pt-4 sm:mt-6 sm:gap-5 sm:pt-6"><Stat icon="/icons/map-box.svg" label="Quantidade" value={`${item.quantity} ${item.unit}`} /><Stat icon="/icons/check-detail.svg" label="Condição" value={item.condition} /><Stat icon="/icons/location.svg" label="Entrega" value={item.deliveryMethod} /></div>
           </section>
-          <AuthBlurredContent locked={!isPending && !session}><div className="space-y-3 sm:space-y-6"><section className="rounded-xl bg-white p-6 shadow-[0_4px_6px_rgba(38,51,43,0.05)] sm:p-10 lg:p-12"><h2 className="mb-4 text-2xl font-semibold">Sobre esta doação</h2><p className="whitespace-pre-line leading-7 text-[#404942]">{item.description}</p></section>{(item.expirationDate || item.availableUntil) && <section className="rounded-xl bg-white p-6 shadow-[0_4px_6px_rgba(38,51,43,0.05)] sm:p-10 lg:p-12"><h2 className="mb-5 text-2xl font-semibold">Datas importantes</h2><dl className="grid grid-cols-2 gap-2 sm:gap-5">{item.expirationDate && <Detail label="Validade do produto" value={formatDate(item.expirationDate)} />}{item.availableUntil && <Detail label="Disponível para retirada até" value={formatDate(item.availableUntil)} />}</dl></section>}</div></AuthBlurredContent>
+          <AuthBlurredContent locked={!isPending && !session}><div className="space-y-3 sm:space-y-6">{description && <section className="rounded-xl bg-white p-6 shadow-[0_4px_6px_rgba(38,51,43,0.05)] sm:p-10 lg:p-12"><h2 className="mb-4 text-2xl font-semibold">Sobre esta doação</h2><p className="whitespace-pre-line leading-7 text-[#404942]">{description}</p></section>}{(expirationDate || availableUntil) && <section className="rounded-xl bg-white p-6 shadow-[0_4px_6px_rgba(38,51,43,0.05)] sm:p-10 lg:p-12"><h2 className="mb-5 text-2xl font-semibold">Datas importantes</h2><dl className="grid grid-cols-2 gap-2 sm:gap-5">{expirationDate && <Detail label="Validade do produto" value={formatDate(expirationDate)} />}{availableUntil && <Detail label="Disponível para retirada até" value={formatDate(availableUntil)} />}</dl></section>}</div></AuthBlurredContent>
         </div>
         <aside className="detail-sidebar min-w-0">
           <div className="space-y-3 sm:space-y-6 lg:sticky lg:top-28">

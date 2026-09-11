@@ -117,13 +117,37 @@ export default function PetDetailsPage() {
       )
     : [animal.image || "/images/login-cover-v2.png"];
 
-  const description =
-    animal.description ??
-    `${animal.name} está aguardando uma família responsável e carinhosa. É um animal companheiro, cheio de personalidade e pronto para construir uma nova história em um lar seguro.`;
+  const description = animal.description?.trim();
   const ownerName = animal.owner?.name || "Responsável pelo animal";
   const ownerLocation = [animal.owner?.city, animal.owner?.state]
     .filter(Boolean)
     .join(", ");
+  const healthItems = [
+    animal.neutered ? `Castrado: ${animal.neutered}` : null,
+    animal.vaccination,
+    animal.dewormed ? `Vermifugado: ${animal.dewormed}` : null,
+    animal.healthCondition,
+  ].filter((item): item is string => Boolean(item?.trim()));
+  const coexistenceItems = [
+    animal.energyLevel ? `Energia: ${animal.energyLevel}` : null,
+    animal.livesWithDogs ? `Convive com cães: ${animal.livesWithDogs}` : null,
+    animal.livesWithCats ? `Convive com gatos: ${animal.livesWithCats}` : null,
+    animal.livesWithChildren ? `Convive com crianças: ${animal.livesWithChildren}` : null,
+  ].filter((item): item is string => Boolean(item?.trim()));
+  const adoptionDetails = [
+    animal.adoptionReason
+      ? { label: "Motivo da adoção", value: animal.adoptionReason }
+      : null,
+    animal.timeInCare
+      ? { label: "Tempo sob os cuidados", value: animal.timeInCare }
+      : null,
+    animal.currentlyInCare !== undefined
+      ? {
+          label: "Está sob os cuidados do responsável",
+          value: animal.currentlyInCare ? "Sim" : "Não",
+        }
+      : null,
+  ].filter((detail): detail is { label: string; value: string } => Boolean(detail));
 
   return (
     <div className="min-h-screen bg-[#eefdf1] text-[#121e17]">
@@ -223,49 +247,24 @@ export default function PetDetailsPage() {
               <InfoCard
                 title="Saúde e cuidados"
                 icon="/icons/health.svg"
-                items={[
-                  `Castrado: ${animal.neutered ?? "Não sei"}`,
-                  animal.vaccination ?? "Situação vacinal não informada",
-                  `Vermifugado: ${animal.dewormed ?? "Não sei"}`,
-                  animal.healthCondition ?? "Condição de saúde não informada",
-                ]}
+                items={healthItems}
               />
               <InfoCard
                 title="Convivência"
                 icon="/icons/coexistence.svg"
-                items={[
-                  `Energia: ${animal.energyLevel ?? "Não informada"}`,
-                  `Convive com cães: ${animal.livesWithDogs ?? "Não sei"}`,
-                  `Convive com gatos: ${animal.livesWithCats ?? "Não sei"}`,
-                  `Convive com crianças: ${animal.livesWithChildren ?? "Não sei"}`,
-                ]}
+                items={coexistenceItems}
               />
             </div>
-            <section className="rounded-xl bg-white p-6 shadow-[0_4px_6px_rgba(38,51,43,0.05)] sm:p-10 lg:p-12">
+            {adoptionDetails.length > 0 && <section className="rounded-xl bg-white p-6 shadow-[0_4px_6px_rgba(38,51,43,0.05)] sm:p-10 lg:p-12">
               <h2 className="mb-5 text-2xl font-semibold">
                 Contexto da adoção
               </h2>
               <dl className="grid gap-5 sm:grid-cols-2">
-                <Detail
-                  label="Motivo da adoção"
-                  value={animal.adoptionReason ?? "Não informado"}
-                />
-                <Detail
-                  label="Tempo sob os cuidados"
-                  value={animal.timeInCare ?? "Não informado"}
-                />
-                <Detail
-                  label="Está sob os cuidados do responsável"
-                  value={
-                    animal.currentlyInCare === undefined
-                      ? "Não informado"
-                      : animal.currentlyInCare
-                        ? "Sim"
-                        : "Não"
-                  }
-                />
+                {adoptionDetails.map((detail) => (
+                  <Detail key={detail.label} {...detail} />
+                ))}
               </dl>
-            </section></div></AuthBlurredContent>
+            </section>}</div></AuthBlurredContent>
           </div>
 
           <aside className="detail-sidebar min-w-0">
@@ -399,6 +398,8 @@ function InfoCard({
   icon: string;
   items: string[];
 }) {
+  if (items.length === 0) return null;
+
   return (
     <section className="rounded-xl bg-white p-6 shadow-[0_4px_6px_rgba(38,51,43,0.05)]">
       <h2 className="mb-4 flex items-center gap-2 text-sm font-semibold tracking-[0.05em]">
