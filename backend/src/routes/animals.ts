@@ -3,7 +3,11 @@ import { Hono } from "hono";
 import crypto from "node:crypto";
 import { z } from "zod";
 import { db } from "../../lib/db/index.ts";
-import { adoptionRequest, animal, user as userTable } from "../../lib/db/schemas/index.ts";
+import {
+  adoptionRequest,
+  animal,
+  user as userTable,
+} from "../../lib/db/schemas/index.ts";
 import type { AuthContext } from "./index.ts";
 
 export const animalRoutes = new Hono<AuthContext>();
@@ -74,7 +78,9 @@ function animalValues(body: AnimalPayload) {
     neutered: body.neutered ?? body.castrado,
     vaccination: body.vaccination ?? body.vacinas,
     dewormed: body.dewormed ?? body.vermifugado,
-    hasHealthCondition: body.hasHealthCondition ?? (body.condicao ? body.condicao === "Sim" : undefined),
+    hasHealthCondition:
+      body.hasHealthCondition ??
+      (body.condicao ? body.condicao === "Sim" : undefined),
     healthCondition: body.healthCondition ?? body.descricaoSaude,
     energyLevel: body.energyLevel ?? body.energia,
     livesWithDogs: body.livesWithDogs ?? body.caes,
@@ -84,7 +90,9 @@ function animalValues(body: AnimalPayload) {
     behaviorNotes: body.behaviorNotes ?? body.comportamento,
     adoptionReason: body.adoptionReason ?? body.motivo,
     timeInCare: body.timeInCare ?? body.tempoCuidados,
-    currentlyInCare: body.currentlyInCare ?? (body.sobCuidados ? body.sobCuidados === "Sim" : undefined),
+    currentlyInCare:
+      body.currentlyInCare ??
+      (body.sobCuidados ? body.sobCuidados === "Sim" : undefined),
     description: body.description ?? body.descricao,
     image: body.image ?? body.fotoPrincipal,
     images: body.images ?? body.fotos,
@@ -170,14 +178,28 @@ animalRoutes.post("/", async (c) => {
     return c.json({ error: "Não autorizado" }, 401);
   }
 
-  const parsed = animalPayloadSchema.safeParse(await c.req.json().catch(() => null));
+  const parsed = animalPayloadSchema.safeParse(
+    await c.req.json().catch(() => null),
+  );
   if (!parsed.success) {
-    return c.json({ error: "Dados do animal inválidos", details: parsed.error.flatten() }, 400);
+    return c.json(
+      { error: "Dados do animal inválidos", details: parsed.error.flatten() },
+      400,
+    );
   }
 
   const values = animalValues(parsed.data);
-  if (!values.name || !values.species || !values.sex || !values.age || !values.size) {
-    return c.json({ error: "Nome, espécie, sexo, idade e porte são obrigatórios" }, 400);
+  if (
+    !values.name ||
+    !values.species ||
+    !values.sex ||
+    !values.age ||
+    !values.size
+  ) {
+    return c.json(
+      { error: "Nome, espécie, sexo, idade e porte são obrigatórios" },
+      400,
+    );
   }
 
   const newAnimal = {
@@ -215,9 +237,14 @@ animalRoutes.put("/:id", async (c) => {
     return c.json({ error: "Sem permissão" }, 403);
   }
 
-  const parsed = animalPayloadSchema.safeParse(await c.req.json().catch(() => null));
+  const parsed = animalPayloadSchema.safeParse(
+    await c.req.json().catch(() => null),
+  );
   if (!parsed.success) {
-    return c.json({ error: "Dados do animal inválidos", details: parsed.error.flatten() }, 400);
+    return c.json(
+      { error: "Dados do animal inválidos", details: parsed.error.flatten() },
+      400,
+    );
   }
 
   const values = animalValues(parsed.data);

@@ -2,12 +2,12 @@ import { Hono } from "hono";
 import { auth } from "../../lib/better/auth.ts";
 import { adoptionRequestRoutes } from "./adoptionRequests.ts";
 import { animalRoutes } from "./animals.ts";
-import { favoriteRoutes } from "./favorites.ts";
-import { userRoutes } from "./users.ts";
-import { uploadRoutes } from "./uploads.ts";
-import { donationItemRoutes } from "./donationItems.ts";
 import { donationItemRequestRoutes } from "./donationItemRequests.ts";
+import { donationItemRoutes } from "./donationItems.ts";
+import { favoriteRoutes } from "./favorites.ts";
 import { mapRoutes } from "./map.ts";
+import { uploadRoutes } from "./uploads.ts";
+import { userRoutes } from "./users.ts";
 
 export type AuthContext = {
   Variables: {

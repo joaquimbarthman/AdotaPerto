@@ -21,7 +21,6 @@ export function ensureImageBucket() {
     if (!(await storage.bucketExists(imageBucket))) {
       await storage.makeBucket(imageBucket);
     }
-
   })().catch((error) => {
     bucketPromise = null;
     throw error;

@@ -1,6 +1,11 @@
-import crypto from "node:crypto";
 import { Hono } from "hono";
-import { ensureImageBucket, imageBucket, publicImageUrl, storage } from "../../lib/storage/index.ts";
+import crypto from "node:crypto";
+import {
+  ensureImageBucket,
+  imageBucket,
+  publicImageUrl,
+  storage,
+} from "../../lib/storage/index.ts";
 import type { AuthContext } from "./index.ts";
 
 const allowedTypes = new Map([
@@ -29,7 +34,8 @@ uploadRoutes.get("/images/:userId/:fileName", async (c) => {
 
     return new Response(image, {
       headers: {
-        "Content-Type": stat.metaData?.["content-type"] || "application/octet-stream",
+        "Content-Type":
+          stat.metaData?.["content-type"] || "application/octet-stream",
         "Cache-Control": "public, max-age=31536000, immutable",
         "Content-Length": String(image.length),
       },
@@ -50,7 +56,9 @@ uploadRoutes.post("/images", async (c) => {
     return c.json({ error: "Formulário de upload inválido" }, 400);
   }
 
-  const files = formData.getAll("files").filter((value): value is File => value instanceof File);
+  const files = formData
+    .getAll("files")
+    .filter((value): value is File => value instanceof File);
   if (files.length === 0 || files.length > maxFiles) {
     return c.json({ error: `Envie entre 1 e ${maxFiles} imagens` }, 400);
   }

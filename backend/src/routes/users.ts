@@ -33,7 +33,10 @@ userRoutes.get("/me", async (c) => {
     return c.json({ error: "Não autorizado" }, 401);
   }
 
-  const [userData] = await db.select().from(user).where(eq(user.id, currentUser.id));
+  const [userData] = await db
+    .select()
+    .from(user)
+    .where(eq(user.id, currentUser.id));
   if (!userData) {
     return c.json({ error: "Usuário não encontrado" }, 404);
   }
@@ -45,11 +48,22 @@ userRoutes.get("/cep/:cep", async (c) => {
   const cep = c.req.param("cep").replace(/\D/g, "");
   if (cep.length !== 8) return c.json({ error: "CEP inválido." }, 400);
   try {
-    const response = await fetch(`https://viacep.com.br/ws/${cep}/json/`, { headers: { "User-Agent": "AdotaPerto-TCC/1.0" } });
+    const response = await fetch(`https://viacep.com.br/ws/${cep}/json/`, {
+      headers: { "User-Agent": "AdotaPerto-TCC/1.0" },
+    });
     if (!response.ok) return c.json({ error: "CEP não encontrado." }, 404);
-    const address = await response.json() as { erro?: boolean; logradouro?: string; localidade?: string; uf?: string };
+    const address = (await response.json()) as {
+      erro?: boolean;
+      logradouro?: string;
+      localidade?: string;
+      uf?: string;
+    };
     if (address.erro) return c.json({ error: "CEP não encontrado." }, 404);
-    return c.json({ street: address.logradouro || "", city: address.localidade || "", state: address.uf || "" });
+    return c.json({
+      street: address.logradouro || "",
+      city: address.localidade || "",
+      state: address.uf || "",
+    });
   } catch {
     return c.json({ error: "Serviço de CEP indisponível." }, 503);
   }
@@ -83,9 +97,14 @@ userRoutes.put("/me", async (c) => {
     return c.json({ error: "Não autorizado" }, 401);
   }
 
-  const parsed = updateUserSchema.safeParse(await c.req.json().catch(() => null));
+  const parsed = updateUserSchema.safeParse(
+    await c.req.json().catch(() => null),
+  );
   if (!parsed.success) {
-    return c.json({ error: "Dados do usuário inválidos", details: parsed.error.flatten() }, 400);
+    return c.json(
+      { error: "Dados do usuário inválidos", details: parsed.error.flatten() },
+      400,
+    );
   }
 
   const body = parsed.data;
