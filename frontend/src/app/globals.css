@@ -136,6 +136,13 @@ html[data-theme="dark"] .detail-favorite-button[aria-pressed="true"] {
   color: #ff8da1 !important;
 }
 
+html[data-theme="dark"] .account-modal-card { border-color: #31483a; }
+html[data-theme="dark"] .account-modal-header { background: linear-gradient(135deg, #22342a, #1b2920); }
+html[data-theme="dark"] .account-modal-header h3 { color: #f1f7f3 !important; }
+html[data-theme="dark"] .account-modal-icon { border-color: #3b5544; background: #17251c !important; }
+html[data-theme="dark"] .account-password-section { border-color: #38503f; background: #1e3025; }
+html[data-theme="dark"] .account-email-section { border-color: #38503f; }
+
 html[data-theme="dark"] img[src^="/icons/"]:not([class*="invert"]) {
   filter: brightness(0) saturate(100%) invert(72%) sepia(28%) saturate(703%) hue-rotate(88deg) brightness(96%);
 }

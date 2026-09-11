@@ -932,26 +932,51 @@ function AccountAccess({ userEmail }: { userEmail: string }) {
       </div>
 
       {modal === "email" && (
-        <AccountModal title="Alterar e-mail" description="Informe o novo e-mail para receber a confirmação." onClose={() => setModal(null)}>
+        <AccountModal title="Alterar e-mail" icon="/icons/email.svg" onClose={() => setModal(null)}>
           <form onSubmit={handleEmailChange} className="space-y-4">
-            <ProfileField label="Novo e-mail" name="novoEmail" type="email" placeholder="novoemail@exemplo.com" autoComplete="email" required />
-            <footer className="flex flex-col-reverse gap-3 border-t border-[#d7e6da] bg-[#f7fcf8] pt-4 sm:flex-row sm:justify-end">
-              <button type="button" onClick={() => setModal(null)} className="rounded-lg border border-[#86a590] px-5 py-2.5 text-sm font-bold text-[#256441] transition hover:bg-[#e8f7eb]">Cancelar</button>
-              <button type="submit" disabled={loading} className="rounded-lg bg-[#256441] px-5 py-2.5 text-sm font-bold text-white transition hover:bg-[#194b30] disabled:opacity-60">{loading ? "Enviando..." : "Confirmar alteração"}</button>
+            <section className="account-email-section overflow-hidden rounded-2xl border border-[#d7e6da]">
+              <div className="bg-[#f7fcf8] px-4 py-4 sm:px-5">
+                <span className="text-[11px] font-extrabold uppercase tracking-[0.08em] text-[#68726b]">E-mail atual</span>
+                <div className="mt-2 flex min-w-0 items-center gap-3">
+                  <span className="grid size-9 shrink-0 place-items-center rounded-xl bg-[#e3f2e6]"><Image src="/icons/email.svg" alt="" width={17} height={17} /></span>
+                  <p className="min-w-0 truncate text-sm font-bold text-[#253129]">{userEmail}</p>
+                </div>
+              </div>
+              <div className="border-t border-[#d7e6da] bg-white px-4 py-4 sm:px-5 sm:py-5">
+                <ProfileField label="Novo e-mail" name="novoEmail" type="email" placeholder="novoemail@exemplo.com" autoComplete="email" required autoFocus />
+              </div>
+            </section>
+            <footer className="grid grid-cols-[minmax(0,0.75fr)_minmax(0,1.25fr)] gap-2.5 pt-1">
+              <button type="button" onClick={() => setModal(null)} className="min-h-12 w-full rounded-xl border border-[#86a590] px-4 py-2.5 text-sm font-bold text-[#256441] transition hover:bg-[#e8f7eb]">Cancelar</button>
+              <button type="submit" disabled={loading} className="min-h-12 w-full rounded-xl bg-[#256441] px-4 py-2.5 text-sm font-extrabold text-white shadow-md transition hover:-translate-y-0.5 hover:bg-[#194b30] hover:shadow-lg disabled:opacity-60">{loading ? "Enviando..." : "Enviar confirmação"}</button>
             </footer>
           </form>
         </AccountModal>
       )}
 
       {modal === "senha" && (
-        <AccountModal title="Alterar senha" description="Crie uma senha segura com pelo menos 8 caracteres." onClose={() => setModal(null)}>
+        <AccountModal title="Alterar senha" icon="/icons/password.svg" onClose={() => setModal(null)}>
           <form onSubmit={handlePasswordChange} className="space-y-4">
-            <ProfileField label="Senha atual" name="senhaAtual" type="password" placeholder="Digite sua senha atual" autoComplete="current-password" required />
-            <ProfileField label="Nova senha" name="novaSenha" type="password" placeholder="Digite a nova senha" autoComplete="new-password" minLength={8} required />
-            <ProfileField label="Confirmar senha" name="confirmarSenha" type="password" placeholder="Repita a nova senha" autoComplete="new-password" minLength={8} required />
-            <footer className="flex flex-col-reverse gap-3 border-t border-[#d7e6da] bg-[#f7fcf8] pt-4 sm:flex-row sm:justify-end">
-              <button type="button" onClick={() => setModal(null)} className="rounded-lg border border-[#86a590] px-5 py-2.5 text-sm font-bold text-[#256441] transition hover:bg-[#e8f7eb]">Cancelar</button>
-              <button type="submit" disabled={loading} className="rounded-lg bg-[#256441] px-5 py-2.5 text-sm font-bold text-white transition hover:bg-[#194b30] disabled:opacity-60">{loading ? "Salvando..." : "Confirmar alteração"}</button>
+            <section className="account-password-section rounded-2xl border border-[#d7e6da] bg-[#f7fcf8] p-4 sm:p-5">
+              <div className="mb-4 flex items-center gap-3">
+                <span className="grid size-7 shrink-0 place-items-center rounded-full bg-[#256441] text-xs font-extrabold text-white">1</span>
+                <h4 className="text-sm font-extrabold text-[#253129]">Confirme sua identidade</h4>
+              </div>
+              <ProfileField label="Senha atual" name="senhaAtual" type="password" placeholder="Digite sua senha atual" autoComplete="current-password" required />
+            </section>
+            <section className="account-password-section rounded-2xl border border-[#d7e6da] p-4 sm:p-5">
+              <div className="mb-4 flex items-center gap-3">
+                <span className="grid size-7 shrink-0 place-items-center rounded-full bg-[#256441] text-xs font-extrabold text-white">2</span>
+                <h4 className="text-sm font-extrabold text-[#253129]">Defina a nova senha</h4>
+              </div>
+              <div className="space-y-3.5">
+                <ProfileField label="Nova senha" name="novaSenha" type="password" placeholder="Mínimo de 8 caracteres" autoComplete="new-password" minLength={8} required />
+                <ProfileField label="Confirmar nova senha" name="confirmarSenha" type="password" placeholder="Digite novamente" autoComplete="new-password" minLength={8} required />
+              </div>
+            </section>
+            <footer className="grid grid-cols-[minmax(0,0.75fr)_minmax(0,1.25fr)] gap-2.5 pt-1">
+              <button type="button" onClick={() => setModal(null)} className="min-h-12 w-full rounded-xl border border-[#86a590] px-4 py-2.5 text-sm font-bold text-[#256441] transition hover:bg-[#e8f7eb]">Cancelar</button>
+              <button type="submit" disabled={loading} className="min-h-12 w-full rounded-xl bg-[#256441] px-4 py-2.5 text-sm font-extrabold text-white shadow-md transition hover:-translate-y-0.5 hover:bg-[#194b30] hover:shadow-lg disabled:opacity-60">{loading ? "Salvando..." : "Salvar nova senha"}</button>
             </footer>
           </form>
         </AccountModal>
@@ -972,15 +997,15 @@ function AccessRow({ icon, title, value, onEdit }: { icon: string; title: string
   );
 }
 
-function AccountModal({ title, description, onClose, children }: { title: string; description: string; onClose: () => void; children: ReactNode }) {
+function AccountModal({ title, description, icon, onClose, children }: { title: string; description?: string; icon: string; onClose: () => void; children: ReactNode }) {
   return createPortal(
-    <div className="fixed inset-0 z-50 grid place-items-center bg-[#121e17]/55 p-4 backdrop-blur-[2px]" role="dialog" aria-modal="true" aria-labelledby="account-modal-title" onMouseDown={(event) => { if (event.target === event.currentTarget) onClose(); }}>
-      <div className="w-full max-w-md overflow-hidden rounded-2xl bg-white shadow-2xl">
-        <header className="flex items-start justify-between gap-4 border-b border-[#d7e6da] px-5 py-5 sm:px-6">
-          <div><h3 id="account-modal-title" className="text-xl font-bold">{title}</h3><p className="mt-1 text-sm leading-5 text-[#5b675f]">{description}</p></div>
-          <button type="button" onClick={onClose} aria-label="Fechar modal" className="grid size-9 shrink-0 place-items-center rounded-full text-xl text-[#5b675f] transition hover:bg-[#e8f7eb]">×</button>
+    <div className="fixed inset-0 z-50 grid place-items-center overflow-y-auto bg-[#0b1510]/65 p-3 backdrop-blur-sm sm:p-6" role="dialog" aria-modal="true" aria-labelledby="account-modal-title" onMouseDown={(event) => { if (event.target === event.currentTarget) onClose(); }}>
+      <div className="account-modal-card my-auto w-full max-w-[520px] overflow-hidden rounded-3xl border border-white/10 bg-white shadow-[0_24px_80px_rgba(5,20,11,0.32)]">
+        <header className="account-modal-header flex items-center gap-4 border-b border-[#d7e6da] bg-gradient-to-br from-[#f7fcf8] to-[#eef8f0] px-5 py-5 text-left sm:px-7 sm:py-6">
+          <span className="account-modal-icon grid size-11 shrink-0 place-items-center rounded-xl border border-[#cfe3d4] bg-white shadow-sm"><Image src={icon} alt="" width={21} height={21} /></span>
+          <div><h3 id="account-modal-title" className="text-xl font-extrabold leading-7 tracking-[-0.01em] text-[#18271e] sm:text-2xl sm:leading-8">{title}</h3>{description && <p className="mt-1 text-sm leading-5 text-[#5b675f]">{description}</p>}</div>
         </header>
-        <div className="space-y-5 p-5 sm:p-6">{children}</div>
+        <div className="max-h-[min(72vh,680px)] overflow-y-auto p-5 sm:p-7">{children}</div>
       </div>
     </div>,
     document.body,
@@ -997,13 +1022,19 @@ type ProfileFieldProps = {
   inputMode?: "numeric" | "text" | "tel" | "email" | "url";
   minLength?: number;
   required?: boolean;
+  autoFocus?: boolean;
 };
 
-function ProfileField({ label, ...props }: ProfileFieldProps) {
+function ProfileField({ label, type = "text", ...props }: ProfileFieldProps) {
+  const [passwordVisible, setPasswordVisible] = useState(false);
+  const isPassword = type === "password";
   return (
     <label>
       <span className="mb-2 block text-sm font-bold text-[#253129]">{label}</span>
-      <input {...props} className="h-10 w-full rounded-lg border border-[#c0c9bf] bg-[#f7fcf8] px-3 text-sm text-[#121e17] outline-none transition placeholder:text-[#879188] focus:border-[#3f7d58] focus:ring-2 focus:ring-[#3f7d58]/15 sm:h-12 sm:rounded-xl sm:px-4" />
+      <span className="relative block">
+        <input {...props} type={isPassword && passwordVisible ? "text" : type} className={`h-10 w-full rounded-lg border border-[#c0c9bf] bg-[#f7fcf8] px-3 text-sm text-[#121e17] outline-none transition placeholder:text-[#879188] focus:border-[#3f7d58] focus:ring-2 focus:ring-[#3f7d58]/15 sm:h-12 sm:rounded-xl sm:px-4 ${isPassword ? "pr-11 sm:pr-12" : ""}`} />
+        {isPassword && <button type="button" onClick={() => setPasswordVisible((visible) => !visible)} className="absolute right-1.5 top-1/2 grid size-8 -translate-y-1/2 place-items-center rounded-lg transition hover:bg-[#e3f2e6] sm:right-2" aria-label={passwordVisible ? "Ocultar senha" : "Mostrar senha"}><Image src="/icons/eye-off.svg" alt="" width={18} height={18} className={passwordVisible ? "opacity-50" : ""} /></button>}
+      </span>
     </label>
   );
 }

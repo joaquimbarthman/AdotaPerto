@@ -34,6 +34,26 @@ const schema = {
   favoriteRelations,
 };
 
+async function sendAuthEmail(to: string, subject: string, html: string) {
+  const resendKey = process.env.RESEND_API_KEY;
+  if (!resendKey) return false;
+  const response = await fetch("https://api.resend.com/emails", {
+    method: "POST",
+    headers: {
+      Authorization: `Bearer ${resendKey}`,
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({
+      from: process.env.AUTH_EMAIL_FROM || "AdotaPerto <onboarding@resend.dev>",
+      to: [to],
+      subject,
+      html,
+    }),
+  });
+  if (!response.ok) throw new Error("Não foi possível enviar o e-mail.");
+  return true;
+}
+
 export const auth = betterAuth({
   database: drizzleAdapter(db, {
     provider: "pg",
@@ -42,6 +62,21 @@ export const auth = betterAuth({
   emailAndPassword: {
     enabled: true,
     revokeSessionsOnPasswordReset: true,
+  },
+  user: {
+    changeEmail: {
+      enabled: true,
+    },
+  },
+  emailVerification: {
+    async sendVerificationEmail({ user, url }) {
+      const sent = await sendAuthEmail(
+        user.email,
+        "Confirme seu novo e-mail",
+        `<div style="font-family:Arial,sans-serif;color:#121e17"><h2 style="color:#0f5d39">AdotaPerto</h2><p>Confirme seu novo endere&ccedil;o de e-mail:</p><p><a href="${url}" style="display:inline-block;background:#256441;color:#fff;padding:12px 20px;border-radius:8px;text-decoration:none;font-weight:700">Confirmar novo e-mail</a></p><p>Se voc&ecirc; n&atilde;o solicitou esta altera&ccedil;&atilde;o, ignore esta mensagem.</p></div>`,
+      );
+      if (!sent) console.info(`[AdotaPerto] Link de confirmação de e-mail para ${user.email}: ${url}`);
+    },
   },
   plugins: [
     emailOTP({
