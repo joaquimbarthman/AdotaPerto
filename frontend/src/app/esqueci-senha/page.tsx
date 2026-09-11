@@ -64,13 +64,26 @@ export default function ForgotPasswordPage() {
     if (event.key === "Backspace" && !otp[index] && index > 0) codeInputs.current[index - 1]?.focus();
   }
 
-  function handleCode(event: FormEvent<HTMLFormElement>) {
+  async function handleCode(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     if (otp.some((digit) => !digit)) {
       setMessage("Digite os 4 d\u00edgitos enviados para o seu e-mail.");
       return;
     }
+
     setMessage(null);
+    setLoading(true);
+    const { error } = await authClient.emailOtp.checkVerificationOtp({
+      email,
+      otp: otp.join(""),
+      type: "forget-password",
+    });
+    setLoading(false);
+    if (error) {
+      setMessage("O c\u00f3digo \u00e9 inv\u00e1lido ou expirou. Solicite um novo c\u00f3digo.");
+      return;
+    }
+
     setStep("password");
   }
 
@@ -117,7 +130,7 @@ export default function ForgotPasswordPage() {
                 <input key={index} ref={(element) => { codeInputs.current[index] = element; }} value={digit} onChange={(event) => updateCode(index, event.target.value)} onKeyDown={(event) => handleCodeKey(index, event)} inputMode="numeric" pattern="[0-9]" maxLength={1} aria-label={`D\u00edgito ${index + 1} do c\u00f3digo`} autoFocus={index === 0} className="size-14 rounded-xl border border-[#c8d2ca] bg-[#fbfdfb] text-center text-2xl font-bold text-[#121e17] outline-none transition focus:border-[#0f5d39] focus:ring-4 focus:ring-[#0f5d39]/10 sm:size-16" />
               ))}
             </div>
-            <div className="mt-6"><PrimaryButton loading={false} label="Continuar" loadingLabel="" /></div>
+            <div className="mt-6"><PrimaryButton loading={loading} label="Continuar" loadingLabel="Validando..." /></div>
           </form>
           <p className="mt-5 text-center text-sm text-[#4d5b53]">N&atilde;o recebeu? <button type="button" disabled={loading} onClick={() => sendCode(email)} className="font-semibold text-[#0f5d39] hover:underline disabled:opacity-60">Reenviar c&oacute;digo</button></p>
           <BackToLogin />
