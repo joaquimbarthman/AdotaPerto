@@ -67,26 +67,50 @@ const overpassTags: Record<MapCategory, string> = {
   shelter: '["amenity"="animal_shelter"]',
 };
 
+function placeImage(tags: Record<string, string>) {
+  if (tags.wikimedia_commons?.startsWith("File:")) {
+    return `${serviceUrl("WIKIMEDIA_FILE_URL")}/${encodeURIComponent(tags.wikimedia_commons.slice(5))}`;
+  }
+  if (!tags.image) return null;
+  try {
+    const url = new URL(tags.image);
+    return url.protocol === "https:" && url.hostname === "upload.wikimedia.org"
+      ? url.toString()
+      : null;
+  } catch {
+    return null;
+  }
+}
+
 export async function nearbyPlaces(category: MapCategory, lat: number, lng: number) {
   const tag = overpassTags[category];
-  const query = `[out:json][timeout:12];(node${tag}(around:12000,${lat},${lng});way${tag}(around:12000,${lat},${lng});relation${tag}(around:12000,${lat},${lng}););out center tags 40;`;
-  const url = `${serviceUrl("OVERPASS_API_URL")}?data=${encodeURIComponent(query)}`;
-  const data = await fetchJson<{ elements: Array<{ id: number; lat?: number; lon?: number; center?: { lat: number; lon: number }; tags?: Record<string, string> }> }>(url, undefined, 15000);
-  return data.elements.flatMap((element) => {
-    const point = element.lat != null && element.lon != null ? { lat: element.lat, lng: element.lon } : element.center ? { lat: element.center.lat, lng: element.center.lon } : null;
-    if (!point || !element.tags?.name) return [];
-    const tags = element.tags;
-    const address = [tags["addr:street"], tags["addr:housenumber"], tags["addr:suburb"], tags["addr:city"]].filter(Boolean).join(", ");
-    const image = tags.image || (tags.wikimedia_commons?.startsWith("File:") ? `${serviceUrl("WIKIMEDIA_FILE_URL")}/${encodeURIComponent(tags.wikimedia_commons.slice(5))}` : null);
-    return [{
-      id: `osm-${element.id}`, category, name: tags.name, ...point,
-      address: address || null,
-      phone: tags["contact:phone"] || tags.phone || null,
-      email: tags["contact:email"] || tags.email || null,
-      website: tags["contact:website"] || tags.website || null,
-      description: tags.description || tags["description:pt"] || null,
-      image,
-      mapsUrl: `${serviceUrl("GOOGLE_MAPS_SEARCH_URL")}/?api=1&query=${point.lat},${point.lng}`,
-    }];
-  });
+  const radii = category === "veterinary" || category === "pet_shop"
+    ? [20_000, 50_000]
+    : [12_000];
+
+  for (const radius of radii) {
+    const query = `[out:json][timeout:12];(node${tag}(around:${radius},${lat},${lng});way${tag}(around:${radius},${lat},${lng});relation${tag}(around:${radius},${lat},${lng}););out center tags 40;`;
+    const url = `${serviceUrl("OVERPASS_API_URL")}?data=${encodeURIComponent(query)}`;
+    const data = await fetchJson<{ elements: Array<{ id: number; lat?: number; lon?: number; center?: { lat: number; lon: number }; tags?: Record<string, string> }> }>(url, undefined, 15000);
+    const places = data.elements.flatMap((element) => {
+      const point = element.lat != null && element.lon != null ? { lat: element.lat, lng: element.lon } : element.center ? { lat: element.center.lat, lng: element.center.lon } : null;
+      if (!point || !element.tags?.name) return [];
+      const tags = element.tags;
+      const address = [tags["addr:street"], tags["addr:housenumber"], tags["addr:suburb"], tags["addr:city"]].filter(Boolean).join(", ");
+      const image = placeImage(tags);
+      return [{
+        id: `osm-${element.id}`, category, name: tags.name, ...point,
+        address: address || null,
+        phone: tags["contact:phone"] || tags.phone || null,
+        email: tags["contact:email"] || tags.email || null,
+        website: tags["contact:website"] || tags.website || null,
+        description: tags.description || tags["description:pt"] || null,
+        image,
+        mapsUrl: `${serviceUrl("GOOGLE_MAPS_SEARCH_URL")}/?api=1&query=${point.lat},${point.lng}`,
+      }];
+    });
+    if (places.length > 0) return places;
+  }
+
+  return [];
 }

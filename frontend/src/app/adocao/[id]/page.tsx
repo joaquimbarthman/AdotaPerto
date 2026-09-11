@@ -268,7 +268,8 @@ export default function PetDetailsPage() {
             </section></div></AuthBlurredContent>
           </div>
 
-          <aside className="detail-sidebar min-w-0 space-y-3 sm:space-y-6 lg:sticky lg:top-28">
+          <aside className="detail-sidebar min-w-0">
+            <div className="space-y-3 sm:space-y-6 lg:sticky lg:top-28">
             <section className="rounded-xl bg-white p-6 shadow-[0_4px_6px_rgba(38,51,43,0.05)]">
               <h2 className="text-sm font-semibold uppercase tracking-[0.05em] text-[#404942]">
                 Aos cuidados de
@@ -339,7 +340,8 @@ export default function PetDetailsPage() {
                       : animal.status === "Adotado"
                         ? "Animal já adotado"
                         : "Tenho interesse em adotar"}
-            </button><button type="button" disabled={favoriteLoading} onClick={toggleFavorite} className={`grid size-[52px] shrink-0 place-items-center rounded-xl border transition active:scale-95 disabled:opacity-60 ${favorite ? "border-[#ef9aaa] bg-[#fff0f3] text-[#d33f56]" : "border-[#86a590] bg-white text-[#526057] hover:bg-[#e8f7eb] hover:text-[#256441]"}`} aria-label={favorite ? "Remover dos favoritos" : "Adicionar aos favoritos"} aria-pressed={favorite}><svg viewBox="0 0 24 24" className="size-5" fill={favorite ? "currentColor" : "none"} stroke="currentColor" strokeWidth="2.2" aria-hidden="true"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78L12 21.23l8.84-8.84a5.5 5.5 0 0 0 0-7.78Z" strokeLinecap="round" strokeLinejoin="round" /></svg></button></div>
+            </button><button type="button" disabled={favoriteLoading} onClick={toggleFavorite} className={`detail-favorite-button grid size-[52px] shrink-0 place-items-center rounded-xl border transition active:scale-95 disabled:opacity-60 ${favorite ? "border-[#ef9aaa] bg-[#fff0f3] text-[#d33f56]" : "border-[#86a590] bg-white text-[#526057] hover:bg-[#e8f7eb] hover:text-[#256441]"}`} aria-label={favorite ? "Remover dos favoritos" : "Adicionar aos favoritos"} aria-pressed={favorite}><svg viewBox="0 0 24 24" className="size-5" fill={favorite ? "currentColor" : "none"} stroke="currentColor" strokeWidth="2.2" aria-hidden="true"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78L12 21.23l8.84-8.84a5.5 5.5 0 0 0 0-7.78Z" strokeLinecap="round" strokeLinejoin="round" /></svg></button></div>
+            </div>
           </aside>
         </div>
       </main>

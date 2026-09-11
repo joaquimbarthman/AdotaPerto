@@ -4,13 +4,14 @@ import { Notification } from "@/components/notification";
 
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { FormEvent, useEffect, useState } from "react";
+import { FormEvent, useEffect, useRef, useState } from "react";
 import { AuthField } from "@/components/auth-field";
 import { AuthBrand, AuthShell } from "@/components/auth-shell";
 import { authClient } from "@/lib/auth-client";
 
 export default function LoginPage() {
   const router = useRouter();
+  const formRef = useRef<HTMLFormElement>(null);
   const [loading, setLoading] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
@@ -18,6 +19,8 @@ export default function LoginPage() {
     const reason = new URLSearchParams(window.location.search).get("reason");
     if (reason === "unauthenticated") {
       queueMicrotask(() => setErrorMessage("Você não está autenticado."));
+    } else if (reason === "recovery-email-required") {
+      queueMicrotask(() => setErrorMessage("Informe o e-mail da sua conta e clique em Esqueci minha senha."));
     }
   }, []);
 
@@ -49,6 +52,18 @@ export default function LoginPage() {
     router.push("/adocao");
   }
 
+  function beginPasswordRecovery() {
+    const emailInput = formRef.current?.elements.namedItem("email") as HTMLInputElement | null;
+    if (!emailInput?.value.trim() || !emailInput.checkValidity()) {
+      setErrorMessage("Informe o e-mail da sua conta para recuperar a senha.");
+      emailInput?.focus();
+      emailInput?.reportValidity();
+      return;
+    }
+    sessionStorage.setItem("password-recovery-email", emailInput.value.trim().toLowerCase());
+    router.push("/esqueci-senha");
+  }
+
   return (
     <AuthShell image="/images/login-cover-v2.png" imageAlt="Mulher acolhendo um cachorro caramelo em casa">
       <header className="mb-5 sm:mb-8">
@@ -59,7 +74,7 @@ export default function LoginPage() {
 
       {errorMessage && <Notification text={errorMessage} />}
 
-      <form onSubmit={handleSubmit} className="space-y-3.5 sm:space-y-5">
+      <form ref={formRef} onSubmit={handleSubmit} className="space-y-3.5 sm:space-y-5">
         <AuthField label="Email" icon="/icons/email.svg" name="email" type="email" placeholder="seu@email.com" autoComplete="email" required />
         <AuthField label="Senha" icon="/icons/password.svg" name="password" type="password" placeholder="••••••••" autoComplete="current-password" required />
 
@@ -68,7 +83,7 @@ export default function LoginPage() {
             <input type="checkbox" name="rememberMe" className="size-4 accent-[#0f5d39]" />
             Lembrar de mim
           </label>
-          <Link href="/esqueci-senha" className="font-semibold text-[#0f5d39] transition hover:underline">Esqueci minha senha</Link>
+          <button type="button" onClick={beginPasswordRecovery} className="font-semibold text-[#0f5d39] transition hover:underline">Esqueci minha senha</button>
         </div>
 
         <button

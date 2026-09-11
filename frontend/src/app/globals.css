@@ -130,6 +130,12 @@ html[data-theme="dark"] :is(.hover\:text-\[\#256441\]:hover, .group:hover .group
   color: #8ad7a4 !important;
 }
 
+html[data-theme="dark"] .detail-favorite-button[aria-pressed="true"] {
+  border-color: #9f5262 !important;
+  background-color: #44242d !important;
+  color: #ff8da1 !important;
+}
+
 html[data-theme="dark"] img[src^="/icons/"]:not([class*="invert"]) {
   filter: brightness(0) saturate(100%) invert(72%) sepia(28%) saturate(703%) hue-rotate(88deg) brightness(96%);
 }

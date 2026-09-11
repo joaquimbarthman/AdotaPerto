@@ -5,21 +5,41 @@ import { Notification } from "@/components/notification";
 import Image from "next/image";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { FormEvent, KeyboardEvent, useRef, useState } from "react";
+import { FormEvent, KeyboardEvent, useEffect, useRef, useState } from "react";
 import { AuthField } from "@/components/auth-field";
 import { AuthBrand, AuthShell } from "@/components/auth-shell";
 import { authClient } from "@/lib/auth-client";
 
-type Step = "email" | "code" | "password" | "success";
+type Step = "code" | "password" | "success";
 
 export default function ForgotPasswordPage() {
   const router = useRouter();
-  const [step, setStep] = useState<Step>("email");
+  const [step, setStep] = useState<Step>("code");
   const [email, setEmail] = useState("");
   const [otp, setOtp] = useState(["", "", "", ""]);
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState<string | null>(null);
   const codeInputs = useRef<Array<HTMLInputElement | null>>([]);
+  const recoveryStarted = useRef(false);
+
+  useEffect(() => {
+    if (recoveryStarted.current) return;
+    recoveryStarted.current = true;
+    async function startRecovery() {
+      const session = await authClient.getSession();
+      const storedEmail = sessionStorage.getItem("password-recovery-email");
+      sessionStorage.removeItem("password-recovery-email");
+      const accountEmail = session.data?.user.email || storedEmail;
+      if (!accountEmail) {
+        router.replace("/login?reason=recovery-email-required");
+        return;
+      }
+      const address = accountEmail.trim().toLowerCase();
+      setEmail(address);
+      await sendCode(address);
+    }
+    void startRecovery();
+  }, [router]);
 
   async function sendCode(address: string) {
     setLoading(true);
@@ -31,15 +51,6 @@ export default function ForgotPasswordPage() {
       return false;
     }
     return true;
-  }
-
-  async function handleEmail(event: FormEvent<HTMLFormElement>) {
-    event.preventDefault();
-    const address = String(new FormData(event.currentTarget).get("email") || "").trim().toLowerCase();
-    if (await sendCode(address)) {
-      setEmail(address);
-      setStep("code");
-    }
   }
 
   function updateCode(index: number, value: string) {
@@ -84,33 +95,21 @@ export default function ForgotPasswordPage() {
     setStep("success");
   }
 
-  const stepNumber = step === "email" ? 1 : step === "code" ? 2 : 3;
+  const stepNumber = step === "code" ? 1 : 2;
 
   return (
     <AuthShell image="/images/login-cover-v2.png" imageAlt="Mulher acolhendo um cachorro caramelo em casa">
       <AuthBrand />
 
       {step !== "success" && (
-        <div className="mt-7 flex items-center gap-2" aria-label={`Etapa ${stepNumber} de 3`}>
-          {[1, 2, 3].map((item) => <span key={item} className={`h-1.5 flex-1 rounded-full ${item <= stepNumber ? "bg-[#0f5d39]" : "bg-[#dce6de]"}`} />)}
+        <div className="mt-7 flex items-center gap-2" aria-label={`Etapa ${stepNumber} de 2`}>
+          {[1, 2].map((item) => <span key={item} className={`h-1.5 flex-1 rounded-full ${item <= stepNumber ? "bg-[#0f5d39]" : "bg-[#dce6de]"}`} />)}
         </div>
-      )}
-
-      {step === "email" && (
-        <section className="mt-7">
-          <PageHeading title="Esqueceu sua senha?" description={"Informe o e-mail da sua conta. Enviaremos um c\u00f3digo de 4 d\u00edgitos para confirmar sua identidade."} />
-          <StatusMessage message={message} />
-          <form onSubmit={handleEmail} className="space-y-5">
-            <AuthField label="E-mail" icon="/icons/email.svg" name="email" type="email" placeholder="seu@email.com" autoComplete="email" required autoFocus />
-            <PrimaryButton loading={loading} label={"Enviar c\u00f3digo"} loadingLabel="Enviando..." />
-          </form>
-          <BackToLogin />
-        </section>
       )}
 
       {step === "code" && (
         <section className="mt-7">
-          <PageHeading title={"Digite o c\u00f3digo"} description={<>Enviamos um c&oacute;digo para <strong className="font-semibold text-[#243129]">{email}</strong>. Ele expira em 10 minutos.</>} />
+          <PageHeading title={"Digite o c\u00f3digo"} description={email ? <>Enviamos um c&oacute;digo para o e-mail vinculado à sua conta: <strong className="font-semibold text-[#243129]">{email}</strong>. Ele expira em 10 minutos.</> : "Preparando o envio para o e-mail vinculado à sua conta..."} />
           <StatusMessage message={message} />
           <form onSubmit={handleCode}>
             <div className="flex justify-center gap-3" onPaste={(event) => { const digits = event.clipboardData.getData("text").replace(/\D/g, "").slice(0, 4).split(""); if (digits.length) { event.preventDefault(); setOtp([digits[0] || "", digits[1] || "", digits[2] || "", digits[3] || ""]); codeInputs.current[Math.min(digits.length, 4) - 1]?.focus(); } }}>
@@ -121,7 +120,7 @@ export default function ForgotPasswordPage() {
             <div className="mt-6"><PrimaryButton loading={false} label="Continuar" loadingLabel="" /></div>
           </form>
           <p className="mt-5 text-center text-sm text-[#4d5b53]">N&atilde;o recebeu? <button type="button" disabled={loading} onClick={() => sendCode(email)} className="font-semibold text-[#0f5d39] hover:underline disabled:opacity-60">Reenviar c&oacute;digo</button></p>
-          <button type="button" onClick={() => { setStep("email"); setMessage(null); }} className="mt-4 w-full text-center text-sm font-semibold text-[#0f5d39] hover:underline">Alterar e-mail</button>
+          <BackToLogin />
         </section>
       )}
 
