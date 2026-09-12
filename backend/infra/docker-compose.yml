@@ -22,6 +22,17 @@ services:
     volumes:
       - minio_data:/data
 
+  mailpit:
+    image: axllent/mailpit:latest
+    environment:
+      MP_DATABASE: /data/mailpit.db
+    ports:
+      - "127.0.0.1:${MAILPIT_SMTP_PORT:-1025}:1025"
+      - "127.0.0.1:${MAILPIT_UI_PORT:-8025}:8025"
+    volumes:
+      - mailpit_data:/data
+
 volumes:
   postgres_data:
   minio_data:
+  mailpit_data:

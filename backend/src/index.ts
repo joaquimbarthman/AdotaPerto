@@ -38,6 +38,7 @@ serve(
     port: 4000,
   },
   () => {
-    console.log("Servidor Aberto em http://localhost:4000/status");
+    const apiPublicUrl = process.env.API_PUBLIC_URL?.trim().replace(/\/+$/, "");
+    console.log(apiPublicUrl ? `Servidor Aberto em ${apiPublicUrl}/status` : "Servidor aberto na porta 4000");
   },
 );

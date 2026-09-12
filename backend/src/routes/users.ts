@@ -48,7 +48,9 @@ userRoutes.get("/cep/:cep", async (c) => {
   const cep = c.req.param("cep").replace(/\D/g, "");
   if (cep.length !== 8) return c.json({ error: "CEP inválido." }, 400);
   try {
-    const response = await fetch(`https://viacep.com.br/ws/${cep}/json/`, {
+    const viacepBaseUrl = process.env.VIACEP_BASE_URL?.trim().replace(/\/+$/, "");
+    if (!viacepBaseUrl) throw new Error("Variável de ambiente VIACEP_BASE_URL não configurada.");
+    const response = await fetch(`${viacepBaseUrl}/${cep}/json/`, {
       headers: { "User-Agent": "AdotaPerto-TCC/1.0" },
     });
     if (!response.ok) return c.json({ error: "CEP não encontrado." }, 404);

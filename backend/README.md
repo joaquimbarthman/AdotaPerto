@@ -45,7 +45,9 @@ npm install --legacy-peer-deps
 
 ## Variáveis de ambiente
 
-Crie o arquivo `.env` dentro de `backend`:
+Copie `.env.example` para `.env` dentro de `backend` e configure os valores locais. Arquivos com credenciais não devem ser versionados. Gere um segredo próprio para `BETTER_AUTH_SECRET`.
+
+Exemplo de configuração:
 
 ```env
 BETTER_AUTH_SECRET=gere-uma-chave-secreta
@@ -121,9 +123,9 @@ Gere uma chave para `BETTER_AUTH_SECRET`:
 node -e "console.log(require('crypto').randomBytes(32).toString('base64url'))"
 ```
 
-## Banco e armazenamento
+## Banco, armazenamento e e-mails locais
 
-Suba PostgreSQL e MinIO:
+Suba PostgreSQL, MinIO e Mailpit:
 
 ```powershell
 docker compose --env-file .env -f infra/docker-compose.yml up -d
@@ -141,6 +143,12 @@ Portas:
 - PostgreSQL: `5432`
 - MinIO API: `9000`
 - MinIO Console: `9001`
+- Mailpit SMTP: `1025`
+- Mailpit interface web: `8025`
+
+O Mailpit captura e-mails de desenvolvimento. Acesse a caixa de entrada em http://localhost:8025 e use `localhost:1025` como servidor SMTP para aplicações executadas no host (ou `mailpit:1025` dentro da rede do Compose), sem autenticação ou TLS. As portas publicadas ficam restritas ao acesso local. Para alterá-las, defina `MAILPIT_SMTP_PORT` e `MAILPIT_UI_PORT` no `backend/.env`.
+
+A configuração segue a [documentação oficial do Mailpit](https://mailpit.axllent.org/docs/install/docker/). O envio atual do backend usa Resend ou registra o código no terminal; para que esses e-mails apareçam no Mailpit, será necessário integrar o envio por SMTP.
 
 ## Migrations
 
@@ -191,6 +199,10 @@ Execute `npm run startup` antes do seeder. O seeder envia as imagens de `inserts
 
 ## Verificação de tipos
 
+As solicitações de itens em análise podem ser aprovadas, recusadas ou canceladas pelo responsável pelo item. Estados concluídos não podem ser reabertos; repetir o mesmo status não altera o saldo. A aprovação desconta a quantidade solicitada do saldo disponível e marca o item como doado somente quando ele chega a zero. Solicitações pendentes sem saldo suficiente retornam HTTP `409` ao tentar aprovar. As alterações de saldo e solicitação usam uma transação com bloqueio do item para serializar aprovações concorrentes.
+
+Para testar esse fluxo, configure `TEST_DATABASE_URL` com um PostgreSQL de testes e execute `npm run test:integration`. O teste cria um schema temporário isolado, aplica a migration inicial e remove esse schema ao terminar. Inclui concorrência, aprovação parcial, permissões, transições e rollback. Sem a variável, os testes são ignorados.
+
 ```powershell
 npm run typecheck
 ```
@@ -201,6 +213,6 @@ npm run typecheck
 docker compose --env-file .env -f infra/docker-compose.yml down
 ```
 
-Os dados permanecem nos volumes `postgres_data` e `minio_data`.
+Os dados permanecem nos volumes `postgres_data`, `minio_data` e `mailpit_data`.
 
-Para apagar também os dados, use `down -v`. Esse comando remove banco, usuários, animais, solicitações, favoritos e imagens.
+Para apagar também os dados, use `down -v`. Esse comando remove banco, usuários, animais, solicitações, favoritos, imagens e e-mails capturados pelo Mailpit.
