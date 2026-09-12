@@ -22,4 +22,4 @@ npm run db:reset-content
 
 ## Fotografias
 
-As imagens são carregadas remotamente pelo LoremFlickr, com três buscas temáticas e estáveis para cada anúncio. Como são recursos externos, para produção é recomendável baixar as imagens escolhidas, verificar sua licença e enviá-las pelo endpoint de upload do próprio AdotaPerto.
+As imagens locais estão em `backend/inserts/images` e são enviadas ao MinIO antes de alterar o banco. Execute `npm run startup` primeiro. Os registros usam URLs de `/api/uploads/images/seed/:fileName`. Há 71 arquivos: Paçoca possui duas fotos; arquivos ausentes são informados e omitidos dos registros. O script `frontend/baixar-imagens-seed.mjs` baixa os arquivos para essa nova pasta.

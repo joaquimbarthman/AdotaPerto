@@ -17,7 +17,7 @@ API em Node.js e TypeScript, com Hono, Better Auth, Drizzle ORM, PostgreSQL e Mi
 | Geocodificação | Conversão de cidade, bairro ou CEP em coordenadas, integrando ViaCEP e Nominatim. | `/api/map/geocode` |
 | Anúncios no mapa | Consulta de animais e itens disponíveis com posição residencial aproximada e tratamento de indisponibilidade do banco. | `/api/map/listings` |
 | Estabelecimentos próximos | Consulta de veterinários, pet shops e abrigos via Overpass, com cache e limite de tempo das requisições externas. | `/api/map/places` |
-| Status | Verificação simples de resposta do servidor, retornando texto `ok`. | `/status` |
+| Status | Verificação do servidor, PostgreSQL e bucket MinIO em JSON. | `/status` |
 
 As operações sobre dados pessoais, favoritos, publicações e solicitações aplicam autenticação e verificações de permissão conforme a rota. Os endpoints de mapas são públicos.
 
@@ -109,7 +109,7 @@ A preparação também copia os source maps (`.mjs.map`) usados pelas ferramenta
 
 ## Status da API
 
-`GET /status` é público e retorna HTTP `200`, com corpo de texto `ok` (`text/plain`). Serve para validar que o servidor está respondendo; não verifica banco de dados nem serviços externos.
+`GET /status` é público e consulta PostgreSQL e a existência do bucket MinIO, com limite de 5 segundos por verificação. Retorna JSON e HTTP `200` quando tudo está disponível ou `503` quando uma dependência falha. A consulta não cria o bucket. Exemplo: `{"status":"ok","server":{"status":"ok","uptime":42},"database":{"status":"ok"},"bucket":{"status":"ok","name":"adotaperto-images"}}`.
 
 ```powershell
 curl.exe -i http://localhost:4000/status
@@ -148,26 +148,17 @@ Antes de migrar, confira se `DATABASE_URL` aponta para o banco esperado. Um banc
 
 Outras falhas na listagem retornam HTTP `503` com `code: "MAP_LISTINGS_UNAVAILABLE"`. Os endpoints públicos de mapas não dependem da consulta de sessão; o mapa de fundo e as buscas externas podem continuar funcionando durante uma falha no banco.
 
-**Compatibilidade:** as migrations deste repositório estão em pastas com `migration.sql`. O Drizzle Kit `0.31.x` espera o formato com `meta/_journal.json`; não execute `migrate` supondo que essas pastas serão reconhecidas. É necessário alinhar a versão/formato das migrations antes de aplicá-las. Para inicializar um banco local vazio diretamente pelos schemas atuais, execute `npx drizzle-kit push`, revise o plano apresentado e confirme apenas a criação das tabelas esperadas.
-
-Aplique as migrations existentes:
+Execute na pasta `backend`, com PostgreSQL e MinIO já disponíveis:
 
 ```powershell
-npx drizzle-kit migrate
+npm run startup
 ```
 
-Para gerar uma migration depois de alterar os schemas:
+O comando aplica as migrations registradas em `lib/db/migrations/meta/_journal.json` e cria o bucket se ele não existir. Não precisa de usuário e não executa o seeder nem inicia o servidor. Pode ser repetido: migrations aplicadas são controladas pelo Drizzle. Se falhar, termina com código 1. As pastas antigas com `migration.sql` não fazem parte do journal atual.
 
-```powershell
-npx drizzle-kit generate
-```
+Se o banco já tem tabelas criadas por `drizzle-kit push`, mas não possui histórico de migrations, a migration inicial pode acusar tabelas existentes. Nesse caso, alinhe o histórico antes de usar o startup; o script não apaga nem recria tabelas existentes.
 
-Depois aplique novamente:
-
-```powershell
-npx drizzle-kit migrate
-```
-
+Para gerar novas migrations: `npx drizzle-kit generate`.
 ## Executar
 
 Desenvolvimento com recarregamento automático:
@@ -196,7 +187,7 @@ O seeder associa os animais ao usuário mais antigo. Crie pelo menos uma conta p
 npm run db:seed
 ```
 
-O comando pode ser executado novamente. Animais existentes são atualizados pelo `id`.
+Execute `npm run startup` antes do seeder. O seeder envia as imagens de `inserts/images` ao bucket e salva URLs da API. O comando pode ser repetido; animais e itens existentes são atualizados pelo `id`.
 
 ## Verificação de tipos
 

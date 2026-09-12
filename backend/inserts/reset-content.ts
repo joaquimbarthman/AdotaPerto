@@ -1,13 +1,9 @@
 import "dotenv/config";
+import { seedPhotos as photos, uploadSeedImages } from "./images.ts";
 import { asc } from "drizzle-orm";
 import { db } from "../lib/db/index.ts";
 import { animal, donationItem, user } from "../lib/db/schemas/index.ts";
 
-const photos = (mediaKey: string) => [
-  `/seed/${mediaKey}/1.jpg`,
-  `/seed/${mediaKey}/2.jpg`,
-  `/seed/${mediaKey}/3.jpg`,
-];
 
 
 const animals = [
@@ -44,6 +40,7 @@ async function resetContent() {
   const [owner] = await db.select({ id: user.id, name: user.name }).from(user).orderBy(asc(user.createdAt), asc(user.id)).limit(1);
   if (!owner) throw new Error("Crie pelo menos um usuário antes de executar os inserts.");
 
+  await uploadSeedImages();
   await db.transaction(async (tx) => {
     await tx.delete(animal);
     await tx.delete(donationItem);

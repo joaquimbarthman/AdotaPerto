@@ -3,10 +3,10 @@ import { Hono } from "hono";
 import { cors } from "hono/cors";
 import { auth } from "../lib/better/auth.ts";
 import { apiRoutes } from "./routes/index.ts";
+import { statusRoutes } from "./routes/status.ts";
 
 const app = new Hono();
 
-app.get("/status", (c) => c.text("ok", 200));
 
 app.use(
   "*",
@@ -27,8 +27,10 @@ app.use(
 );
 
 app.on(["POST", "GET"], "/api/auth/*", (c) => auth.handler(c.req.raw));
+app.route("/status", statusRoutes);
 
 app.route("/api", apiRoutes);
+
 
 serve(
   {

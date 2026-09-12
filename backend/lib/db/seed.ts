@@ -1,6 +1,7 @@
 import { asc, eq } from "drizzle-orm";
 import { db } from "./index.ts";
 import { animal, donationItem, user } from "./schemas/index.ts";
+import { seedPhotos, uploadSeedImages } from "../../inserts/images.ts";
 
 const mockAnimals = [
   {
@@ -266,9 +267,14 @@ async function seed() {
     );
   }
 
+  await uploadSeedImages();
+  const animalMedia = ["bento", "amora", "simba", "nina", "melissa", "frajola", "tobias", "olivia"];
+  const itemMedia = ["racao", "racao", "caminha", "coleira", "shampoo", "brinquedos", "caixa", "petiscos"];
+
   await db.transaction(async (tx) => {
     for (const mockAnimal of mockAnimals) {
-      const values = { ...mockAnimal, userId: firstUser.id };
+      const [image, ...images] = seedPhotos(`animals/${animalMedia[mockAnimals.indexOf(mockAnimal)]}`);
+      const values = { ...mockAnimal, image, images, userId: firstUser.id };
       const [existing] = await tx
         .select({ id: animal.id })
         .from(animal)
@@ -285,7 +291,8 @@ async function seed() {
     }
 
     for (const mockItem of mockDonationItems) {
-      const values = { ...mockItem, userId: firstUser.id };
+      const [mainImage, ...images] = seedPhotos(`items/${itemMedia[mockDonationItems.indexOf(mockItem)]}`);
+      const values = { ...mockItem, mainImage, images, userId: firstUser.id };
       const [existing] = await tx
         .select({ id: donationItem.id })
         .from(donationItem)

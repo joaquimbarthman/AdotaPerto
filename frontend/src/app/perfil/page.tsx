@@ -901,7 +901,7 @@ function AccountAccess({ userEmail }: { userEmail: string }) {
     setLoading(true);
     const { error } = await authClient.changeEmail({
       newEmail,
-      callbackURL: "/perfil",
+      callbackURL: `${window.location.origin}/verificar-email?email=${encodeURIComponent(newEmail.trim().toLowerCase())}`,
     });
     setLoading(false);
 
