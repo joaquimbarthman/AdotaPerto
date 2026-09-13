@@ -8,6 +8,7 @@ import { FormEvent, useEffect, useRef, useState } from "react";
 import { AuthField } from "@/components/auth-field";
 import { AuthBrand, AuthShell } from "@/components/auth-shell";
 import { authClient } from "@/lib/auth-client";
+import { authErrorMessage } from "@/lib/auth-error-message";
 
 export default function LoginPage() {
   const router = useRouter();
@@ -45,7 +46,7 @@ export default function LoginPage() {
     setLoading(false);
 
     if (error) {
-      setErrorMessage(error.message || "E-mail ou senha incorretos.");
+      setErrorMessage(authErrorMessage(error, "Não foi possível entrar. Tente novamente."));
       return;
     }
 

@@ -10,6 +10,10 @@ import { uploadRoutes } from "./uploads.ts";
 import { userRoutes } from "./users.ts";
 import { registrationRoutes } from "./registration.ts";
 import { adminRoutes } from "./admin.ts";
+import {
+  hasCompleteAddress,
+  PROFILE_ADDRESS_REQUIRED,
+} from "../services/profile-completion.ts";
 
 export type AuthContext = {
   Variables: {
@@ -19,6 +23,12 @@ export type AuthContext = {
 };
 
 export const apiRoutes = new Hono<AuthContext>();
+const addressRequiredPostRoutes = new Set([
+  "/api/animals",
+  "/api/donation-items",
+  "/api/adoption-requests",
+  "/api/donation-item-requests",
+]);
 
 apiRoutes.route("/registration", registrationRoutes);
 
@@ -33,6 +43,25 @@ apiRoutes.use("*", async (c, next) => {
   });
   c.set("user", session?.user ?? null);
   c.set("session", session?.session ?? null);
+
+  const normalizedPath = c.req.path.replace(/\/+$/, "");
+  if (
+    c.req.method === "POST" &&
+    session?.user &&
+    addressRequiredPostRoutes.has(normalizedPath) &&
+    !(await hasCompleteAddress(session.user.id))
+  ) {
+    return c.json(
+      {
+        error:
+          "Complete seu endereço no perfil antes de publicar ou fazer uma solicitação.",
+        code: PROFILE_ADDRESS_REQUIRED,
+        redirectTo: "/perfil#endereco",
+      },
+      403,
+    );
+  }
+
   await next();
 });
 

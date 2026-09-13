@@ -10,6 +10,7 @@ import { SiteFooter } from "@/components/site-footer";
 import { SiteHeader } from "@/components/site-header";
 import { useSession } from "@/lib/auth-client";
 import { uploadImages } from "@/lib/uploads";
+import { useProfileAddressGuard } from "@/hooks/use-profile-address-guard";
 import { DonationField as Field, DonationFormSection as Section, DonationPhotoPreview as PhotoPreview, DonationSelect as Select, DonationStepProgress, donationInputClass as inputClass } from "@/components/donation-form-ui";
 
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:4000";
@@ -28,6 +29,7 @@ function StoryIcon() { return <svg viewBox="0 0 24 24" className="size-5" fill="
 export default function AnimalDonationPage() {
   const router = useRouter();
   const { data: session, isPending } = useSession();
+  const checkingAddress = useProfileAddressGuard(session?.user.id, isPending);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [mainPhoto, setMainPhoto] = useState<File | null>(null);
@@ -163,7 +165,7 @@ export default function AnimalDonationPage() {
     }
   }
 
-  if (isPending || !session) return <div className="min-h-screen bg-[#eefdf1]"><SiteHeader /><main className="grid min-h-[60vh] place-items-center"><span className="size-6 animate-spin rounded-full border-2 border-[#b8d8c1] border-t-[#256441]" aria-label="Verificando acesso" /></main></div>;
+  if (isPending || !session || checkingAddress) return <div className="min-h-screen bg-[#eefdf1]"><SiteHeader /><main className="grid min-h-[60vh] place-items-center"><span className="size-6 animate-spin rounded-full border-2 border-[#b8d8c1] border-t-[#256441]" aria-label="Verificando acesso e endereço" /></main></div>;
 
   return (
     <div className="min-h-screen bg-[#eefdf1] text-[#121e17]">

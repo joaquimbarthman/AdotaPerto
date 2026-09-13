@@ -4,13 +4,15 @@ import { SiteFooter } from "@/components/site-footer";
 import { notify, Notification } from "@/components/notification";
 import { SiteHeader } from "@/components/site-header";
 import { DirectionalChevron } from "@/components/directional-chevron";
+import { DonationStepProgress } from "@/components/donation-form-ui";
 import { SkeletonLoader } from "@/components/skeleton-loader";
 import type { Animal } from "@/data/animals";
+import { useProfileAddressGuard } from "@/hooks/use-profile-address-guard";
 import { useSession } from "@/lib/auth-client";
 import Image from "next/image";
 import Link from "next/link";
 import { useParams, useRouter } from "next/navigation";
-import { FormEvent, ReactNode, useEffect, useState } from "react";
+import { FormEvent, ReactNode, useEffect, useRef, useState } from "react";
 
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:4000";
 
@@ -18,6 +20,7 @@ export default function AdoptionRequestPage() {
   const { id } = useParams<{ id: string }>();
   const router = useRouter();
   const { data: session, isPending } = useSession();
+  const checkingAddress = useProfileAddressGuard(session?.user.id, isPending);
   const [animal, setAnimal] = useState<Animal | null>(null);
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
@@ -26,6 +29,34 @@ export default function AdoptionRequestPage() {
   const [hasOtherAnimals, setHasOtherAnimals] = useState("");
   const [hasChildren, setHasChildren] = useState("");
   const [isRented, setIsRented] = useState("");
+  const [step, setStep] = useState(0);
+  const formRef = useRef<HTMLFormElement>(null);
+  const steps = ["Moradia", "Família", "Outros animais", "Rotina e cuidados", "Motivação"] as const;
+
+  function validateStep(stepIndex: number) {
+    const container = formRef.current?.querySelector<HTMLElement>(`[data-request-step="${stepIndex}"]`);
+    const controls = container?.querySelectorAll<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>("input, select, textarea");
+    for (const control of controls || []) {
+      if (!control.checkValidity()) {
+        control.reportValidity();
+        return false;
+      }
+    }
+    return true;
+  }
+
+  function goToNextStep() {
+    setError(null);
+    if (!validateStep(step)) return;
+    setStep((current) => Math.min(current + 1, steps.length - 1));
+    window.scrollTo({ top: 0, behavior: "smooth" });
+  }
+
+  function goToPreviousStep() {
+    setError(null);
+    setStep((current) => Math.max(current - 1, 0));
+    window.scrollTo({ top: 0, behavior: "smooth" });
+  }
 
   useEffect(() => {
     if (!isPending && !session) router.replace(`/login?reason=unauthenticated`);
@@ -54,6 +85,11 @@ export default function AdoptionRequestPage() {
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     setError(null);
+    if (step < steps.length - 1) {
+      goToNextStep();
+      return;
+    }
+    if (!validateStep(step)) return;
     if (!session) { router.replace("/login?reason=unauthenticated"); return; }
     if (!animal || ownAnimal || animal.viewerRequestStatus || animal.status !== "Disponível") return;
 
@@ -85,7 +121,7 @@ export default function AdoptionRequestPage() {
     }
   }
 
-  if (loading || isPending || !session || ownAnimal || (animal && (animal.viewerRequestStatus || animal.status !== "Disponível"))) return <PageLoading />;
+  if (loading || isPending || !session || checkingAddress || ownAnimal || (animal && (animal.viewerRequestStatus || animal.status !== "Disponível"))) return <PageLoading />;
 
   if (!animal) {
     return <div className="grid min-h-screen place-items-center bg-[#eefdf1] p-6 text-center"><div><h1 className="text-2xl font-bold">Animal n&atilde;o encontrado</h1><Link href="/adocao" className="mt-5 inline-block rounded-xl bg-[#2f7650] px-5 py-3 font-semibold text-white">Voltar para ado&ccedil;&atilde;o</Link></div></div>;
@@ -103,7 +139,7 @@ export default function AdoptionRequestPage() {
           <p className="mt-1.5 text-xs leading-4 text-[#404942] sm:mt-2 sm:text-lg sm:leading-7">Preencha o formul&aacute;rio abaixo para demonstrar seu interesse.</p>
         </header>
 
-        <form onSubmit={handleSubmit} className="grid min-w-0 items-start gap-4 sm:gap-8 lg:grid-cols-[minmax(0,2fr)_minmax(280px,1fr)] lg:gap-12">
+        <form ref={formRef} onSubmit={handleSubmit} noValidate className="grid min-w-0 items-start gap-4 sm:gap-8 lg:grid-cols-[minmax(0,2fr)_minmax(280px,1fr)] lg:gap-12">
             <div className="min-w-0 space-y-4 sm:space-y-8">
               <AnimalSummary animal={animal} />
 
@@ -112,7 +148,10 @@ export default function AdoptionRequestPage() {
               {unavailable ? (
                 <div className="rounded-xl border border-[#d7e6da] bg-white p-8 text-center shadow-sm"><h2 className="text-xl font-bold">Solicita&ccedil;&atilde;o indispon&iacute;vel</h2><p className="mt-2 text-sm text-[#526057]">Voc&ecirc; j&aacute; possui uma solicita&ccedil;&atilde;o para este animal ou ele n&atilde;o est&aacute; mais dispon&iacute;vel.</p></div>
               ) : (
+                <>
+                <DonationStepProgress steps={steps} current={step} />
                 <section className="request-form-card overflow-hidden rounded-xl border border-[#bfc9bf]/30 bg-white p-4 shadow-[0_4px_10px_rgba(38,51,43,0.04)] sm:p-8 lg:p-10">
+                  <div data-request-step="0" className={step === 0 ? "donation-step-panel" : "hidden"}>
                   <FormSection title="Moradia e ambiente">
                     <RadioQuestion legend={"Onde voc\u00ea mora?"} name="housing" options={["Casa", "Apartamento", "Outro"]} value={housing} onChange={setHousing} />
                     <RadioQuestion legend={"Sua resid\u00eancia possui espa\u00e7o externo seguro?"} name="secureOutdoorSpace" options={["Sim", "N\u00e3o"]} />
@@ -120,20 +159,26 @@ export default function AdoptionRequestPage() {
                     {(isRented === "Sim" || housing === "Apartamento") && <RadioQuestion legend={"Animais s\u00e3o permitidos no im\u00f3vel?"} name="animalsAllowed" options={["Sim", "N\u00e3o", "N\u00e3o se aplica"]} />}
                     <RadioQuestion legend={"Onde o animal ficar\u00e1?"} name="animalArea" options={["Dentro de casa", "\u00c1rea externa", "Ambos"]} />
                   </FormSection>
+                  </div>
 
+                  <div data-request-step="1" className={step === 1 ? "donation-step-panel" : "hidden"}>
                   <FormSection title={"Fam\u00edlia e conviv\u00eancia"}>
                     <NumberQuestion label={"Quantas pessoas moram com voc\u00ea?"} name="householdSize" min={1} max={30} />
                     <RadioQuestion legend={"Todos est\u00e3o de acordo com a ado\u00e7\u00e3o?"} name="householdAgreement" options={["Sim", "N\u00e3o"]} />
                     <RadioQuestion legend={"Existem crian\u00e7as na resid\u00eancia?"} name="hasChildren" options={["Sim", "N\u00e3o"]} value={hasChildren} onChange={setHasChildren} />
                     {hasChildren === "Sim" && <SelectQuestion label={"Faixa et\u00e1ria das crian\u00e7as"} name="childrenAge" options={["0 a 3 anos", "4 a 7 anos", "8 a 12 anos", "13 anos ou mais", "Mais de uma faixa"]} />}
                   </FormSection>
+                  </div>
 
+                  <div data-request-step="2" className={step === 2 ? "donation-step-panel" : "hidden"}>
                   <FormSection title={"Outros animais e experi\u00eancia"}>
                     <RadioQuestion legend="Possui outros animais atualmente?" name="hasOtherAnimals" options={["Sim", "N\u00e3o"]} value={hasOtherAnimals} onChange={setHasOtherAnimals} />
                     {hasOtherAnimals === "Sim" && <div className="rounded-xl bg-[#f7fcf8] p-4"><CheckboxQuestion legend="Quais animais?" name="otherAnimalTypes" options={["C\u00e3es", "Gatos", "Outros"]} /><div className="mt-5"><RadioQuestion legend={"Eles s\u00e3o vacinados e castrados?"} name="otherAnimalsCare" options={["Sim", "Parcialmente", "N\u00e3o"]} /></div></div>}
                     <RadioQuestion legend={"J\u00e1 teve animais anteriormente?"} name="previousPets" options={["Sim", "N\u00e3o"]} />
                   </FormSection>
+                  </div>
 
+                  <div data-request-step="3" className={step === 3 ? "donation-step-panel" : "hidden"}>
                   <FormSection title="Rotina e disponibilidade">
                     <SelectQuestion label={"Quanto tempo o animal ficar\u00e1 sozinho por dia?"} name="aloneTime" options={["At\u00e9 2 horas", "De 2 a 4 horas", "De 4 a 8 horas", "Mais de 8 horas"]} />
                     <SelectQuestion label="Quanto tempo consegue dedicar diariamente ao animal?" name="dailyTime" options={["Menos de 1 hora", "De 1 a 2 horas", "De 2 a 4 horas", "Mais de 4 horas"]} />
@@ -144,17 +189,25 @@ export default function AdoptionRequestPage() {
                     <RadioQuestion legend={"Est\u00e1 disposto a manter vacina\u00e7\u00e3o e cuidados de sa\u00fade em dia?"} name="healthCommitment" options={["Sim", "N\u00e3o"]} />
                     <TextQuestion label={"Como pretende lidar caso o animal necessite de tratamento veterin\u00e1rio?"} name="veterinaryPlan" placeholder={"Conte como voc\u00ea se organizaria para oferecer o tratamento necess\u00e1rio..."} rows={3} />
                   </FormSection>
+                  </div>
 
+                  <div data-request-step="4" className={step === 4 ? "donation-step-panel" : "hidden"}>
                   <FormSection title={"Motiva\u00e7\u00e3o"}>
                     <TextQuestion label="Por que gostaria de adotar este animal?" name="motivation" placeholder={"Conte-nos um pouco sobre suas motiva\u00e7\u00f5es..."} rows={5} />
                     <TextQuestion label="Como seria a rotina do animal em sua casa?" name="petRoutine" placeholder={"Descreva passeios, alimenta\u00e7\u00e3o, companhia e onde ele dormiria..."} rows={4} />
                     <TextQuestion label={"H\u00e1 algo que o respons\u00e1vel deveria saber? (opcional)"} name="additionalInfo" placeholder={"Compartilhe outras informa\u00e7\u00f5es importantes..."} rows={3} required={false} />
                   </FormSection>
+                  </div>
                 </section>
+                <div className="donation-form-actions grid grid-cols-2 gap-2 border-t border-[#d7e6da] pt-4 sm:gap-3 sm:pt-6">
+                  {step === 0 ? <Link href={`/adocao/${animal.id}`} className="flex min-h-[52px] items-center justify-center rounded-xl border border-[#256441] bg-white px-5 py-3 text-sm font-semibold text-[#256441] transition hover:bg-[#e8f7eb]">Cancelar</Link> : <button type="button" onClick={goToPreviousStep} className="flex min-h-[52px] items-center justify-center rounded-xl border border-[#256441] bg-white px-5 py-3 text-sm font-semibold text-[#256441] transition hover:bg-[#e8f7eb]">Voltar</button>}
+                  {step < steps.length - 1 ? <button type="button" onClick={goToNextStep} className="flex min-h-[52px] items-center justify-center rounded-xl bg-[#0f5d39] px-5 py-3 text-sm font-semibold text-white transition hover:bg-[#194b30]">Continuar</button> : <button type="submit" disabled={submitting} className="flex min-h-[52px] items-center justify-center rounded-xl bg-[#0f5d39] px-5 py-3 text-sm font-semibold text-white shadow-sm transition hover:-translate-y-0.5 hover:bg-[#194b30] disabled:translate-y-0 disabled:opacity-50">{submitting ? "Enviando..." : "Enviar solicitação"}</button>}
+                </div>
+                </>
               )}
             </div>
 
-            <NextSteps animal={animal} submitting={submitting} disabled={unavailable} />
+            <NextSteps animal={animal} />
         </form>
       </main>
       <SiteFooter />
@@ -166,8 +219,8 @@ function AnimalSummary({ animal }: { animal: Animal }) {
   return <section className="flex gap-5 rounded-xl border border-[#bfc9bf]/30 bg-white p-5 shadow-[0_4px_20px_rgba(38,51,43,0.04)] sm:gap-6 sm:p-6"><div className="relative size-24 shrink-0 overflow-hidden rounded-lg sm:size-32"><Image src={animal.image || "/images/login-cover-v2.png"} alt={animal.name} fill className="object-cover" /></div><div className="min-w-0"><h2 className="text-2xl font-semibold">{animal.name}</h2><div className="mt-3 flex flex-wrap gap-2"><Tag>{animal.species}</Tag><Tag>{animal.sex}</Tag><Tag>{animal.age}</Tag><Tag>Porte {sizeName(animal.size)}</Tag></div><div className="mt-3 flex flex-wrap gap-x-4 gap-y-1 text-xs text-[#526057]"><span>Energia: {animal.energyLevel || "N\u00e3o informada"}</span><span>Sa&uacute;de: {animal.healthCondition || "sem necessidade informada"}</span></div></div></section>;
 }
 
-function NextSteps({ animal, submitting, disabled }: { animal: Animal; submitting: boolean; disabled: boolean }) {
-  return <aside className="rounded-xl border border-[#bfc9bf]/30 bg-white p-6 shadow-[0_4px_10px_rgba(38,51,43,0.04)] lg:sticky lg:top-28"><h2 className="text-2xl font-semibold">Pr&oacute;ximos Passos</h2><ol className="mt-5 space-y-4 text-sm leading-6 text-[#404942]"><li><strong className="text-[#121e17]">1. An&aacute;lise</strong><br />O respons&aacute;vel por {animal.name} analisar&aacute; seu perfil e suas respostas.</li><li><strong className="text-[#121e17]">2. Retorno</strong><br />Voc&ecirc; poder&aacute; acompanhar a decis&atilde;o pelo seu perfil.</li><li><strong className="text-[#121e17]">3. Contato</strong><br />Se aprovada, a solicita&ccedil;&atilde;o permitir&aacute; o contato com o respons&aacute;vel.</li></ol><div className="mt-6 rounded-lg bg-[#e3f2e6] p-4 text-xs leading-5 text-[#404942]"><strong className="text-[#256441]">Lembre-se:</strong> a ado&ccedil;&atilde;o &eacute; um ato de amor e responsabilidade a longo prazo.</div><button type="submit" disabled={submitting || disabled} className="mt-7 w-full rounded-xl bg-[#2f7650] px-6 py-3.5 text-sm font-semibold text-white shadow-sm transition hover:-translate-y-0.5 hover:bg-[#245d3f] disabled:translate-y-0 disabled:opacity-50">{submitting ? "Enviando..." : "Enviar solicita\u00e7\u00e3o"}</button><p className="mt-3 text-center text-xs text-[#707971]">Revise as respostas antes de enviar.</p></aside>;
+function NextSteps({ animal }: { animal: Animal }) {
+  return <aside className="rounded-xl border border-[#bfc9bf]/30 bg-white p-6 shadow-[0_4px_10px_rgba(38,51,43,0.04)] lg:sticky lg:top-28"><h2 className="text-2xl font-semibold">Pr&oacute;ximos Passos</h2><ol className="mt-5 space-y-4 text-sm leading-6 text-[#404942]"><li><strong className="text-[#121e17]">1. An&aacute;lise</strong><br />O respons&aacute;vel por {animal.name} analisar&aacute; seu perfil e suas respostas.</li><li><strong className="text-[#121e17]">2. Retorno</strong><br />Voc&ecirc; poder&aacute; acompanhar a decis&atilde;o pelo seu perfil.</li><li><strong className="text-[#121e17]">3. Contato</strong><br />Se aprovada, a solicita&ccedil;&atilde;o permitir&aacute; o contato com o respons&aacute;vel.</li></ol><div className="mt-6 rounded-lg bg-[#e3f2e6] p-4 text-xs leading-5 text-[#404942]"><strong className="text-[#256441]">Lembre-se:</strong> a ado&ccedil;&atilde;o &eacute; um ato de amor e responsabilidade a longo prazo.</div></aside>;
 }
 
 function FormSection({ title, children }: { title: string; children: ReactNode }) {

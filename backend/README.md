@@ -21,7 +21,7 @@ API em Node.js e TypeScript, com Hono, Better Auth, Drizzle ORM, PostgreSQL e Mi
 
 As operações sobre dados pessoais, favoritos, publicações e solicitações aplicam autenticação e verificações de permissão conforme a rota. Os endpoints de mapas são públicos.
 
-A recuperação de senha envia o código por e-mail quando `RESEND_API_KEY` está configurada; `AUTH_EMAIL_FROM` define o remetente. Sem a chave, o código é registrado no terminal do backend para desenvolvimento.
+A recuperação de senha e a confirmação de alteração de e-mail usam a API do Resend. Configure `RESEND_API_KEY` e `AUTH_EMAIL_FROM`; códigos e links de autenticação nunca são registrados no terminal.
 
 ## Primeiro administrador
 
@@ -69,6 +69,8 @@ Exemplo de configuração:
 ```env
 BETTER_AUTH_SECRET=gere-uma-chave-secreta
 BETTER_AUTH_URL=http://localhost:4000
+RESEND_API_KEY=re_sua-chave-da-api
+AUTH_EMAIL_FROM="AdotaPerto <onboarding@resend.dev>"
 
 DATABASE_URL=postgresql://postgres:postgres@localhost:5432/adotaperto
 POSTGRES_DB=adotaperto
@@ -97,6 +99,8 @@ O serviço de mapas carrega essas URLs do `.env`, sem valores padrão no código
 
 | Variável | Uso |
 | --- | --- |
+| `RESEND_API_KEY` | Chave secreta usada exclusivamente pelo backend para enviar e-mails transacionais pelo Resend. |
+| `AUTH_EMAIL_FROM` | Remetente dos e-mails. Em produção, use um endereço de um domínio verificado no Resend, por exemplo `AdotaPerto <contato@seudominio.com>`. |
 | `VIACEP_BASE_URL` | Consulta de endereço por CEP; inclui `/ws`. Se falhar, a busca tenta o CEP diretamente no Nominatim. |
 | `NOMINATIM_SEARCH_URL` | Geocodificação de endereços; inclui `/search`. |
 | `OVERPASS_API_URL` | Busca de estabelecimentos próximos; inclui `/api/interpreter`. |

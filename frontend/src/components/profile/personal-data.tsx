@@ -189,6 +189,8 @@ export function AddressData({ profile }: { profile: UserProfile | null }) {
           <div className="relative">
             <input
               name="cep"
+              required
+              minLength={9}
               inputMode="numeric"
               value={cep}
               maxLength={9}
@@ -240,6 +242,7 @@ export function AddressData({ profile }: { profile: UserProfile | null }) {
           </span>
           <input
             name="rua"
+            required
             value={rua}
             onChange={(event) => setRua(event.target.value)}
             placeholder="Digite o nome da rua"
@@ -253,6 +256,7 @@ export function AddressData({ profile }: { profile: UserProfile | null }) {
           </span>
           <input
             name="cidade"
+            required
             value={cidade}
             onChange={(event) => setCidade(event.target.value)}
             placeholder="Sua cidade"
@@ -267,6 +271,7 @@ export function AddressData({ profile }: { profile: UserProfile | null }) {
           <span className="relative block">
             <select
               name="estado"
+              required
               value={estado}
               onChange={(event) => setEstado(event.target.value)}
               autoComplete="address-level1"

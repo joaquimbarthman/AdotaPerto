@@ -9,6 +9,7 @@ import { FormEvent, KeyboardEvent, useEffect, useRef, useState } from "react";
 import { AuthField } from "@/components/auth-field";
 import { AuthBrand, AuthShell } from "@/components/auth-shell";
 import { authClient } from "@/lib/auth-client";
+import { authErrorMessage } from "@/lib/auth-error-message";
 
 type Step = "code" | "password" | "success";
 
@@ -47,7 +48,7 @@ export default function ForgotPasswordPage() {
     const { error } = await authClient.emailOtp.requestPasswordReset({ email: address });
     setLoading(false);
     if (error) {
-      setMessage(error.message || "N\u00e3o foi poss\u00edvel enviar o c\u00f3digo. Tente novamente.");
+      setMessage(authErrorMessage(error, "N\u00e3o foi poss\u00edvel enviar o c\u00f3digo. Tente novamente."));
       return false;
     }
     return true;
@@ -102,7 +103,7 @@ export default function ForgotPasswordPage() {
     const { error } = await authClient.emailOtp.resetPassword({ email, otp: otp.join(""), password });
     setLoading(false);
     if (error) {
-      setMessage(error.message || "O c\u00f3digo \u00e9 inv\u00e1lido ou expirou. Solicite um novo c\u00f3digo.");
+      setMessage(authErrorMessage(error, "O c\u00f3digo \u00e9 inv\u00e1lido ou expirou. Solicite um novo c\u00f3digo."));
       return;
     }
     setStep("success");

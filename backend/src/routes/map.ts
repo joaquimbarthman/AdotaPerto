@@ -21,7 +21,8 @@ mapRoutes.get("/geocode", async (c) => {
     return result
       ? c.json(result)
       : c.json({ error: "Local não encontrado." }, 404);
-  } catch {
+  } catch (error) {
+    console.warn("[map/geocode] Serviço externo indisponível", error instanceof Error ? error.message : "erro desconhecido");
     return c.json(
       { error: "Serviço de busca indisponível. Tente novamente." },
       503,
@@ -154,7 +155,8 @@ mapRoutes.get("/places", async (c) => {
     return c.json({ error: "Consulta inválida." }, 400);
   try {
     return c.json(await nearbyPlaces(category, lat, lng));
-  } catch {
+  } catch (error) {
+    console.warn("[map/places] Provedores externos indisponíveis", error instanceof Error ? error.message : "erro desconhecido");
     return c.json(
       { error: "Não foi possível consultar estabelecimentos agora." },
       503,

@@ -7,6 +7,7 @@ import { useEffect, useRef, useState } from "react";
 import { ThemeToggle } from "@/components/theme-toggle";
 import { BrandLogo } from "@/components/brand-logo";
 import { NotificationCenter } from "@/components/notification-center";
+import { notify } from "@/components/notification";
 import { signOut, useSession } from "@/lib/auth-client";
 
 const links = [
@@ -51,8 +52,12 @@ export function SiteHeader() {
     await signOut({
       fetchOptions: {
         onSuccess: () => {
+          notify("Você saiu da sua conta com sucesso.", "success");
           router.replace("/");
           router.refresh();
+        },
+        onError: () => {
+          notify("Não foi possível sair da conta. Tente novamente.", "error");
         },
       },
     });
@@ -95,7 +100,7 @@ export function SiteHeader() {
               <div role="menu" className={`absolute right-0 top-[calc(100%+10px)] w-72 origin-top-right overflow-hidden rounded-2xl border border-[#d7e6da] bg-white shadow-[0_18px_45px_rgba(27,49,35,0.16)] transition-all duration-150 ${profileOpen ? "visible translate-y-0 scale-100 opacity-100" : "invisible -translate-y-2 scale-95 opacity-0"}`}>
                 <div className="border-b border-[#e7eee9] bg-[#f7fcf8] px-4 py-3"><p className="truncate text-sm font-extrabold text-[#253129]">{session.user.name}</p><p className="mt-0.5 truncate text-xs text-[#68726b]">{session.user.email}</p></div>
                 <nav className="p-2" aria-label="Áreas do perfil">{profileLinks.map((item) => <Link key={item.href} href={item.href} role="menuitem" onClick={(event) => { setProfileOpen(false); if (pathname === "/perfil") { event.preventDefault(); window.history.replaceState(null, "", item.href); window.dispatchEvent(new Event("profile-tab-change")); } }} className="flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-semibold text-[#404942] transition hover:bg-[#eefdf1] hover:text-[#256441]"><HeaderMenuIcon name={item.icon} />{item.label}</Link>)}</nav>
-                {isAdmin && <Link href="/admin" role="menuitem" onClick={() => setProfileOpen(false)} className="mx-2 mb-2 flex rounded-xl bg-[#eef7f0] px-3 py-2.5 text-sm font-bold text-[#256441]">Painel administrativo</Link>}
+                {isAdmin && <div className="mx-2 mb-2 border-t border-[#e7eee9] pt-2"><Link href="/admin" role="menuitem" onClick={() => setProfileOpen(false)} className={`flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-semibold transition hover:bg-[#eefdf1] hover:text-[#256441] ${pathname === "/admin" ? "bg-[#eefdf1] text-[#256441]" : "text-[#404942]"}`}><HeaderMenuIcon name="admin" />Painel administrativo</Link></div>}
                 <div className="border-t border-[#e7eee9] p-2"><button type="button" role="menuitem" onClick={() => { setProfileOpen(false); handleSignOut(); }} className="flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-left text-sm font-bold text-red-700 transition hover:bg-red-50"><HeaderMenuIcon name="logout" />Sair da conta</button></div>
               </div>
             </div>
@@ -192,5 +197,6 @@ function HeaderMenuIcon({ name }: { name: string }) {
   if (name === "user") return <svg {...common}><circle cx="12" cy="8" r="4" /><path d="M4 21a8 8 0 0 1 16 0" /></svg>;
   if (name === "pin") return <svg {...common}><path d="M20 10c0 5-8 11-8 11S4 15 4 10a8 8 0 1 1 16 0Z" /><circle cx="12" cy="10" r="2.5" /></svg>;
   if (name === "lock") return <svg {...common}><rect x="4" y="10" width="16" height="11" rx="2" /><path d="M8 10V7a4 4 0 0 1 8 0v3" /></svg>;
+  if (name === "admin") return <svg {...common}><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10Z" /><path d="m9 12 2 2 4-4" /></svg>;
   return <svg {...common}><path d="M10 17l5-5-5-5M15 12H3M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4" /></svg>;
 }

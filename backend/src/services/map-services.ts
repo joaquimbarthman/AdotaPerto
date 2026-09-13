@@ -8,23 +8,44 @@ function serviceUrl(name: string): string {
 }
 
 export type MapCategory = "veterinary" | "pet_shop" | "shelter";
+type OverpassResponse = { elements: Array<{ type?: string; id: number; lat?: number; lon?: number; center?: { lat: number; lon: number }; tags?: Record<string, string> }> };
 
 const cache = new Map<string, { expiresAt: number; value: unknown }>();
 
-async function fetchJson<T>(url: string, init?: RequestInit, timeout = 9000): Promise<T> {
-  const cached = cache.get(url);
-  if (cached && cached.expiresAt > Date.now()) return cached.value as T;
-  const controller = new AbortController();
-  const timer = setTimeout(() => controller.abort(), timeout);
-  try {
-    const response = await fetch(url, { ...init, signal: controller.signal, headers: { "User-Agent": "AdotaPerto-TCC/1.0 contato@adotaperto.local", ...init?.headers } });
-    if (!response.ok) throw new Error(`Serviço de localização respondeu ${response.status}`);
-    const value = await response.json() as T;
-    cache.set(url, { expiresAt: Date.now() + 10 * 60_000, value });
-    return value;
-  } finally {
-    clearTimeout(timer);
+class LocationServiceError extends Error {
+  constructor(message: string, readonly status?: number) {
+    super(message);
+    this.name = "LocationServiceError";
   }
+}
+
+const wait = (milliseconds: number) => new Promise((resolve) => setTimeout(resolve, milliseconds));
+
+async function fetchJson<T>(url: string, init?: RequestInit, timeout = 9000, cacheKey = url, retries = 1): Promise<T> {
+  const cached = cache.get(cacheKey);
+  if (cached && cached.expiresAt > Date.now()) return cached.value as T;
+
+  let lastError: unknown;
+  for (let attempt = 0; attempt <= retries; attempt += 1) {
+    const controller = new AbortController();
+    const timer = setTimeout(() => controller.abort(), timeout);
+    try {
+      const response = await fetch(url, { ...init, signal: controller.signal, headers: { "User-Agent": "AdotaPerto-TCC/1.0 contato@adotaperto.local", Accept: "application/json", ...init?.headers } });
+      if (!response.ok) throw new LocationServiceError(`Serviço de localização respondeu ${response.status}`, response.status);
+      const value = await response.json() as T;
+      cache.set(cacheKey, { expiresAt: Date.now() + 10 * 60_000, value });
+      return value;
+    } catch (error) {
+      lastError = error;
+      const status = error instanceof LocationServiceError ? error.status : undefined;
+      const transient = status == null || status === 408 || status === 429 || status >= 500;
+      if (!transient || attempt === retries) break;
+      await wait(250 * (attempt + 1));
+    } finally {
+      clearTimeout(timer);
+    }
+  }
+  throw lastError instanceof Error ? lastError : new LocationServiceError("Serviço de localização indisponível");
 }
 
 export async function geocode(query: string) {
@@ -88,10 +109,33 @@ export async function nearbyPlaces(category: MapCategory, lat: number, lng: numb
     ? [20_000, 50_000]
     : [12_000];
 
+  const mainPublicEndpoint = "https://overpass-api.de/api/interpreter";
+  const fallbackEndpoint = "https://overpass.private.coffee/api/interpreter";
+  const secondaryFallbackEndpoint = "https://maps.mail.ru/osm/tools/overpass/api/interpreter";
+  const configured = process.env.OVERPASS_API_URL?.split(",").map((value) => value.trim().replace(/\/+$/, "")).filter(Boolean) ?? [];
+  const custom = configured.filter((endpoint) => endpoint !== mainPublicEndpoint);
+  // Public instances can reject otherwise valid requests while overloaded.
+  // Race independent providers so one overloaded service does not block the whole map.
+  const endpoints = [...new Set([...custom, fallbackEndpoint, ...configured, mainPublicEndpoint, secondaryFallbackEndpoint])];
+  let lastError: unknown;
+  let receivedValidResponse = false;
+
   for (const radius of radii) {
-    const query = `[out:json][timeout:12];(node${tag}(around:${radius},${lat},${lng});way${tag}(around:${radius},${lat},${lng});relation${tag}(around:${radius},${lat},${lng}););out center tags 40;`;
-    const url = `${serviceUrl("OVERPASS_API_URL")}?data=${encodeURIComponent(query)}`;
-    const data = await fetchJson<{ elements: Array<{ id: number; lat?: number; lon?: number; center?: { lat: number; lon: number }; tags?: Record<string, string> }> }>(url, undefined, 15000);
+    const query = `[out:json][timeout:15];nwr${tag}(around:${radius},${lat},${lng});out tags center 40;`;
+    let data: OverpassResponse | null = null;
+    try {
+      data = await Promise.any(endpoints.map((endpoint) => fetchJson<OverpassResponse>(
+        endpoint,
+        { method: "POST", headers: { "Content-Type": "application/x-www-form-urlencoded;charset=UTF-8" }, body: new URLSearchParams({ data: query }).toString() },
+        12_000,
+        `overpass:${category}:${lat.toFixed(4)}:${lng.toFixed(4)}:${radius}`,
+        0,
+      )));
+      receivedValidResponse = true;
+    } catch (error) {
+      lastError = error;
+    }
+    if (!data) continue;
     const places = data.elements.flatMap((element) => {
       const point = element.lat != null && element.lon != null ? { lat: element.lat, lng: element.lon } : element.center ? { lat: element.center.lat, lng: element.center.lon } : null;
       if (!point || !element.tags?.name) return [];
@@ -99,7 +143,7 @@ export async function nearbyPlaces(category: MapCategory, lat: number, lng: numb
       const address = [tags["addr:street"], tags["addr:housenumber"], tags["addr:suburb"], tags["addr:city"]].filter(Boolean).join(", ");
       const image = placeImage(tags);
       return [{
-        id: `osm-${element.id}`, category, name: tags.name, ...point,
+        id: `osm-${element.type ?? "element"}-${element.id}`, category, name: tags.name, ...point,
         address: address || null,
         phone: tags["contact:phone"] || tags.phone || null,
         email: tags["contact:email"] || tags.email || null,
@@ -112,5 +156,6 @@ export async function nearbyPlaces(category: MapCategory, lat: number, lng: numb
     if (places.length > 0) return places;
   }
 
+  if (!receivedValidResponse && lastError) throw lastError;
   return [];
 }

@@ -19,7 +19,10 @@ export function ItemRequestSection({
   return (
     <section className="space-y-4">
       {requests.length === 0 ? (
-        <EmptyState message={empty} />
+        <EmptyState
+          message={empty}
+          description="As solicitações aparecerão aqui assim que forem enviadas ou recebidas."
+        />
       ) : (
         <div className="space-y-3 sm:space-y-4">
           {requests.map((request) => (
@@ -233,7 +236,10 @@ export function RequestSection({
   return (
     <section className="space-y-4">
       {requests.length === 0 ? (
-        <EmptyState message={empty} />
+        <EmptyState
+          message={empty}
+          description="As solicitações aparecerão aqui assim que forem enviadas ou recebidas."
+        />
       ) : (
         requests.map((request) => (
           <article

@@ -124,7 +124,7 @@ export default function AdoptionPage() {
               <div><h1 className="text-xl font-extrabold tracking-[-0.02em] sm:text-[40px] sm:leading-12">Encontre seu novo amigo</h1><p className="mt-0.5 text-xs text-[#404942] sm:mt-1 sm:text-base">{animals.length} animais aguardando adoção perto de você.</p></div>
               <label className="flex items-center gap-2 text-[10px] text-[#404942] sm:text-xs">Ordenar por:<select className="h-8 rounded-lg border border-[#d6e6db] bg-white px-2 text-xs outline-none focus:border-[#256441] sm:h-auto sm:px-3 sm:py-2 sm:text-sm"><option>Mais próximos</option><option>Mais recentes</option></select></label>
             </div>
-            {loadingAnimals ? <SkeletonLoader variant="cards" /> : loadError ? <LoadErrorState message="Não foi possível carregar os animais." /> : animals.length ? <div className="grid grid-cols-2 gap-2.5 sm:gap-6 xl:grid-cols-3">{animals.slice(0, visible).map((animal) => <AnimalCard key={animal.id} animal={animal} compactMobile />)}</div> : <EmptyState message="Nenhum animal disponível agora." />}
+            {loadingAnimals ? <SkeletonLoader variant="cards" /> : loadError ? <LoadErrorState message="Não foi possível carregar os animais." /> : animals.length ? <div className="grid grid-cols-2 gap-2.5 sm:gap-6 xl:grid-cols-3">{animals.slice(0, visible).map((animal) => <AnimalCard key={animal.id} animal={animal} compactMobile />)}</div> : <EmptyAnimals filtered={activeFilters > 0} />}
             {visible < animals.length && <div className="flex justify-center pt-8 sm:pt-14"><button onClick={() => setVisible((value) => value + 3)} className="group flex min-h-9 min-w-40 items-center justify-center gap-1.5 rounded-lg border-2 border-[#256441] px-5 py-2 text-xs font-semibold tracking-[0.04em] text-[#256441] transition-all hover:bg-[#256441] hover:text-white active:scale-[0.98] sm:min-w-56 sm:gap-2 sm:rounded-xl sm:px-8 sm:py-3.5 sm:text-sm">Carregar mais <DirectionalChevron direction="down" /></button></div>}
           </section>
         </div>
@@ -132,6 +132,10 @@ export default function AdoptionPage() {
       <div className="mt-10"><SiteFooter /></div>
     </div>
   );
+}
+
+function EmptyAnimals({ filtered }: { filtered: boolean }) {
+  return <EmptyState message={filtered ? "Nenhum animal encontrado com esses filtros." : "Nenhum animal disponível agora."} description={filtered ? "Tente remover alguns filtros para ampliar os resultados." : "Novos animais para adoção aparecerão aqui assim que forem publicados."} />;
 }
 
 function FilterChecks({ title, options, selected, onToggle }: { title: string; options: string[]; selected: string[]; onToggle: (value: string) => void }) {

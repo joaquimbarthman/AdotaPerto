@@ -2,6 +2,7 @@
 
 import { Notification } from "@/components/notification";
 import { authClient } from "@/lib/auth-client";
+import { authErrorMessage } from "@/lib/auth-error-message";
 import Image from "next/image";
 import Link from "next/link";
 import type { FormEvent, ReactNode } from "react";
@@ -44,7 +45,7 @@ export function AccountAccess({ userEmail }: { userEmail: string }) {
     if (error) {
       setStatusMessage({
         type: "error",
-        text: error.message || "Erro ao alterar a senha.",
+        text: authErrorMessage(error, "Erro ao alterar a senha."),
       });
       return;
     }
@@ -69,7 +70,7 @@ export function AccountAccess({ userEmail }: { userEmail: string }) {
     if (error) {
       setStatusMessage({
         type: "error",
-        text: error.message || "Erro ao solicitar alteração de e-mail.",
+        text: authErrorMessage(error, "Erro ao solicitar alteração de e-mail."),
       });
       return;
     }

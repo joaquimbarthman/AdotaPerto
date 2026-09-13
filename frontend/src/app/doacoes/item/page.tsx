@@ -8,6 +8,7 @@ import { SiteFooter } from "@/components/site-footer";
 import { SiteHeader } from "@/components/site-header";
 import { useSession } from "@/lib/auth-client";
 import { uploadImages } from "@/lib/uploads";
+import { useProfileAddressGuard } from "@/hooks/use-profile-address-guard";
 import Image from "next/image";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
@@ -20,6 +21,7 @@ const conditions = ["Novo", "Lacrado", "Aberto em boas condições", "Usado em b
 export default function ItemDonationPage() {
   const router = useRouter();
   const { data: session, isPending } = useSession();
+  const checkingAddress = useProfileAddressGuard(session?.user.id, isPending);
   const [category, setCategory] = useState("");
   const [mainPhoto, setMainPhoto] = useState<File | null>(null);
   const [extraPhotos, setExtraPhotos] = useState<File[]>([]);
@@ -117,7 +119,7 @@ export default function ItemDonationPage() {
     } finally { setLoading(false); }
   }
 
-  if (isPending || !session) return <div className="min-h-screen bg-[#eefdf1]"><SiteHeader /><main className="grid min-h-[60vh] place-items-center"><span className="size-6 animate-spin rounded-full border-2 border-[#b8d8c1] border-t-[#256441]" aria-label="Verificando acesso" /></main></div>;
+  if (isPending || !session || checkingAddress) return <div className="min-h-screen bg-[#eefdf1]"><SiteHeader /><main className="grid min-h-[60vh] place-items-center"><span className="size-6 animate-spin rounded-full border-2 border-[#b8d8c1] border-t-[#256441]" aria-label="Verificando acesso e endereço" /></main></div>;
 
   return <div className="min-h-screen bg-[#eefdf1] text-[#121e17]"><SiteHeader /><main className="donation-form-page mx-auto w-full max-w-[1120px] px-3 pb-24 pt-4 sm:px-8 sm:py-12 lg:px-16">
     <Link href={editId ? "/perfil#publicacoes" : "/doacoes"} className="group inline-flex items-center gap-1.5 text-sm font-semibold text-[#404942] transition hover:text-[#256441]"><DirectionalChevron className="transition-transform group-hover:-translate-x-0.5" />{editId ? "Voltar às publicações" : "Voltar às opções"}</Link>

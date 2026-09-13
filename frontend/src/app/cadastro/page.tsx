@@ -8,6 +8,7 @@ import { FormEvent, useEffect, useState } from "react";
 import { AuthField } from "@/components/auth-field";
 import { AuthBrand, AuthShell } from "@/components/auth-shell";
 import { authClient } from "@/lib/auth-client";
+import { authErrorMessage } from "@/lib/auth-error-message";
 
 export default function RegisterPage() {
   const router = useRouter();
@@ -77,7 +78,7 @@ export default function RegisterPage() {
     setLoading(false);
 
     if (error) {
-      setErrorMessage(error.message || "Erro ao criar conta. Tente novamente.");
+      setErrorMessage(authErrorMessage(error, "Erro ao criar conta. Tente novamente."));
       return;
     }
 

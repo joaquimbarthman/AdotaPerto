@@ -13,6 +13,11 @@ import { SiteFooter } from "@/components/site-footer";
 import { SiteHeader } from "@/components/site-header";
 import { useSession } from "@/lib/auth-client";
 import { useApproximateDistance } from "@/hooks/use-approximate-distance";
+import {
+  fetchProfileAddressCompletion,
+  PROFILE_ADDRESS_MESSAGE,
+  PROFILE_ADDRESS_PATH,
+} from "@/lib/profile-address";
 import type { DonationItem } from "../page";
 
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:4000";
@@ -68,6 +73,11 @@ export default function ItemDetailsPage() {
     const form = new FormData(event.currentTarget);
     setSending(true); setNotice(null);
     try {
+    if (!(await fetchProfileAddressCompletion())) {
+      notify(PROFILE_ADDRESS_MESSAGE, "warning");
+      router.push(PROFILE_ADDRESS_PATH);
+      return;
+    }
     const response = await fetch(`${API_BASE_URL}/api/donation-item-requests`, { method: "POST", headers: { "Content-Type": "application/json" }, credentials: "include", body: JSON.stringify({ itemId: item.id, quantity: Number(form.get("quantity")), message: String(form.get("message") || "") || null }) });
     const result = await response.json().catch(() => ({}));
     setSending(false);
