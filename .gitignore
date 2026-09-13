@@ -17,3 +17,5 @@ out/
 Thumbs.db
 *.tsbuildinfo
 
+# Arquivos temporários usados na elaboração do relatório
+.tcc-work/
