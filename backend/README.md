@@ -23,6 +23,15 @@ As operações sobre dados pessoais, favoritos, publicações e solicitações a
 
 A recuperação de senha envia o código por e-mail quando `RESEND_API_KEY` está configurada; `AUTH_EMAIL_FROM` define o remetente. Sem a chave, o código é registrado no terminal do backend para desenvolvimento.
 
+## Primeiro administrador
+
+O adapter de autenticação verifica se há usuários antes de salvar uma nova conta.
+Se não houver, atribui `admin`; os cadastros comuns seguintes recebem `user`.
+A consulta e a criação usam a mesma transação com um lock para serializar cadastros
+simultâneos. A regra está no código, sem trigger ou migration adicional.
+Contas existentes não são promovidas. Se todas as contas forem excluídas, o próximo
+cadastro será novamente o primeiro usuário e receberá `admin`.
+
 ## Requisitos
 
 - Node.js 22 ou superior

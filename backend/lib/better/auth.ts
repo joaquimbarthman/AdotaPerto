@@ -1,6 +1,7 @@
 import { betterAuth } from "better-auth";
 import { drizzleAdapter } from "better-auth/adapters/drizzle";
 import { admin, emailOTP } from "better-auth/plugins";
+import { sql } from "drizzle-orm";
 import { db } from "../db/index.ts";
 import {
   account,
@@ -54,11 +55,32 @@ async function sendAuthEmail(to: string, subject: string, html: string) {
   return true;
 }
 
+const firstUserAdminAdapter: ReturnType<typeof drizzleAdapter> = (options) => {
+  const config = { provider: "pg" as const, schema };
+  const adapter = drizzleAdapter(db, config)(options);
+  return {
+    ...adapter,
+    create: async (params) => {
+      if (params.model !== "user") return adapter.create(params);
+
+      return db.transaction(async (tx) => {
+        // Hold the lock until INSERT commits, including across API instances.
+        await tx.execute(sql`select pg_advisory_xact_lock(74219, 1)`);
+        const [existingUser] = await tx.select({ id: user.id }).from(user).limit(1);
+        return drizzleAdapter(tx, config)(options).create({
+          ...params,
+          data: {
+            ...params.data,
+            role: existingUser ? (params.data.role ?? "user") : "admin",
+          },
+        });
+      });
+    },
+  };
+};
+
 export const auth = betterAuth({
-  database: drizzleAdapter(db, {
-    provider: "pg",
-    schema,
-  }),
+  database: firstUserAdminAdapter,
   emailAndPassword: {
     enabled: true,
     revokeSessionsOnPasswordReset: true,
