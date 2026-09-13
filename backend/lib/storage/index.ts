@@ -1,3 +1,4 @@
+import "dotenv/config";
 import { Client } from "minio";
 
 export const imageBucket = process.env.MINIO_BUCKET || "adotaperto-images";
@@ -19,7 +20,11 @@ let bucketPromise: Promise<void> | null = null;
 export function ensureImageBucket() {
   bucketPromise ??= (async () => {
     if (!(await storage.bucketExists(imageBucket))) {
-      await storage.makeBucket(imageBucket);
+      try {
+        await storage.makeBucket(imageBucket);
+      } catch (error) {
+        if ((error as { code?: string }).code !== "BucketAlreadyOwnedByYou") throw error;
+      }
     }
   })().catch((error) => {
     bucketPromise = null;

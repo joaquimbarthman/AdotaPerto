@@ -1,5 +1,6 @@
 import fs from "node:fs/promises";
 import path from "node:path";
+import { fileURLToPath } from "node:url";
 
 const assets = {
   "animals": {
@@ -128,7 +129,7 @@ const assets = {
   }
 };
 
-const root = path.join(process.cwd(), "public", "seed");
+const root = fileURLToPath(new URL("../backend/inserts/images/", import.meta.url));
 
 function imageUrl(id) {
   // Pexels CDN, fixed photo ID. No random search.

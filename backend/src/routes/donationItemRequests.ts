@@ -121,23 +121,43 @@ donationItemRequestRoutes.patch("/:id/status", async (c) => {
   if (!user) return c.json({ error: "Não autorizado" }, 401);
   const parsed = statusSchema.safeParse(await c.req.json().catch(() => null));
   if (!parsed.success) return c.json({ error: "Status inválido" }, 400);
-  const [existing] = await db
-    .select({ ownerId: donationItem.userId, itemId: donationItem.id })
-    .from(donationItemRequest)
-    .innerJoin(donationItem, eq(donationItemRequest.itemId, donationItem.id))
-    .where(eq(donationItemRequest.id, c.req.param("id")));
-  if (!existing) return c.json({ error: "Solicitação não encontrada" }, 404);
-  if (existing.ownerId !== user.id)
-    return c.json({ error: "Sem permissão" }, 403);
-  const [updated] = await db
-    .update(donationItemRequest)
-    .set({ status: parsed.data.status, updatedAt: new Date() })
-    .where(eq(donationItemRequest.id, c.req.param("id")))
-    .returning();
-  if (parsed.data.status === "Aprovada")
-    await db
-      .update(donationItem)
-      .set({ status: "Doado", updatedAt: new Date() })
-      .where(eq(donationItem.id, existing.itemId));
-  return c.json(updated);
+  const result = await db.transaction(async (tx) => {
+    const id = c.req.param("id");
+    const [reference] = await tx.select({ itemId: donationItemRequest.itemId })
+      .from(donationItemRequest).where(eq(donationItemRequest.id, id));
+    if (!reference) return { error: "Solicitação não encontrada", status: 404 as const };
+
+    // Always lock the item first: requests for the same stock must serialize.
+    const [item] = await tx.select().from(donationItem)
+      .where(eq(donationItem.id, reference.itemId)).for("update");
+    if (!item) return { error: "Item não encontrado", status: 404 as const };
+    if (item.userId !== user.id) return { error: "Sem permissão", status: 403 as const };
+    const [request] = await tx.select().from(donationItemRequest)
+      .where(eq(donationItemRequest.id, id)).for("update");
+    if (!request) return { error: "Solicitação não encontrada", status: 404 as const };
+
+    const nextStatus = parsed.data.status;
+    if (request.status === nextStatus) return { request };
+    if (!["Em análise", "PENDING"].includes(request.status) || nextStatus === "Em análise") {
+      return { error: "Esta mudança de status não é permitida", status: 409 as const };
+    }
+    if (nextStatus === "Aprovada") {
+      if (item.status !== "Disponível") {
+        return { error: "Este item não está disponível", status: 409 as const };
+      }
+      if (request.quantity <= 0 || request.quantity > item.quantity) {
+        return { error: "Quantidade solicitada maior que a disponível ou inválida", status: 409 as const };
+      }
+      const remaining = item.quantity - request.quantity;
+      await tx.update(donationItem)
+        .set({ quantity: remaining, status: remaining === 0 ? "Doado" : "Disponível", updatedAt: new Date() })
+        .where(eq(donationItem.id, item.id));
+    }
+    const [updated] = await tx.update(donationItemRequest)
+      .set({ status: nextStatus, updatedAt: new Date() })
+      .where(eq(donationItemRequest.id, id)).returning();
+    return { request: updated };
+  });
+  if ("error" in result) return c.json({ error: result.error }, result.status);
+  return c.json(result.request);
 });

@@ -1,6 +1,7 @@
 import { betterAuth } from "better-auth";
+import { admin, emailOTP } from "better-auth/plugins";
 import { drizzleAdapter } from "better-auth/adapters/drizzle";
-import { emailOTP } from "better-auth/plugins";
+import { sql } from "drizzle-orm";
 import { db } from "../db/index.ts";
 import {
   account,
@@ -54,11 +55,32 @@ async function sendAuthEmail(to: string, subject: string, html: string) {
   return true;
 }
 
-export const auth = betterAuth({
-  database: drizzleAdapter(db, {
-    provider: "pg",
-    schema
-  }),
+export function createAuth(database = db) {
+  const authDatabase: ReturnType<typeof drizzleAdapter> = (options) => {
+    const config = { provider: "pg" as const, schema };
+    const adapter = drizzleAdapter(database, config)(options);
+    return {
+      ...adapter,
+      transaction: (callback) => database.transaction(async (tx) => {
+        // Serialize sign-ups until the user and credentials have been saved.
+        await tx.execute(sql`select pg_advisory_xact_lock(74219, 1)`);
+        return callback(drizzleAdapter(tx, config)(options));
+      }),
+    };
+  };
+
+  return betterAuth({
+  database: authDatabase,
+  databaseHooks: {
+    user: {
+      create: {
+        async before(newUser) {
+          const [existingUser] = await database.select({ id: user.id }).from(user).limit(1);
+          return { data: { ...newUser, role: existingUser ? "user" : "admin" } };
+        },
+      },
+    },
+  },
   emailAndPassword: {
     enabled: true,
     revokeSessionsOnPasswordReset: true,
@@ -75,10 +97,14 @@ export const auth = betterAuth({
         "Confirme seu novo e-mail",
         `<div style="font-family:Arial,sans-serif;color:#121e17"><h2 style="color:#0f5d39">AdotaPerto</h2><p>Confirme seu novo endere&ccedil;o de e-mail:</p><p><a href="${url}" style="display:inline-block;background:#256441;color:#fff;padding:12px 20px;border-radius:8px;text-decoration:none;font-weight:700">Confirmar novo e-mail</a></p><p>Se voc&ecirc; n&atilde;o solicitou esta altera&ccedil;&atilde;o, ignore esta mensagem.</p></div>`,
       );
-      if (!sent) console.info(`[AdotaPerto] Link de confirmação de e-mail para ${user.email}: ${url}`);
+      if (!sent)
+        console.info(
+          `[AdotaPerto] Link de confirmação de e-mail para ${user.email}: ${url}`,
+        );
     },
   },
   plugins: [
+    admin(),
     emailOTP({
       otpLength: 4,
       expiresIn: 600,
@@ -94,19 +120,29 @@ export const auth = betterAuth({
               "Content-Type": "application/json",
             },
             body: JSON.stringify({
-              from: process.env.AUTH_EMAIL_FROM || "AdotaPerto <onboarding@resend.dev>",
+              from:
+                process.env.AUTH_EMAIL_FROM ||
+                "AdotaPerto <onboarding@resend.dev>",
               to: [email],
               subject: "Seu c\u00f3digo para redefinir a senha",
               html: `<div style="font-family:Arial,sans-serif;color:#121e17"><h2 style="color:#0f5d39">AdotaPerto</h2><p>Use o c&oacute;digo abaixo para redefinir sua senha:</p><p style="font-size:32px;font-weight:700;letter-spacing:8px">${otp}</p><p>O c&oacute;digo expira em 10 minutos. Se voc&ecirc; n&atilde;o solicitou a altera&ccedil;&atilde;o, ignore este e-mail.</p></div>`,
             }),
           });
-          if (!response.ok) throw new Error("N\u00e3o foi poss\u00edvel enviar o e-mail de recupera\u00e7\u00e3o.");
+          if (!response.ok)
+            throw new Error(
+              "N\u00e3o foi poss\u00edvel enviar o e-mail de recupera\u00e7\u00e3o.",
+            );
           return;
         }
 
-        console.info(`[AdotaPerto] C\u00f3digo de recupera\u00e7\u00e3o para ${email}: ${otp}`);
+        console.info(
+          `[AdotaPerto] C\u00f3digo de recupera\u00e7\u00e3o para ${email}: ${otp}`,
+        );
       },
     }),
   ],
   trustedOrigins: ["http://localhost:3000"],
 });
+}
+
+export const auth = createAuth();

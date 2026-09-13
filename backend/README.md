@@ -17,11 +17,28 @@ API em Node.js e TypeScript, com Hono, Better Auth, Drizzle ORM, PostgreSQL e Mi
 | Geocodificação | Conversão de cidade, bairro ou CEP em coordenadas, integrando ViaCEP e Nominatim. | `/api/map/geocode` |
 | Anúncios no mapa | Consulta de animais e itens disponíveis com posição residencial aproximada e tratamento de indisponibilidade do banco. | `/api/map/listings` |
 | Estabelecimentos próximos | Consulta de veterinários, pet shops e abrigos via Overpass, com cache e limite de tempo das requisições externas. | `/api/map/places` |
-| Status | Verificação simples de resposta do servidor, retornando texto `ok`. | `/status` |
+| Status | Verificação do servidor, PostgreSQL e bucket MinIO em JSON. | `/status` |
 
 As operações sobre dados pessoais, favoritos, publicações e solicitações aplicam autenticação e verificações de permissão conforme a rota. Os endpoints de mapas são públicos.
 
 A recuperação de senha envia o código por e-mail quando `RESEND_API_KEY` está configurada; `AUTH_EMAIL_FROM` define o remetente. Sem a chave, o código é registrado no terminal do backend para desenvolvimento.
+
+## Primeiro administrador
+
+O adapter de autenticação verifica se há usuários antes de salvar uma nova conta.
+Se não houver, atribui `admin`; os cadastros comuns seguintes recebem `user`.
+A consulta e a criação usam a mesma transação com um lock para serializar cadastros
+simultâneos. A regra está no código, sem trigger ou migration adicional.
+Contas existentes não são promovidas. Se todas as contas forem excluídas, o próximo
+cadastro será novamente o primeiro usuário e receberá `admin`.
+
+## Painel administrativo
+
+O painel em `/admin` consome `GET /api/admin/overview`, com sessão obrigatória e
+verificação do papel `admin` diretamente no banco. Exibe totais, cadastros dos
+últimos sete dias, sessões não expiradas, publicações e solicitações agrupadas
+por situação, além das oito contas mais recentes. Os dados não são armazenados
+em cache. O painel permite consultar e atualizar os indicadores.
 
 ## Requisitos
 
@@ -45,7 +62,9 @@ npm install --legacy-peer-deps
 
 ## Variáveis de ambiente
 
-Crie o arquivo `.env` dentro de `backend`:
+Copie `.env.example` para `.env` dentro de `backend` e configure os valores locais. Arquivos com credenciais não devem ser versionados. Gere um segredo próprio para `BETTER_AUTH_SECRET`.
+
+Exemplo de configuração:
 
 ```env
 BETTER_AUTH_SECRET=gere-uma-chave-secreta
@@ -109,7 +128,7 @@ A preparação também copia os source maps (`.mjs.map`) usados pelas ferramenta
 
 ## Status da API
 
-`GET /status` é público e retorna HTTP `200`, com corpo de texto `ok` (`text/plain`). Serve para validar que o servidor está respondendo; não verifica banco de dados nem serviços externos.
+`GET /status` é público e consulta PostgreSQL e a existência do bucket MinIO, com limite de 5 segundos por verificação. Retorna JSON e HTTP `200` quando tudo está disponível ou `503` quando uma dependência falha. A consulta não cria o bucket. Exemplo: `{"status":"ok","server":{"status":"ok","uptime":42},"database":{"status":"ok"},"bucket":{"status":"ok","name":"adotaperto-images"}}`.
 
 ```powershell
 curl.exe -i http://localhost:4000/status
@@ -121,9 +140,9 @@ Gere uma chave para `BETTER_AUTH_SECRET`:
 node -e "console.log(require('crypto').randomBytes(32).toString('base64url'))"
 ```
 
-## Banco e armazenamento
+## Banco, armazenamento e e-mails locais
 
-Suba PostgreSQL e MinIO:
+Suba PostgreSQL, MinIO e Mailpit:
 
 ```powershell
 docker compose --env-file .env -f infra/docker-compose.yml up -d
@@ -141,6 +160,12 @@ Portas:
 - PostgreSQL: `5432`
 - MinIO API: `9000`
 - MinIO Console: `9001`
+- Mailpit SMTP: `1025`
+- Mailpit interface web: `8025`
+
+O Mailpit captura e-mails de desenvolvimento. Acesse a caixa de entrada em http://localhost:8025 e use `localhost:1025` como servidor SMTP para aplicações executadas no host (ou `mailpit:1025` dentro da rede do Compose), sem autenticação ou TLS. As portas publicadas ficam restritas ao acesso local. Para alterá-las, defina `MAILPIT_SMTP_PORT` e `MAILPIT_UI_PORT` no `backend/.env`.
+
+A configuração segue a [documentação oficial do Mailpit](https://mailpit.axllent.org/docs/install/docker/). O envio atual do backend usa Resend ou registra o código no terminal; para que esses e-mails apareçam no Mailpit, será necessário integrar o envio por SMTP.
 
 ## Migrations
 
@@ -148,26 +173,17 @@ Antes de migrar, confira se `DATABASE_URL` aponta para o banco esperado. Um banc
 
 Outras falhas na listagem retornam HTTP `503` com `code: "MAP_LISTINGS_UNAVAILABLE"`. Os endpoints públicos de mapas não dependem da consulta de sessão; o mapa de fundo e as buscas externas podem continuar funcionando durante uma falha no banco.
 
-**Compatibilidade:** as migrations deste repositório estão em pastas com `migration.sql`. O Drizzle Kit `0.31.x` espera o formato com `meta/_journal.json`; não execute `migrate` supondo que essas pastas serão reconhecidas. É necessário alinhar a versão/formato das migrations antes de aplicá-las. Para inicializar um banco local vazio diretamente pelos schemas atuais, execute `npx drizzle-kit push`, revise o plano apresentado e confirme apenas a criação das tabelas esperadas.
-
-Aplique as migrations existentes:
+Execute na pasta `backend`, com PostgreSQL e MinIO já disponíveis:
 
 ```powershell
-npx drizzle-kit migrate
+npm run startup
 ```
 
-Para gerar uma migration depois de alterar os schemas:
+O comando aplica as migrations registradas em `lib/db/migrations/meta/_journal.json` e cria o bucket se ele não existir. Não precisa de usuário e não executa o seeder nem inicia o servidor. Pode ser repetido: migrations aplicadas são controladas pelo Drizzle. Se falhar, termina com código 1. As pastas antigas com `migration.sql` não fazem parte do journal atual.
 
-```powershell
-npx drizzle-kit generate
-```
+Se o banco já tem tabelas criadas por `drizzle-kit push`, mas não possui histórico de migrations, a migration inicial pode acusar tabelas existentes. Nesse caso, alinhe o histórico antes de usar o startup; o script não apaga nem recria tabelas existentes.
 
-Depois aplique novamente:
-
-```powershell
-npx drizzle-kit migrate
-```
-
+Para gerar novas migrations: `npx drizzle-kit generate`.
 ## Executar
 
 Desenvolvimento com recarregamento automático:
@@ -196,9 +212,13 @@ O seeder associa os animais ao usuário mais antigo. Crie pelo menos uma conta p
 npm run db:seed
 ```
 
-O comando pode ser executado novamente. Animais existentes são atualizados pelo `id`.
+Execute `npm run startup` antes do seeder. O seeder envia as imagens de `inserts/images` ao bucket e salva URLs da API. O comando pode ser repetido; animais e itens existentes são atualizados pelo `id`.
 
 ## Verificação de tipos
+
+As solicitações de itens em análise podem ser aprovadas, recusadas ou canceladas pelo responsável pelo item. Estados concluídos não podem ser reabertos; repetir o mesmo status não altera o saldo. A aprovação desconta a quantidade solicitada do saldo disponível e marca o item como doado somente quando ele chega a zero. Solicitações pendentes sem saldo suficiente retornam HTTP `409` ao tentar aprovar. As alterações de saldo e solicitação usam uma transação com bloqueio do item para serializar aprovações concorrentes.
+
+Para testar esse fluxo, configure `TEST_DATABASE_URL` com um PostgreSQL de testes e execute `npm run test:integration`. O teste cria um schema temporário isolado, aplica a migration inicial e remove esse schema ao terminar. Inclui concorrência, aprovação parcial, permissões, transições e rollback. Sem a variável, os testes são ignorados.
 
 ```powershell
 npm run typecheck
@@ -210,6 +230,6 @@ npm run typecheck
 docker compose --env-file .env -f infra/docker-compose.yml down
 ```
 
-Os dados permanecem nos volumes `postgres_data` e `minio_data`.
+Os dados permanecem nos volumes `postgres_data`, `minio_data` e `mailpit_data`.
 
-Para apagar também os dados, use `down -v`. Esse comando remove banco, usuários, animais, solicitações, favoritos e imagens.
+Para apagar também os dados, use `down -v`. Esse comando remove banco, usuários, animais, solicitações, favoritos, imagens e e-mails capturados pelo Mailpit.

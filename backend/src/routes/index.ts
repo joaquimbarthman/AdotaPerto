@@ -8,6 +8,8 @@ import { favoriteRoutes } from "./favorites.ts";
 import { mapRoutes } from "./map.ts";
 import { uploadRoutes } from "./uploads.ts";
 import { userRoutes } from "./users.ts";
+import { registrationRoutes } from "./registration.ts";
+import { adminRoutes } from "./admin.ts";
 
 export type AuthContext = {
   Variables: {
@@ -17,6 +19,8 @@ export type AuthContext = {
 };
 
 export const apiRoutes = new Hono<AuthContext>();
+
+apiRoutes.route("/registration", registrationRoutes);
 
 apiRoutes.use("*", async (c, next) => {
   // Map endpoints are public and do not use session data.
@@ -33,6 +37,7 @@ apiRoutes.use("*", async (c, next) => {
 });
 
 apiRoutes.route("/animals", animalRoutes);
+apiRoutes.route("/admin", adminRoutes);
 apiRoutes.route("/users", userRoutes);
 apiRoutes.route("/adoption-requests", adoptionRequestRoutes);
 apiRoutes.route("/favorites", favoriteRoutes);

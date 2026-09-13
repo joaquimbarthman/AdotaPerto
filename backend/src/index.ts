@@ -3,10 +3,10 @@ import { Hono } from "hono";
 import { cors } from "hono/cors";
 import { auth } from "../lib/better/auth.ts";
 import { apiRoutes } from "./routes/index.ts";
+import { statusRoutes } from "./routes/status.ts";
 
 const app = new Hono();
 
-app.get("/status", (c) => c.text("ok", 200));
 
 app.use(
   "*",
@@ -27,8 +27,10 @@ app.use(
 );
 
 app.on(["POST", "GET"], "/api/auth/*", (c) => auth.handler(c.req.raw));
+app.route("/status", statusRoutes);
 
 app.route("/api", apiRoutes);
+
 
 serve(
   {
@@ -36,6 +38,7 @@ serve(
     port: 4000,
   },
   () => {
-    console.log("Servidor Aberto em http://localhost:4000/status");
+    const apiPublicUrl = process.env.API_PUBLIC_URL?.trim().replace(/\/+$/, "");
+    console.log(apiPublicUrl ? `Servidor Aberto em ${apiPublicUrl}/status` : "Servidor aberto na porta 4000");
   },
 );
