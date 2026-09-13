@@ -32,6 +32,7 @@ export function SiteHeader() {
   const [profileOpen, setProfileOpen] = useState(false);
   const profileMenuRef = useRef<HTMLDivElement>(null);
   const { data: session, isPending } = useSession();
+  const isAdmin = session?.user.role?.split(",").includes("admin");
   const firstName = session?.user.name?.trim().split(/\s+/)[0] || "Usuário";
 
   useEffect(() => {
@@ -94,6 +95,7 @@ export function SiteHeader() {
               <div role="menu" className={`absolute right-0 top-[calc(100%+10px)] w-72 origin-top-right overflow-hidden rounded-2xl border border-[#d7e6da] bg-white shadow-[0_18px_45px_rgba(27,49,35,0.16)] transition-all duration-150 ${profileOpen ? "visible translate-y-0 scale-100 opacity-100" : "invisible -translate-y-2 scale-95 opacity-0"}`}>
                 <div className="border-b border-[#e7eee9] bg-[#f7fcf8] px-4 py-3"><p className="truncate text-sm font-extrabold text-[#253129]">{session.user.name}</p><p className="mt-0.5 truncate text-xs text-[#68726b]">{session.user.email}</p></div>
                 <nav className="p-2" aria-label="Áreas do perfil">{profileLinks.map((item) => <Link key={item.href} href={item.href} role="menuitem" onClick={(event) => { setProfileOpen(false); if (pathname === "/perfil") { event.preventDefault(); window.history.replaceState(null, "", item.href); window.dispatchEvent(new Event("profile-tab-change")); } }} className="flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-semibold text-[#404942] transition hover:bg-[#eefdf1] hover:text-[#256441]"><HeaderMenuIcon name={item.icon} />{item.label}</Link>)}</nav>
+                {isAdmin && <Link href="/admin" role="menuitem" onClick={() => setProfileOpen(false)} className="mx-2 mb-2 flex rounded-xl bg-[#eef7f0] px-3 py-2.5 text-sm font-bold text-[#256441]">Painel administrativo</Link>}
                 <div className="border-t border-[#e7eee9] p-2"><button type="button" role="menuitem" onClick={() => { setProfileOpen(false); handleSignOut(); }} className="flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-left text-sm font-bold text-red-700 transition hover:bg-red-50"><HeaderMenuIcon name="logout" />Sair da conta</button></div>
               </div>
             </div>
@@ -122,6 +124,7 @@ export function SiteHeader() {
                 </div>
                 Meu perfil ({firstName})
               </Link>
+              {isAdmin && <Link href="/admin" onClick={() => setOpen(false)} className="mt-2 block rounded-lg bg-[#eef7f0] px-4 py-3 text-sm font-bold text-[#256441]">Painel administrativo</Link>}
               <ThemeToggle mobile />
               <div className="mt-3 border-t border-[#d7e6da] pt-4">
                 <button

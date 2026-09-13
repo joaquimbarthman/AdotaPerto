@@ -1,6 +1,6 @@
 import { betterAuth } from "better-auth";
-import { drizzleAdapter } from "better-auth/adapters/drizzle";
 import { admin, emailOTP } from "better-auth/plugins";
+import { drizzleAdapter } from "better-auth/adapters/drizzle";
 import { sql } from "drizzle-orm";
 import { db } from "../db/index.ts";
 import {
@@ -55,32 +55,32 @@ async function sendAuthEmail(to: string, subject: string, html: string) {
   return true;
 }
 
-const firstUserAdminAdapter: ReturnType<typeof drizzleAdapter> = (options) => {
-  const config = { provider: "pg" as const, schema };
-  const adapter = drizzleAdapter(db, config)(options);
-  return {
-    ...adapter,
-    create: async (params) => {
-      if (params.model !== "user") return adapter.create(params);
-
-      return db.transaction(async (tx) => {
-        // Hold the lock until INSERT commits, including across API instances.
+export function createAuth(database = db) {
+  const authDatabase: ReturnType<typeof drizzleAdapter> = (options) => {
+    const config = { provider: "pg" as const, schema };
+    const adapter = drizzleAdapter(database, config)(options);
+    return {
+      ...adapter,
+      transaction: (callback) => database.transaction(async (tx) => {
+        // Serialize sign-ups until the user and credentials have been saved.
         await tx.execute(sql`select pg_advisory_xact_lock(74219, 1)`);
-        const [existingUser] = await tx.select({ id: user.id }).from(user).limit(1);
-        return drizzleAdapter(tx, config)(options).create({
-          ...params,
-          data: {
-            ...params.data,
-            role: existingUser ? (params.data.role ?? "user") : "admin",
-          },
-        });
-      });
-    },
+        return callback(drizzleAdapter(tx, config)(options));
+      }),
+    };
   };
-};
 
-export const auth = betterAuth({
-  database: firstUserAdminAdapter,
+  return betterAuth({
+  database: authDatabase,
+  databaseHooks: {
+    user: {
+      create: {
+        async before(newUser) {
+          const [existingUser] = await database.select({ id: user.id }).from(user).limit(1);
+          return { data: { ...newUser, role: existingUser ? "user" : "admin" } };
+        },
+      },
+    },
+  },
   emailAndPassword: {
     enabled: true,
     revokeSessionsOnPasswordReset: true,
@@ -143,3 +143,6 @@ export const auth = betterAuth({
   ],
   trustedOrigins: ["http://localhost:3000"],
 });
+}
+
+export const auth = createAuth();

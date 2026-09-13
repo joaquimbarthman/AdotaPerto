@@ -4,7 +4,7 @@ import { Notification } from "@/components/notification";
 
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { FormEvent, useState } from "react";
+import { FormEvent, useEffect, useState } from "react";
 import { AuthField } from "@/components/auth-field";
 import { AuthBrand, AuthShell } from "@/components/auth-shell";
 import { authClient } from "@/lib/auth-client";
@@ -13,6 +13,43 @@ export default function RegisterPage() {
   const router = useRouter();
   const [loading, setLoading] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
+  const [isFirstUser, setIsFirstUser] = useState(false);
+  const [registrationCheck, setRegistrationCheck] = useState<"loading" | "ready" | "error">("loading");
+  const [checkAttempt, setCheckAttempt] = useState(0);
+
+  useEffect(() => {
+    let controller: AbortController;
+    async function checkRegistration() {
+      controller?.abort();
+      controller = new AbortController();
+      const { signal } = controller;
+      try {
+        const apiUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:4000";
+        const response = await fetch(`${apiUrl}/api/registration/status`, {
+          cache: "no-store",
+          signal,
+        });
+        if (!response.ok) throw new Error("Registration status unavailable");
+        const data = await response.json();
+        if (typeof data.isFirstUser !== "boolean") throw new Error("Invalid registration status");
+        if (!signal.aborted) {
+          setIsFirstUser(data.isFirstUser);
+          setRegistrationCheck("ready");
+        }
+      } catch {
+        if (!signal.aborted) {
+          setIsFirstUser(false);
+          setRegistrationCheck("error");
+        }
+      }
+    }
+    void checkRegistration();
+    window.addEventListener("focus", checkRegistration);
+    return () => {
+      controller?.abort();
+      window.removeEventListener("focus", checkRegistration);
+    };
+  }, [checkAttempt]);
 
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -57,6 +94,20 @@ export default function RegisterPage() {
       </header>
 
       {errorMessage && <Notification text={errorMessage} />}
+
+      {registrationCheck === "loading" && <p role="status" className="mb-4 text-xs text-[#4d5b53]">Verificando se esta é a primeira conta…</p>}
+      {registrationCheck === "error" && (
+        <div role="status" className="mb-4 rounded-lg border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-900">
+          <p>Não foi possível verificar se esta será a conta administrativa.</p>
+          <button type="button" onClick={() => { setRegistrationCheck("loading"); setCheckAttempt((value) => value + 1); }} className="mt-2 font-semibold underline">Tentar novamente</button>
+        </div>
+      )}
+
+      {isFirstUser && (
+        <p role="status" className="mb-4 rounded-lg border border-[#b8d8c2] bg-[#edf7ef] px-4 py-3 text-sm font-semibold text-[#0f5d39]">
+          Você está criando a conta administrativa
+        </p>
+      )}
 
       <form onSubmit={handleSubmit} className="space-y-3 sm:space-y-4">
         <AuthField label="Nome Completo" icon="/icons/user.svg" name="name" placeholder="Seu nome completo" autoComplete="name" required />

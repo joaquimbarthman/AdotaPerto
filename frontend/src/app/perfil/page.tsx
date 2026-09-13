@@ -2,6 +2,7 @@
 
 import { Notification } from "@/components/notification";
 import Image from "next/image";
+import Link from "next/link";
 import { useRouter } from "next/navigation";
 import type { FormEvent } from "react";
 import { useEffect, useState } from "react";
@@ -396,6 +397,14 @@ export default function ProfilePage() {
                 </button>
               </div>
             ))}
+            {session?.user.role?.split(",").includes("admin") && (
+              <div className="shrink-0 lg:mt-3 lg:w-full lg:border-t lg:border-[#c0c9bf] lg:pt-4">
+                <Link href="/admin" className="flex h-9 w-auto items-center justify-center gap-1.5 whitespace-nowrap rounded-md bg-white/60 px-2.5 text-left text-[10px] font-semibold leading-none text-[#256441] transition hover:bg-white lg:h-auto lg:w-full lg:justify-start lg:gap-3 lg:rounded-lg lg:bg-transparent lg:px-4 lg:py-3 lg:text-sm lg:leading-normal">
+                  <svg viewBox="0 0 24 24" className="size-4 shrink-0 lg:size-5" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><rect x="3" y="3" width="7" height="7" rx="1.5" /><rect x="14" y="3" width="7" height="7" rx="1.5" /><rect x="3" y="14" width="7" height="7" rx="1.5" /><rect x="14" y="14" width="7" height="7" rx="1.5" /></svg>
+                  <span>Painel administrativo</span>
+                </Link>
+              </div>
+            )}
           </nav>
 
           <section key={activeTab} className="profile-content profile-tab-panel min-w-0">

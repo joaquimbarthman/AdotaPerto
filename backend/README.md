@@ -32,6 +32,14 @@ simultâneos. A regra está no código, sem trigger ou migration adicional.
 Contas existentes não são promovidas. Se todas as contas forem excluídas, o próximo
 cadastro será novamente o primeiro usuário e receberá `admin`.
 
+## Painel administrativo
+
+O painel em `/admin` consome `GET /api/admin/overview`, com sessão obrigatória e
+verificação do papel `admin` diretamente no banco. Exibe totais, cadastros dos
+últimos sete dias, sessões não expiradas, publicações e solicitações agrupadas
+por situação, além das oito contas mais recentes. Os dados não são armazenados
+em cache. O painel permite consultar e atualizar os indicadores.
+
 ## Requisitos
 
 - Node.js 22 ou superior
