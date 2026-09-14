@@ -160,7 +160,7 @@ export function MapCanvas({ center, results, selectedId, userLocation, onSelect,
           </svg>
         </button>
       </div>
-      <div className="map-privacy-note absolute bottom-2 left-1.5 right-1.5 z-[500] whitespace-nowrap rounded-full px-2 py-1 text-center text-[clamp(5px,1.7vw,8px)] leading-none shadow-sm backdrop-blur-md lg:bottom-4 lg:left-1/2 lg:right-auto lg:w-[min(500px,calc(100%-28px))] lg:-translate-x-1/2 lg:whitespace-normal lg:px-5 lg:py-2.5 lg:text-xs lg:leading-4">Para sua segurança, localizações residenciais são aproximadas em um raio de 2 km.</div>
+      <div className="map-privacy-note absolute bottom-2 left-1.5 right-1.5 z-[500] whitespace-nowrap rounded-md px-2 py-1 text-center text-[clamp(5px,1.7vw,8px)] leading-none shadow-sm backdrop-blur-md lg:bottom-4 lg:left-1/2 lg:right-auto lg:w-[min(500px,calc(100%-28px))] lg:-translate-x-1/2 lg:whitespace-normal lg:px-5 lg:py-2.5 lg:text-xs lg:leading-4">Para sua segurança, localizações residenciais são aproximadas em um raio de 2 km.</div>
     </div>
   );
 }

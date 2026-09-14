@@ -21,6 +21,21 @@ const statusTone: Record<string, string> = {
   pendente: "admin-status-amber", "em análise": "admin-status-amber", pausado: "admin-status-muted", pausada: "admin-status-muted",
   recusado: "admin-status-red", recusada: "admin-status-red", cancelado: "admin-status-red", cancelada: "admin-status-red",
 };
+const statusLabels: Record<string, string> = {
+  pending: "Em análise",
+  approved: "Aprovada",
+  rejected: "Recusada",
+  canceled: "Cancelada",
+  cancelled: "Cancelada",
+  available: "Disponível",
+  paused: "Pausado",
+  adopted: "Adotado",
+  donated: "Doado",
+};
+
+function translateStatus(status: string) {
+  return statusLabels[status.trim().toLocaleLowerCase("pt-BR")] || status;
+}
 
 function AnimalAdminIcon() {
   return <Image src="/icons/adocao.svg" alt="" width={22} height={22} className="admin-animal-icon" />;
@@ -41,9 +56,10 @@ function StatusPanel({ title, description, rows, icon }: { title: string; descri
   return <section className="admin-card admin-status-panel">
     <div className="flex items-center justify-between gap-4"><div className="flex min-w-0 items-center gap-3"><span className="admin-panel-icon">{icon}</span><div><h2 className="admin-card-title">{title}</h2><p className="admin-muted mt-1 text-xs">{description}</p></div></div><span className="admin-total-badge">{number.format(sum)}</span></div>
     {rows.length === 0 ? <div className="admin-empty-state">Nenhum registro por aqui ainda.</div> : <ul className="mt-7 space-y-5">{rows.map((row) => {
-      const tone = statusTone[row.status.toLocaleLowerCase("pt-BR")] || "admin-status-green";
+      const label = translateStatus(row.status);
+      const tone = statusTone[label.toLocaleLowerCase("pt-BR")] || "admin-status-green";
       const percentage = sum ? Math.round(row.total / sum * 100) : 0;
-      return <li key={row.status}><div className="mb-2 flex items-center justify-between gap-3 text-sm"><span className="admin-status-label"><i className={tone} />{row.status}</span><span className="admin-status-value">{number.format(row.total)} <small>{percentage}%</small></span></div><div aria-hidden="true" className="admin-progress"><div className={tone} style={{ width: `${percentage}%` }} /></div></li>;
+      return <li key={row.status}><div className="mb-2 flex items-center justify-between gap-3 text-sm"><span className="admin-status-label"><i className={tone} />{label}</span><span className="admin-status-value">{number.format(row.total)} <small>{percentage}%</small></span></div><div aria-hidden="true" className="admin-progress"><div className={tone} style={{ width: `${percentage}%` }} /></div></li>;
     })}</ul>}
   </section>;
 }

@@ -9,7 +9,7 @@ import Image from "next/image";
 import Link from "next/link";
 
 export const metadata: Metadata = {
-  title: "Início",
+  title: { absolute: "Início | AdotaPerto" },
   description:
     "Encontre animais para adoção, doações e serviços para pets perto de você.",
 };
