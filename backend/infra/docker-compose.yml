@@ -1,6 +1,6 @@
 services:
   database:
-    image: postgres:17-alpine
+    image: postgres:18-alpine
     environment:
       POSTGRES_DB: ${POSTGRES_DB:?POSTGRES_DB não definida no .env}
       POSTGRES_USER: ${POSTGRES_USER:?POSTGRES_USER não definida no .env}
@@ -8,14 +8,17 @@ services:
     ports:
       - "${POSTGRES_PORT:?POSTGRES_PORT não definida no .env}:5432"
     volumes:
-      - postgres_data:/var/lib/postgresql/data
+      - postgres_data:/var/lib/postgresql
 
   storage:
-    image: quay.io/minio/minio:latest
-    command: server /data --console-address ":9001"
+    image: rustfs/rustfs:latest
+    command: /data
     environment:
-      MINIO_ROOT_USER: ${MINIO_ROOT_USER:?MINIO_ROOT_USER não definida no .env}
-      MINIO_ROOT_PASSWORD: ${MINIO_ROOT_PASSWORD:?MINIO_ROOT_PASSWORD não definida no .env}
+      RUSTFS_ACCESS_KEY: ${RUSTFS_ACCESS_KEY:?RUSTFS_ACCESS_KEY não definida no .env}
+      RUSTFS_SECRET_KEY: ${RUSTFS_SECRET_KEY:?RUSTFS_SECRET_KEY não definida no .env}
+      RUSTFS_ADDRESS: ":9000"
+      RUSTFS_CONSOLE_ADDRESS: ":9001"
+      RUSTFS_CONSOLE_ENABLE: "true"
     ports:
       - "${MINIO_API_PORT:?MINIO_API_PORT não definida no .env}:9000"
       - "${MINIO_CONSOLE_PORT:?MINIO_CONSOLE_PORT não definida no .env}:9001"

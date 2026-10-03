@@ -3,6 +3,7 @@ import { Hono } from "hono";
 import { z } from "zod";
 import { db } from "../../lib/db/index.ts";
 import { user } from "../../lib/db/schemas/index.ts";
+import { removeStorageObjects } from "../../lib/storage/index.ts";
 import type { AuthContext } from "./index.ts";
 
 export const userRoutes = new Hono<AuthContext>();
@@ -48,8 +49,12 @@ userRoutes.get("/cep/:cep", async (c) => {
   const cep = c.req.param("cep").replace(/\D/g, "");
   if (cep.length !== 8) return c.json({ error: "CEP inválido." }, 400);
   try {
-    const viacepBaseUrl = process.env.VIACEP_BASE_URL?.trim().replace(/\/+$/, "");
-    if (!viacepBaseUrl) throw new Error("Variável de ambiente VIACEP_BASE_URL não configurada.");
+    const viacepBaseUrl = process.env.VIACEP_BASE_URL?.trim().replace(
+      /\/+$/,
+      "",
+    );
+    if (!viacepBaseUrl)
+      throw new Error("Variável de ambiente VIACEP_BASE_URL não configurada.");
     const response = await fetch(`${viacepBaseUrl}/${cep}/json/`, {
       headers: { "User-Agent": "AdotaPerto-TCC/1.0" },
     });
@@ -143,6 +148,17 @@ userRoutes.delete("/me", async (c) => {
   const currentUser = c.get("user");
   if (!currentUser) {
     return c.json({ error: "Não autorizado" }, 401);
+  }
+
+  const isAdmin = currentUser.role?.split(",").includes("admin") ?? false;
+
+  try {
+    await removeStorageObjects(isAdmin ? undefined : `${currentUser.id}/`);
+  } catch {
+    return c.json(
+      { error: "Não foi possível remover os arquivos da conta" },
+      503,
+    );
   }
 
   const [removed] = await db

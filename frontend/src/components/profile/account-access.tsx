@@ -5,13 +5,18 @@ import { authClient } from "@/lib/auth-client";
 import { authErrorMessage } from "@/lib/auth-error-message";
 import Image from "next/image";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import type { FormEvent, ReactNode } from "react";
 import { useState } from "react";
 import { createPortal } from "react-dom";
+import { API_BASE_URL } from "./config";
 import { ProfileField, SectionHeading } from "./profile-ui";
 
 export function AccountAccess({ userEmail }: { userEmail: string }) {
+  const router = useRouter();
   const [modal, setModal] = useState<"email" | "senha" | null>(null);
+  const [showDeleteConfirmation, setShowDeleteConfirmation] = useState(false);
+  const [deleteConfirmation, setDeleteConfirmation] = useState("");
   const [statusMessage, setStatusMessage] = useState<{
     type: "success" | "error";
     text: string;
@@ -82,6 +87,37 @@ export function AccountAccess({ userEmail }: { userEmail: string }) {
     setModal(null);
   }
 
+  async function handleAccountDeletion() {
+    if (deleteConfirmation !== "DELETAR") return;
+
+    setStatusMessage(null);
+    setLoading(true);
+    try {
+      const response = await fetch(`${API_BASE_URL}/api/users/me`, {
+        method: "DELETE",
+        credentials: "include",
+      });
+      if (!response.ok) {
+        const body = await response.json().catch(() => null);
+        throw new Error(body?.error || "Não foi possível excluir sua conta.");
+      }
+
+      await authClient.signOut();
+      router.replace("/");
+      router.refresh();
+    } catch (error) {
+      setStatusMessage({
+        type: "error",
+        text:
+          error instanceof Error
+            ? error.message
+            : "Não foi possível excluir sua conta.",
+      });
+    } finally {
+      setLoading(false);
+    }
+  }
+
   return (
     <section id="panel-acesso" role="tabpanel" aria-labelledby="tab-acesso">
       <SectionHeading
@@ -129,6 +165,69 @@ export function AccountAccess({ userEmail }: { userEmail: string }) {
           Redefinir senha
         </Link>
       </div>
+
+      <section className="mt-8 max-w-3xl rounded-xl border border-red-200 bg-white p-5">
+        <h3 className="text-sm font-bold text-red-800">Excluir conta</h3>
+        <p className="mt-1 text-sm leading-6 text-[#5b675f]">
+          A exclusão é permanente e remove seus dados e publicações. Essa ação
+          não pode ser desfeita.
+        </p>
+        {!showDeleteConfirmation ? (
+          <button
+            type="button"
+            onClick={() => {
+              setStatusMessage(null);
+              setShowDeleteConfirmation(true);
+            }}
+            className="mt-4 min-h-11 rounded-lg border border-red-700 px-4 py-2 text-sm font-bold text-red-700 transition hover:bg-red-700 hover:text-white"
+          >
+            Excluir minha conta
+          </button>
+        ) : (
+          <div className="mt-4 space-y-4">
+            <label className="block max-w-md">
+              <span className="text-sm font-semibold text-[#253129]">
+                Para confirmar, escreva <strong>DELETAR</strong>
+              </span>
+              <input
+                type="text"
+                value={deleteConfirmation}
+                onChange={(event) => setDeleteConfirmation(event.target.value)}
+                autoComplete="off"
+                autoCapitalize="none"
+                spellCheck={false}
+                autoFocus
+                required
+                onKeyDown={(event) => {
+                  if (event.key === "Enter") event.preventDefault();
+                }}
+                className="mt-2 w-full rounded-lg border border-[#c0c9bf] px-3 py-2.5 text-sm text-[#121e17] outline-none focus:border-red-600 focus:ring-2 focus:ring-red-600/15"
+              />
+            </label>
+            <div className="flex flex-wrap gap-2">
+              <button
+                type="button"
+                disabled={loading}
+                onClick={() => {
+                  setShowDeleteConfirmation(false);
+                  setDeleteConfirmation("");
+                }}
+                className="min-h-10 rounded-lg border border-[#86a590] px-4 py-2 text-sm font-bold text-[#256441] transition hover:bg-[#e8f7eb] disabled:opacity-60"
+              >
+                Cancelar
+              </button>
+              <button
+                type="button"
+                onClick={handleAccountDeletion}
+                disabled={loading || deleteConfirmation !== "DELETAR"}
+                className="min-h-10 rounded-lg bg-red-700 px-4 py-2 text-sm font-bold text-white transition hover:bg-red-800 disabled:cursor-not-allowed disabled:opacity-50"
+              >
+                {loading ? "Excluindo conta..." : "Confirmar exclusão"}
+              </button>
+            </div>
+          </div>
+        )}
+      </section>
 
       {modal === "email" && (
         <AccountModal
