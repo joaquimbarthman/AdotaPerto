@@ -78,8 +78,8 @@ POSTGRES_USER=postgres
 POSTGRES_PASSWORD=postgres
 POSTGRES_PORT=5432
 
-MINIO_ROOT_USER=minioadmin
-MINIO_ROOT_PASSWORD=minioadmin
+RUSTFS_ACCESS_KEY=minioadmin
+RUSTFS_SECRET_KEY=minioadmin
 MINIO_API_PORT=9000
 MINIO_CONSOLE_PORT=9001
 MINIO_ENDPOINT=localhost
@@ -146,7 +146,7 @@ node -e "console.log(require('crypto').randomBytes(32).toString('base64url'))"
 
 ## Banco, armazenamento e e-mails locais
 
-Suba PostgreSQL, MinIO e Mailpit:
+Suba PostgreSQL, RustFS (armazenamento compatível com S3) e Mailpit:
 
 ```powershell
 docker compose --env-file .env -f infra/docker-compose.yml up -d
@@ -162,14 +162,16 @@ Portas:
 
 - API: `4000`
 - PostgreSQL: `5432`
-- MinIO API: `9000`
-- MinIO Console: `9001`
+- API S3 do RustFS: `9000`
+- Console do RustFS: `9001`
 - Mailpit SMTP: `1025`
 - Mailpit interface web: `8025`
 
 O Mailpit captura e-mails de desenvolvimento. Acesse a caixa de entrada em http://localhost:8025 e use `localhost:1025` como servidor SMTP para aplicações executadas no host (ou `mailpit:1025` dentro da rede do Compose), sem autenticação ou TLS. As portas publicadas ficam restritas ao acesso local. Para alterá-las, defina `MAILPIT_SMTP_PORT` e `MAILPIT_UI_PORT` no `backend/.env`.
 
 A configuração segue a [documentação oficial do Mailpit](https://mailpit.axllent.org/docs/install/docker/). O envio atual do backend usa Resend ou registra o código no terminal; para que esses e-mails apareçam no Mailpit, será necessário integrar o envio por SMTP.
+
+O Compose usa PostgreSQL 18 e RustFS. Configure `RUSTFS_ACCESS_KEY` e `RUSTFS_SECRET_KEY` para as credenciais S3; o backend ainda aceita `MINIO_ROOT_USER` e `MINIO_ROOT_PASSWORD` como nomes antigos. Se já existir um volume criado com PostgreSQL 17 ou anterior, faça backup e migre os dados antes de usar a versão 18; imagens de versões principais diferentes não atualizam o banco automaticamente.
 
 ## Migrations
 
