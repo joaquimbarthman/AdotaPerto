@@ -1,6 +1,7 @@
 export type Animal = {
   id: string;
   userId?: string;
+  organizationId?: string | null;
   name: string;
   image: string;
   images?: string[];

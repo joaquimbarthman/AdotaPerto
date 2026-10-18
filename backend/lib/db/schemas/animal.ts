@@ -1,5 +1,6 @@
 import { boolean, index, pgTable, text, timestamp } from "drizzle-orm/pg-core";
 import { user } from "./user.ts";
+import { organization } from "./organization.ts";
 
 export const animal = pgTable(
   "animal",
@@ -39,7 +40,8 @@ export const animal = pgTable(
     userId: text("user_id")
       .notNull()
       .references(() => user.id, { onDelete: "cascade" }),
+    organizationId: text("organization_id").references(() => organization.id, { onDelete: "set null" }),
   },
-  (table) => [index("animal_userId_idx").on(table.userId)],
+  (table) => [index("animal_userId_idx").on(table.userId), index("animal_organizationId_idx").on(table.organizationId)],
 );
 

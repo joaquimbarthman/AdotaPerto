@@ -6,6 +6,7 @@ import { db } from "../db/index.ts";
 import {
   emailVerificationEmail,
   passwordResetEmail,
+  organizationInvitationEmail,
   sendTransactionalEmail,
 } from "../email/resend.ts";
 import {
@@ -109,6 +110,14 @@ export function createAuth(database = db) {
     }),
     organizationPlugin({
       allowUserToCreateOrganization: true,
+      requireEmailVerificationOnInvitation: true,
+      async sendInvitationEmail({ id, email, organization, inviter }) {
+        if (!process.env.RESEND_API_KEY?.trim()) return;
+        const baseUrl = process.env.FRONTEND_URL || process.env.RENDER_EXTERNAL_URL || process.env.BETTER_AUTH_URL || "http://localhost:3000";
+        const url = `${baseUrl.replace(/\/+$/, "")}/organizacao/convite?id=${encodeURIComponent(id)}`;
+        const message = organizationInvitationEmail(organization.name, inviter.user.name, url);
+        await sendTransactionalEmail({ to: email, ...message });
+      },
       schema: {
         organization: {
           additionalFields: {

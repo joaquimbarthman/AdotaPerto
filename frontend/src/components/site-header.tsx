@@ -100,6 +100,7 @@ export function SiteHeader() {
               <div role="menu" className={`absolute right-0 top-[calc(100%+10px)] w-72 origin-top-right overflow-hidden rounded-2xl border border-[#d7e6da] bg-white shadow-[0_18px_45px_rgba(27,49,35,0.16)] transition-all duration-150 ${profileOpen ? "visible translate-y-0 scale-100 opacity-100" : "invisible -translate-y-2 scale-95 opacity-0"}`}>
                 <div className="border-b border-[#e7eee9] bg-[#f7fcf8] px-4 py-3"><p className="truncate text-sm font-extrabold text-[#253129]">{session.user.name}</p><p className="mt-0.5 truncate text-xs text-[#68726b]">{session.user.email}</p></div>
                 <nav className="p-2" aria-label="Áreas do perfil">{profileLinks.map((item) => <Link key={item.href} href={item.href} role="menuitem" onClick={(event) => { setProfileOpen(false); if (pathname === "/perfil") { event.preventDefault(); window.history.replaceState(null, "", item.href); window.dispatchEvent(new Event("profile-tab-change")); } }} className="flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-semibold text-[#404942] transition hover:bg-[#eefdf1] hover:text-[#256441]"><HeaderMenuIcon name={item.icon} />{item.label}</Link>)}</nav>
+                <div className="mx-2 mb-2 border-t border-[#e7eee9] pt-2"><Link href="/organizacao" role="menuitem" onClick={() => setProfileOpen(false)} className="flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-semibold text-[#404942] transition hover:bg-[#eefdf1] hover:text-[#256441]"><HeaderMenuIcon name="users" />Organização</Link></div>
                 {isAdmin && <div className="mx-2 mb-2 border-t border-[#e7eee9] pt-2"><Link href="/admin" role="menuitem" onClick={() => setProfileOpen(false)} className={`flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-semibold transition hover:bg-[#eefdf1] hover:text-[#256441] ${pathname === "/admin" ? "bg-[#eefdf1] text-[#256441]" : "text-[#404942]"}`}><HeaderMenuIcon name="admin" />Painel administrativo</Link></div>}
                 <div className="border-t border-[#e7eee9] p-2"><button type="button" role="menuitem" onClick={() => { setProfileOpen(false); handleSignOut(); }} className="flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-left text-sm font-bold text-red-700 transition hover:bg-red-50"><HeaderMenuIcon name="logout" />Sair da conta</button></div>
               </div>
@@ -130,6 +131,7 @@ export function SiteHeader() {
                 Meu perfil ({firstName})
               </Link>
               {isAdmin && <Link href="/admin" onClick={() => setOpen(false)} className="mt-2 block rounded-lg bg-[#eef7f0] px-4 py-3 text-sm font-bold text-[#256441]">Painel administrativo</Link>}
+              <Link href="/organizacao" onClick={() => setOpen(false)} className="mt-2 block rounded-lg bg-[#eef7f0] px-4 py-3 text-sm font-bold text-[#256441]">Organização</Link>
               <ThemeToggle mobile />
               <div className="mt-3 border-t border-[#d7e6da] pt-4">
                 <button
@@ -195,6 +197,7 @@ function HeaderMenuIcon({ name }: { name: string }) {
   if (name === "bell") return <svg {...common}><path d="M18 8a6 6 0 0 0-12 0c0 7-3 7-3 9h18c0-2-3-2-3-9M10 21h4" /></svg>;
   if (name === "bookmark") return <svg {...common}><path d="M6 3h12v18l-6-4-6 4V3Z" /></svg>;
   if (name === "user") return <svg {...common}><circle cx="12" cy="8" r="4" /><path d="M4 21a8 8 0 0 1 16 0" /></svg>;
+  if (name === "users") return <svg {...common}><circle cx="9" cy="8" r="3" /><path d="M3 20a6 6 0 0 1 12 0M17 5a3 3 0 0 1 0 6m0 4a5 5 0 0 1 4 5" /></svg>;
   if (name === "pin") return <svg {...common}><path d="M20 10c0 5-8 11-8 11S4 15 4 10a8 8 0 1 1 16 0Z" /><circle cx="12" cy="10" r="2.5" /></svg>;
   if (name === "lock") return <svg {...common}><rect x="4" y="10" width="16" height="11" rx="2" /><path d="M8 10V7a4 4 0 0 1 8 0v3" /></svg>;
   if (name === "admin") return <svg {...common}><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10Z" /><path d="m9 12 2 2 4-4" /></svg>;

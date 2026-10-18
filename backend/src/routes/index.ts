@@ -10,10 +10,12 @@ import { uploadRoutes } from "./uploads.ts";
 import { userRoutes } from "./users.ts";
 import { registrationRoutes } from "./registration.ts";
 import { adminRoutes } from "./admin.ts";
+import { organizationRoutes } from "./organizations.ts";
 import {
   hasCompleteAddress,
   PROFILE_ADDRESS_REQUIRED,
 } from "../services/profile-completion.ts";
+import { organizationMembership } from "../services/organization-access.ts";
 
 export type AuthContext = {
   Variables: {
@@ -45,10 +47,19 @@ apiRoutes.use("*", async (c, next) => {
   c.set("session", session?.session ?? null);
 
   const normalizedPath = c.req.path.replace(/\/+$/, "");
+  let publishingForOrganization = false;
+  if (c.req.method === "POST" && session?.user && addressRequiredPostRoutes.has(normalizedPath)) {
+    const body = await c.req.raw.clone().json().catch(() => null) as { organizationId?: unknown } | null;
+    const organizationId = body?.organizationId;
+    if (typeof organizationId === "string" && organizationId) {
+      publishingForOrganization = Boolean(await organizationMembership(session.user.id, organizationId));
+    }
+  }
   if (
     c.req.method === "POST" &&
     session?.user &&
     addressRequiredPostRoutes.has(normalizedPath) &&
+    !publishingForOrganization &&
     !(await hasCompleteAddress(session.user.id))
   ) {
     return c.json(
@@ -67,6 +78,7 @@ apiRoutes.use("*", async (c, next) => {
 
 apiRoutes.route("/animals", animalRoutes);
 apiRoutes.route("/admin", adminRoutes);
+apiRoutes.route("/organizations", organizationRoutes);
 apiRoutes.route("/users", userRoutes);
 apiRoutes.route("/adoption-requests", adoptionRequestRoutes);
 apiRoutes.route("/favorites", favoriteRoutes);

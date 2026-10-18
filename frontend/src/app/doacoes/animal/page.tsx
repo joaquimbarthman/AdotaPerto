@@ -30,7 +30,7 @@ function StoryIcon() { return <svg viewBox="0 0 24 24" className="size-5" fill="
 export default function AnimalDonationPage() {
   const router = useRouter();
   const { data: session, isPending } = useSession();
-  const checkingAddress = useProfileAddressGuard(session?.user.id, isPending, true);
+  const checkingAddress = useProfileAddressGuard(session?.user.id, isPending, true, true);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [mainPhoto, setMainPhoto] = useState<File | null>(null);
@@ -38,9 +38,11 @@ export default function AnimalDonationPage() {
   const [mainInputKey, setMainInputKey] = useState(0);
   const [extraInputKey, setExtraInputKey] = useState(0);
   const [editId, setEditId] = useState<string | null>(null);
+  const [organizationId, setOrganizationId] = useState<string | null>(null);
   const [editData, setEditData] = useState<Record<string, unknown> | null>(null);
   const [step, setStep] = useState(0);
   const formRef = useRef<HTMLFormElement>(null);
+  const returnPath = organizationId ? `/organizacao?id=${encodeURIComponent(organizationId)}&tab=publicacoes` : editId ? "/perfil#publicacoes" : "/doacoes";
 
   const steps = ["Informações básicas", "Saúde", "Comportamento", "História", "Fotos e confirmação"] as const;
 
@@ -62,13 +64,15 @@ export default function AnimalDonationPage() {
   useEffect(() => {
     const id = new URLSearchParams(window.location.search).get("edit");
     if (id) queueMicrotask(() => setEditId(id));
+    const organization = new URLSearchParams(window.location.search).get("organization");
+    if (organization) queueMicrotask(() => setOrganizationId(organization));
   }, []);
 
   useEffect(() => {
     if (!editId) return;
     fetch(`${API_BASE_URL}/api/animals/${editId}`, { credentials: "include" })
       .then(async (response) => { if (!response.ok) throw new Error("Anúncio não encontrado."); return response.json(); })
-      .then(setEditData)
+      .then((data) => { setEditData(data); setOrganizationId(data.organizationId || null); })
       .catch((cause: unknown) => setError(cause instanceof Error ? cause.message : "Não foi possível carregar o anúncio."));
   }, [editId]);
 
@@ -143,6 +147,7 @@ export default function AnimalDonationPage() {
       image,
       images,
       status: String(editData?.status || "Disponível"),
+      organizationId,
       };
 
       const res = await fetch(`${API_BASE_URL}/api/animals${editId ? `/${editId}` : ""}`, {
@@ -158,7 +163,7 @@ export default function AnimalDonationPage() {
       }
 
       notify(editId ? "Animal atualizado com sucesso." : "Animal cadastrado com sucesso.", "success");
-      router.push(editId ? "/perfil#publicacoes" : "/adocao");
+      router.push(organizationId ? `/organizacao?id=${encodeURIComponent(organizationId)}&tab=publicacoes` : editId ? "/perfil#publicacoes" : "/adocao");
     } catch (err: unknown) {
       setError(err instanceof Error ? err.message : "Erro ao cadastrar animal.");
     } finally {
@@ -172,7 +177,7 @@ export default function AnimalDonationPage() {
     <div className="min-h-screen bg-[#eefdf1] text-[#121e17]">
       <SiteHeader />
       <main className="donation-form-page mx-auto w-full max-w-[1120px] px-3 pb-24 pt-4 sm:px-8 sm:py-12 lg:px-16">
-        <Link href={editId ? "/perfil#publicacoes" : "/doacoes"} className="mb-4 inline-flex items-center gap-1.5 rounded-lg px-1 py-1 text-xs font-semibold text-[#256441] transition hover:bg-[#e8f7eb] sm:mb-7 sm:gap-2 sm:px-2 sm:text-sm"><span aria-hidden="true">‹</span> {editId ? "Voltar às publicações" : "Voltar às opções"}</Link>
+        <Link href={returnPath} className="mb-4 inline-flex items-center gap-1.5 rounded-lg px-1 py-1 text-xs font-semibold text-[#256441] transition hover:bg-[#e8f7eb] sm:mb-7 sm:gap-2 sm:px-2 sm:text-sm"><span aria-hidden="true">‹</span> {editId || organizationId ? "Voltar às publicações" : "Voltar às opções"}</Link>
         
         {error && <Notification text={error} />}
 
@@ -260,7 +265,7 @@ export default function AnimalDonationPage() {
             </div>
             
             <div className="donation-form-actions grid grid-cols-2 gap-2 border-t border-[#d7e6da] pt-4 sm:gap-3 sm:pt-6">
-              {step === 0 ? <Link href={editId ? "/perfil#publicacoes" : "/doacoes"} className="flex min-h-[52px] w-full items-center justify-center rounded-xl border border-[#256441] bg-white px-6 py-3 text-center text-sm font-semibold text-[#256441] transition hover:bg-[#e8f7eb]">Cancelar</Link> : <button type="button" onClick={() => setStep((current) => current - 1)} className="flex min-h-[52px] w-full items-center justify-center rounded-xl border border-[#256441] bg-white px-6 py-3 text-sm font-semibold text-[#256441] transition hover:bg-[#e8f7eb]">Voltar</button>}
+              {step === 0 ? <Link href={returnPath} className="flex min-h-[52px] w-full items-center justify-center rounded-xl border border-[#256441] bg-white px-6 py-3 text-center text-sm font-semibold text-[#256441] transition hover:bg-[#e8f7eb]">Cancelar</Link> : <button type="button" onClick={() => setStep((current) => current - 1)} className="flex min-h-[52px] w-full items-center justify-center rounded-xl border border-[#256441] bg-white px-6 py-3 text-sm font-semibold text-[#256441] transition hover:bg-[#e8f7eb]">Voltar</button>}
               {step < steps.length - 1 ? <button type="button" onClick={goToNextStep} className="flex min-h-[52px] w-full items-center justify-center rounded-xl bg-[#0f5d39] px-6 py-3 text-sm font-semibold text-white transition hover:bg-[#194b30]">Continuar</button> : <button type="submit" disabled={loading} className="flex min-h-[52px] w-full items-center justify-center gap-2 rounded-xl bg-[#0f5d39] px-6 py-3 text-sm font-semibold text-white shadow-[0_4px_12px_rgba(15,93,57,0.18)] transition hover:-translate-y-0.5 hover:bg-[#194b30] hover:shadow-[0_7px_16px_rgba(15,93,57,0.22)] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#256441] disabled:opacity-60">
                 <svg viewBox="0 0 20 20" className="size-4" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden="true"><path d="m5 10 3.2 3.2L15 6.5" strokeLinecap="round" strokeLinejoin="round" /></svg>
                 {loading ? "Salvando..." : editId ? "Salvar alterações" : "Finalizar cadastro"}

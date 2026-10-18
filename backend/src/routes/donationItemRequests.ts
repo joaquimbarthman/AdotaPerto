@@ -9,6 +9,7 @@ import {
   user as userTable,
 } from "../../lib/db/schemas/index.ts";
 import type { AuthContext } from "./index.ts";
+import { canManageOrganization, organizationMembership } from "../services/organization-access.ts";
 
 export const donationItemRequestRoutes = new Hono<AuthContext>();
 const createSchema = z.object({
@@ -90,7 +91,7 @@ donationItemRequestRoutes.post("/", async (c) => {
     .from(donationItem)
     .where(eq(donationItem.id, parsed.data.itemId));
   if (!item) return c.json({ error: "Item não encontrado" }, 404);
-  if (item.userId === user.id)
+  if (item.userId === user.id || (item.organizationId && await organizationMembership(user.id, item.organizationId)))
     return c.json({ error: "Você não pode solicitar seu próprio item" }, 400);
   if (item.status !== "Disponível")
     return c.json({ error: "Este item não está disponível" }, 409);
@@ -131,7 +132,9 @@ donationItemRequestRoutes.patch("/:id/status", async (c) => {
     const [item] = await tx.select().from(donationItem)
       .where(eq(donationItem.id, reference.itemId)).for("update");
     if (!item) return { error: "Item não encontrado", status: 404 as const };
-    if (item.userId !== user.id) return { error: "Sem permissão", status: 403 as const };
+    const membership = item.organizationId ? await organizationMembership(user.id, item.organizationId) : null;
+    if ((item.organizationId && !membership) || (item.userId !== user.id && !(membership && canManageOrganization(membership.role))))
+      return { error: "Sem permissão", status: 403 as const };
     const [request] = await tx.select().from(donationItemRequest)
       .where(eq(donationItemRequest.id, id)).for("update");
     if (!request) return { error: "Solicitação não encontrada", status: 404 as const };

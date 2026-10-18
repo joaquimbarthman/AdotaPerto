@@ -105,13 +105,14 @@ export default function AdminPage() {
         method: "POST",
         credentials: "include",
       });
-      const result: { animalsCreated?: number; itemsCreated?: number; error?: string } = await response.json();
+      const result: { animalsCreated?: number; animalsUpdated?: number; itemsCreated?: number; error?: string } = await response.json();
       if (!response.ok) throw new Error(result.error || "Não foi possível carregar o conteúdo de exemplo.");
       const animalsCreated = result.animalsCreated ?? 0;
+      const animalsUpdated = result.animalsUpdated ?? 0;
       const itemsCreated = result.itemsCreated ?? 0;
-      setSeedMessage(animalsCreated + itemsCreated === 0
-        ? "Os animais e itens de exemplo já estão cadastrados."
-        : `${number.format(animalsCreated)} animais e ${number.format(itemsCreated)} itens adicionados à sua conta.`);
+      setSeedMessage(animalsCreated + animalsUpdated + itemsCreated === 0
+        ? "Os animais e itens de exemplo já estão completos."
+        : `${number.format(animalsCreated)} animais criados, ${number.format(animalsUpdated)} animais completados e ${number.format(itemsCreated)} itens adicionados.`);
       setSeedError(false);
       refresh();
     } catch (cause) {
@@ -133,7 +134,7 @@ export default function AdminPage() {
       {data && !loading && <>
         <section className="admin-metrics-grid" aria-label="Indicadores gerais"><MetricCard featured label="Usuários cadastrados" value={data.users} detail={`${number.format(data.newUsers)} novos nos últimos 7 dias`} icon={<DashboardIcon name="users" />} /><MetricCard label="ONGs cadastradas" value={data.organizations} detail="Total de ONGs cadastradas" icon={<DashboardIcon name="users" />} /><MetricCard label="Animais publicados" value={total(data.animals)} detail="Em todas as situações" icon={<AnimalAdminIcon />} /><MetricCard label="Itens para doação" value={total(data.items)} detail="Anúncios cadastrados" icon={<DashboardIcon name="gift" />} /><MetricCard label="Sessões válidas" value={data.activeSessions} detail="Sessões ainda não expiradas" icon={<DashboardIcon name="session" />} /></section>
         <section className="admin-card mt-6 flex flex-wrap items-center justify-between gap-4 p-5 sm:p-6">
-          <div><h2 className="admin-card-title">Conteúdo de exemplo</h2><p className="admin-muted mt-1 text-xs">Adiciona os animais e itens de exemplo ausentes à sua conta. Publicações existentes não são alteradas.</p>{seedMessage && <p role="status" className={`mt-3 text-sm ${seedError ? "text-red-600" : "text-green-700"}`}>{seedMessage}</p>}</div>
+          <div><h2 className="admin-card-title">Conteúdo de exemplo</h2><p className="admin-muted mt-1 text-xs">Adiciona exemplos ausentes à sua conta e completa campos vazios dos animais de exemplo já cadastrados. Dados preenchidos são preservados.</p>{seedMessage && <p role="status" className={`mt-3 text-sm ${seedError ? "text-red-600" : "text-green-700"}`}>{seedMessage}</p>}</div>
           <button type="button" onClick={seedContent} disabled={seeding} className="admin-primary-link disabled:cursor-wait disabled:opacity-60">{seeding ? "Carregando conteúdo..." : "Adicionar animais e itens"}</button>
         </section>
         <div className="mb-4 mt-10 flex items-end justify-between gap-4"><div><p className="admin-section-kicker">Distribuição</p><h2 className="admin-section-title">Atividade da plataforma</h2></div><p className="admin-muted hidden max-w-sm text-right text-xs sm:block">Uma leitura rápida da situação atual de anúncios e pedidos.</p></div>

@@ -9,6 +9,7 @@ import {
   user as userTable,
 } from "../../lib/db/schemas/index.ts";
 import type { AuthContext } from "./index.ts";
+import { canManageOrganization, organizationMembership } from "../services/organization-access.ts";
 
 export const animalRoutes = new Hono<AuthContext>();
 
@@ -62,6 +63,7 @@ const animalPayloadSchema = z.object({
   fotos: z.array(z.string()).optional(),
   traits: z.array(z.string()).optional(),
   status: z.string().trim().min(1).optional(),
+  organizationId: z.string().trim().min(1).nullable().optional(),
 });
 
 type AnimalPayload = z.infer<typeof animalPayloadSchema>;
@@ -98,6 +100,7 @@ function animalValues(body: AnimalPayload) {
     images: body.images ?? body.fotos,
     traits: body.traits,
     status: body.status,
+    organizationId: body.organizationId,
   };
 }
 
@@ -189,6 +192,9 @@ animalRoutes.post("/", async (c) => {
   }
 
   const values = animalValues(parsed.data);
+  if (values.organizationId && !(await organizationMembership(user.id, values.organizationId))) {
+    return c.json({ error: "Você não faz parte desta organização." }, 403);
+  }
   if (
     !values.name ||
     !values.species ||
@@ -233,7 +239,9 @@ animalRoutes.put("/:id", async (c) => {
     return c.json({ error: "Animal não encontrado" }, 404);
   }
 
-  if (existing.userId !== user.id) {
+  const membership = existing.organizationId ? await organizationMembership(user.id, existing.organizationId) : null;
+  const managingOrganization = Boolean(membership && canManageOrganization(membership.role));
+  if ((existing.organizationId && !membership) || (existing.userId !== user.id && !managingOrganization)) {
     return c.json({ error: "Sem permissão" }, 403);
   }
 
@@ -248,6 +256,12 @@ animalRoutes.put("/:id", async (c) => {
   }
 
   const values = animalValues(parsed.data);
+  if (existing.userId !== user.id && values.organizationId !== undefined && values.organizationId !== existing.organizationId) {
+    return c.json({ error: "Não é permitido transferir uma publicação de outro membro." }, 403);
+  }
+  if (values.organizationId && !(await organizationMembership(user.id, values.organizationId))) {
+    return c.json({ error: "Você não faz parte desta organização." }, 403);
+  }
   if (!Object.values(values).some((value) => value !== undefined)) {
     return c.json({ error: "Nenhum campo válido para atualizar" }, 400);
   }
@@ -277,7 +291,8 @@ animalRoutes.delete("/:id", async (c) => {
     return c.json({ error: "Animal não encontrado" }, 404);
   }
 
-  if (existing.userId !== user.id) {
+  const membership = existing.organizationId ? await organizationMembership(user.id, existing.organizationId) : null;
+  if ((existing.organizationId && !membership) || (existing.userId !== user.id && !(membership && canManageOrganization(membership.role)))) {
     return c.json({ error: "Sem permissão" }, 403);
   }
 

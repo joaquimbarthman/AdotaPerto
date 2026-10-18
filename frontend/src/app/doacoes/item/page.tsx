@@ -22,7 +22,7 @@ const conditions = ["Novo", "Lacrado", "Aberto em boas condições", "Usado em b
 export default function ItemDonationPage() {
   const router = useRouter();
   const { data: session, isPending } = useSession();
-  const checkingAddress = useProfileAddressGuard(session?.user.id, isPending, true);
+  const checkingAddress = useProfileAddressGuard(session?.user.id, isPending, true, true);
   const [category, setCategory] = useState("");
   const [mainPhoto, setMainPhoto] = useState<File | null>(null);
   const [extraPhotos, setExtraPhotos] = useState<File[]>([]);
@@ -32,9 +32,11 @@ export default function ItemDonationPage() {
   const [globalError, setGlobalError] = useState<string | null>(null);
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [editId, setEditId] = useState<string | null>(null);
+  const [organizationId, setOrganizationId] = useState<string | null>(null);
   const [editData, setEditData] = useState<Record<string, unknown> | null>(null);
   const [step, setStep] = useState(0);
   const formRef = useRef<HTMLFormElement>(null);
+  const returnPath = organizationId ? `/organizacao?id=${encodeURIComponent(organizationId)}&tab=publicacoes` : editId ? "/perfil#publicacoes" : "/doacoes";
   const today = useMemo(() => new Date().toISOString().slice(0, 10), []);
   const steps = ["Informações do item", "Estado e descrição", "Fotos", "Entrega"] as const;
 
@@ -59,13 +61,15 @@ export default function ItemDonationPage() {
   useEffect(() => {
     const id = new URLSearchParams(window.location.search).get("edit");
     if (id) queueMicrotask(() => setEditId(id));
+    const organization = new URLSearchParams(window.location.search).get("organization");
+    if (organization) queueMicrotask(() => setOrganizationId(organization));
   }, []);
 
   useEffect(() => {
     if (!editId) return;
     fetch(`${API_BASE_URL}/api/donation-items/${editId}`, { credentials: "include" })
       .then(async (response) => { if (!response.ok) throw new Error("Doação não encontrada."); return response.json(); })
-      .then((data) => { setEditData(data); setCategory(String(data.category || "")); })
+      .then((data) => { setEditData(data); setCategory(String(data.category || "")); setOrganizationId(data.organizationId || null); })
       .catch((cause: unknown) => setGlobalError(cause instanceof Error ? cause.message : "Não foi possível carregar a doação."));
   }, [editId]);
 
@@ -109,12 +113,13 @@ export default function ItemDonationPage() {
           unit: String(form.get("unit")), condition: String(form.get("condition")), expirationDate: String(form.get("expirationDate") || "") || null,
           description: String(form.get("description")), mainImage, images, deliveryMethod: String(form.get("deliveryMethod")),
           availableUntil: availableUntil || null,
+          organizationId,
         }),
       });
       const result = await response.json().catch(() => ({}));
       if (!response.ok) throw new Error(result.error || "Não foi possível publicar a doação.");
       notify(editId ? "Item atualizado com sucesso." : "Item publicado com sucesso.", "success");
-      router.push(editId ? "/perfil#publicacoes" : "/itens");
+      router.push(organizationId ? `/organizacao?id=${encodeURIComponent(organizationId)}&tab=publicacoes` : editId ? "/perfil#publicacoes" : "/itens");
     } catch (cause: unknown) {
       setGlobalError(cause instanceof Error ? cause.message : "Não foi possível publicar a doação.");
     } finally { setLoading(false); }
@@ -123,7 +128,7 @@ export default function ItemDonationPage() {
   if (isPending || !session || checkingAddress) return <div className="min-h-screen bg-[#eefdf1]"><SiteHeader /><main className="grid min-h-[60vh] place-items-center"><span className="size-6 animate-spin rounded-full border-2 border-[#b8d8c1] border-t-[#256441]" aria-label="Verificando acesso e endereço" /></main></div>;
 
   return <div className="min-h-screen bg-[#eefdf1] text-[#121e17]"><SiteHeader /><main className="donation-form-page mx-auto w-full max-w-[1120px] px-3 pb-24 pt-4 sm:px-8 sm:py-12 lg:px-16">
-    <Link href={editId ? "/perfil#publicacoes" : "/doacoes"} className="group inline-flex items-center gap-1.5 text-sm font-semibold text-[#404942] transition hover:text-[#256441]"><DirectionalChevron className="transition-transform group-hover:-translate-x-0.5" />{editId ? "Voltar às publicações" : "Voltar às opções"}</Link>
+    <Link href={returnPath} className="group inline-flex items-center gap-1.5 text-sm font-semibold text-[#404942] transition hover:text-[#256441]"><DirectionalChevron className="transition-transform group-hover:-translate-x-0.5" />{editId || organizationId ? "Voltar às publicações" : "Voltar às opções"}</Link>
     <header className="mb-5 mt-4 sm:mb-10 sm:mt-6"><h1 className="text-2xl font-extrabold leading-7 tracking-[-0.025em] sm:text-4xl lg:text-5xl">{editId ? "Editar anúncio do item" : "Publicar doação"}</h1><p className="mt-1.5 text-xs leading-4 text-[#4d5b53] sm:mt-2 sm:text-lg sm:leading-7">{editId ? "Revise todas as informações e mantenha o anúncio atualizado." : "Compartilhe itens e recursos que podem ajudar quem precisa."}</p></header>
     {globalError && <Notification text={globalError} />}
     <form ref={formRef} onSubmit={submit} className="donation-form mx-auto grid max-w-[1120px] items-start gap-4 sm:gap-8 lg:grid-cols-[minmax(0,1fr)_300px]">
@@ -161,7 +166,7 @@ export default function ItemDonationPage() {
       </div></DonationFormSection>
       </div>
 
-      <div className="donation-form-actions grid grid-cols-2 gap-2 border-t border-[#d7e6da] pt-4 sm:gap-3 sm:pt-6">{step === 0 ? <Link href={editId ? "/perfil#publicacoes" : "/doacoes"} className="flex min-h-11 items-center justify-center rounded-lg border border-[#256441] bg-white px-3 py-2 text-xs font-semibold text-[#256441] transition hover:bg-[#e8f7eb] sm:min-h-[54px] sm:rounded-xl sm:text-sm">Cancelar</Link> : <button type="button" onClick={() => setStep((current) => current - 1)} className="flex min-h-11 items-center justify-center rounded-lg border border-[#256441] bg-white px-3 py-2 text-xs font-semibold text-[#256441] transition hover:bg-[#e8f7eb] sm:min-h-[54px] sm:rounded-xl sm:text-sm">Voltar</button>}{step < steps.length - 1 ? <button type="button" onClick={goToNextStep} className="flex min-h-11 items-center justify-center rounded-lg bg-[#0f5d39] px-3 py-2 text-xs font-semibold text-white transition hover:bg-[#194b30] sm:min-h-[54px] sm:rounded-xl sm:text-sm">Continuar</button> : <button type="submit" disabled={loading} className="flex min-h-11 items-center justify-center rounded-lg bg-[#0f5d39] px-3 py-2 text-xs font-semibold text-white shadow-[0_4px_12px_rgba(15,93,57,0.18)] transition hover:-translate-y-0.5 hover:bg-[#194b30] disabled:opacity-60 sm:min-h-[54px] sm:rounded-xl sm:text-sm">{loading ? "Salvando..." : editId ? "Salvar alterações" : "Publicar doação"}</button>}</div>
+      <div className="donation-form-actions grid grid-cols-2 gap-2 border-t border-[#d7e6da] pt-4 sm:gap-3 sm:pt-6">{step === 0 ? <Link href={returnPath} className="flex min-h-11 items-center justify-center rounded-lg border border-[#256441] bg-white px-3 py-2 text-xs font-semibold text-[#256441] transition hover:bg-[#e8f7eb] sm:min-h-[54px] sm:rounded-xl sm:text-sm">Cancelar</Link> : <button type="button" onClick={() => setStep((current) => current - 1)} className="flex min-h-11 items-center justify-center rounded-lg border border-[#256441] bg-white px-3 py-2 text-xs font-semibold text-[#256441] transition hover:bg-[#e8f7eb] sm:min-h-[54px] sm:rounded-xl sm:text-sm">Voltar</button>}{step < steps.length - 1 ? <button type="button" onClick={goToNextStep} className="flex min-h-11 items-center justify-center rounded-lg bg-[#0f5d39] px-3 py-2 text-xs font-semibold text-white transition hover:bg-[#194b30] sm:min-h-[54px] sm:rounded-xl sm:text-sm">Continuar</button> : <button type="submit" disabled={loading} className="flex min-h-11 items-center justify-center rounded-lg bg-[#0f5d39] px-3 py-2 text-xs font-semibold text-white shadow-[0_4px_12px_rgba(15,93,57,0.18)] transition hover:-translate-y-0.5 hover:bg-[#194b30] disabled:opacity-60 sm:min-h-[54px] sm:rounded-xl sm:text-sm">{loading ? "Salvando..." : editId ? "Salvar alterações" : "Publicar doação"}</button>}</div>
       </div>
 
       <aside className="donation-form-tips lg:sticky lg:top-28">

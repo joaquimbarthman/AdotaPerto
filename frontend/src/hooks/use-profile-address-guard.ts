@@ -13,6 +13,7 @@ export function useProfileAddressGuard(
   userId: string | undefined,
   sessionPending: boolean,
   skipWhenEditing = false,
+  skipForOrganization = false,
 ) {
   const router = useRouter();
   const [checkingAddress, setCheckingAddress] = useState(true);
@@ -20,6 +21,10 @@ export function useProfileAddressGuard(
   useEffect(() => {
     if (sessionPending || !userId) return;
     if (skipWhenEditing && new URLSearchParams(window.location.search).get("edit")) {
+      setCheckingAddress(false);
+      return;
+    }
+    if (skipForOrganization && new URLSearchParams(window.location.search).get("organization")) {
       setCheckingAddress(false);
       return;
     }
@@ -41,7 +46,7 @@ export function useProfileAddressGuard(
       });
 
     return () => controller.abort();
-  }, [router, sessionPending, skipWhenEditing, userId]);
+  }, [router, sessionPending, skipWhenEditing, skipForOrganization, userId]);
 
   return checkingAddress;
 }

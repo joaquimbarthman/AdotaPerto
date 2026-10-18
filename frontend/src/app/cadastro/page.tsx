@@ -126,7 +126,7 @@ export default function RegisterPage() {
     }
 
     setLoading(false);
-    router.replace("/");
+    router.replace(isOrganization ? "/organizacao" : "/");
     router.refresh();
   }
 
@@ -140,7 +140,7 @@ export default function RegisterPage() {
       return;
     }
     setPendingOrganization(null);
-    router.replace("/");
+    router.replace("/organizacao");
     router.refresh();
   }
 

@@ -10,6 +10,7 @@ import {
   user as userTable,
 } from "../../lib/db/schemas/index.ts";
 import type { AuthContext } from "./index.ts";
+import { canManageOrganization, organizationMembership } from "../services/organization-access.ts";
 
 export const adoptionRequestRoutes = new Hono<AuthContext>();
 
@@ -136,11 +137,13 @@ adoptionRequestRoutes.get("/:id", async (c) => {
     return c.json({ error: "Solicitação não encontrada" }, 404);
   }
 
-  if (
-    request.userId !== currentUser.id &&
-    request.animal.userId !== currentUser.id
-  ) {
-    return c.json({ error: "Sem permissão" }, 403);
+  if (request.userId !== currentUser.id) {
+    const membership = request.animal.organizationId
+      ? await organizationMembership(currentUser.id, request.animal.organizationId)
+      : null;
+    if ((request.animal.organizationId && !membership) ||
+      (request.animal.userId !== currentUser.id && !(membership && canManageOrganization(membership.role))))
+      return c.json({ error: "Sem permissão" }, 403);
   }
 
   const { userId: _userId, ...safeRequest } = request;
@@ -175,7 +178,8 @@ adoptionRequestRoutes.post("/", async (c) => {
     return c.json({ error: "Animal não encontrado" }, 404);
   }
 
-  if (existingAnimal.userId === currentUser.id) {
+  if (existingAnimal.userId === currentUser.id ||
+    (existingAnimal.organizationId && await organizationMembership(currentUser.id, existingAnimal.organizationId))) {
     return c.json(
       { error: "Você não pode solicitar a adoção do próprio animal" },
       400,
@@ -240,6 +244,7 @@ adoptionRequestRoutes.patch("/:id/status", async (c) => {
   const [existing] = await db
     .select({
       ownerId: animal.userId,
+      organizationId: animal.organizationId,
       animalId: adoptionRequest.animalId,
       currentStatus: adoptionRequest.status,
     })
@@ -251,7 +256,8 @@ adoptionRequestRoutes.patch("/:id/status", async (c) => {
     return c.json({ error: "Solicitação não encontrada" }, 404);
   }
 
-  if (existing.ownerId !== currentUser.id) {
+  const membership = existing.organizationId ? await organizationMembership(currentUser.id, existing.organizationId) : null;
+  if ((existing.organizationId && !membership) || (existing.ownerId !== currentUser.id && !(membership && canManageOrganization(membership.role)))) {
     return c.json({ error: "Sem permissão" }, 403);
   }
 

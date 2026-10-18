@@ -86,21 +86,34 @@ export function passwordResetEmail(otp: string) {
 
 export function emailVerificationEmail(url: string) {
   return {
-    subject: "Confirme seu novo e-mail",
+    subject: "Confirme seu e-mail",
     text: [
       "AdotaPerto",
       "",
-      "Confirme seu novo endere\u00e7o de e-mail acessando o link abaixo:",
+      "Confirme seu endere\u00e7o de e-mail acessando o link abaixo:",
       url,
       "",
       "Se voc\u00ea n\u00e3o solicitou esta altera\u00e7\u00e3o, ignore este e-mail.",
     ].join("\n"),
     html: emailLayout({
-      preview: "Confirme seu novo endere\u00e7o de e-mail no AdotaPerto",
-      title: "Confirme seu novo e-mail",
-      content: `<p style="margin:0 0 22px">Clique no bot&atilde;o para confirmar seu novo endere&ccedil;o de e-mail.</p><p style="margin:0"><a href="${escapeHtml(url)}" style="display:inline-block;background:#256441;color:#ffffff;padding:12px 20px;border-radius:8px;text-decoration:none;font-weight:700">Confirmar novo e-mail</a></p>`,
+      preview: "Confirme seu endere\u00e7o de e-mail no AdotaPerto",
+      title: "Confirme seu e-mail",
+      content: `<p style="margin:0 0 22px">Clique no bot&atilde;o para confirmar seu endere&ccedil;o de e-mail.</p><p style="margin:0"><a href="${escapeHtml(url)}" style="display:inline-block;background:#256441;color:#ffffff;padding:12px 20px;border-radius:8px;text-decoration:none;font-weight:700">Confirmar e-mail</a></p>`,
       footer:
         "Se voc&ecirc; n&atilde;o solicitou esta altera&ccedil;&atilde;o, ignore este e-mail.",
+    }),
+  };
+}
+
+export function organizationInvitationEmail(organizationName: string, inviterName: string, url: string) {
+  return {
+    subject: `Convite para participar da ${organizationName}`,
+    text: `${inviterName} convidou você para participar da ${organizationName} no AdotaPerto.\n\nAceite o convite: ${url}`,
+    html: emailLayout({
+      preview: `Convite para participar da ${organizationName}`,
+      title: "Convite para organização",
+      content: `<p>${escapeHtml(inviterName)} convidou você para participar da ${escapeHtml(organizationName)} no AdotaPerto.</p><p><a href="${escapeHtml(url)}" style="display:inline-block;background:#256441;color:#ffffff;padding:12px 20px;border-radius:8px;text-decoration:none;font-weight:700">Aceitar convite</a></p>`,
+      footer: "Se você não esperava este convite, ignore este e-mail.",
     }),
   };
 }

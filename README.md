@@ -34,6 +34,12 @@ O Render injeta `PORT` e `RENDER_EXTERNAL_URL`. Site, API e autenticação usam 
 
 Para habilitar e-mails, adicione `RESEND_API_KEY` e `AUTH_EMAIL_FROM` com um remetente do seu domínio verificado.
 
+## Painel da organização
+
+Após criar uma ONG no cadastro, acesse **Organização** no menu da conta (`/organizacao`). O painel reúne dados da ONG, logo, equipe, convites, publicações e solicitações. Responsáveis e gestores editam os dados, gerenciam membros e convites e podem administrar anúncios e solicitações da ONG. Membros podem criar publicações vinculadas à organização. Para um anúncio aparecer no painel, crie-o pelos botões do painel ou use **Vincular minhas publicações** para associar anúncios pessoais anteriores à ONG.
+
+Convites podem ser aceitos em `/organizacao/convite?id=...` por uma conta com e-mail verificado. Configure `RESEND_API_KEY` e `AUTH_EMAIL_FROM` para enviar convites e permitir a verificação de novos membros; um gestor também pode copiar o link na aba **Equipe**. O próximo `db:setup` aplica a migration que vincula animais e itens às organizações.
+
 O `render.yaml` oferece a mesma imagem para quem criar um Blueprint. A tela **New Web Service** usa as opções preenchidas no painel e não carrega esse arquivo. O desenvolvimento local continua usando PostgreSQL e armazenamento de imagens via Docker Compose.
 
 ## Funcionalidades gerais
@@ -41,6 +47,7 @@ O `render.yaml` oferece a mesma imagem para quem criar um Blueprint. A tela **Ne
 | Funcionalidade | Descrição |
 | --- | --- |
 | Conta e acesso | Cadastro, login, recuperação de senha e gerenciamento do perfil. |
+| Organizações | Painel de ONG com equipe, convites, publicações, solicitações e dados institucionais. |
 | Adoção de animais | Publicação e consulta de animais, com fotos, características e informações de cuidado. |
 | Solicitações de adoção | Envio de questionário, análise de compatibilidade e acompanhamento das solicitações enviadas e recebidas. |
 | Doação de itens | Publicação de produtos e materiais, consulta dos anúncios e solicitação de doações. |
