@@ -16,7 +16,7 @@ npm run setup
 npm run dev
 ```
 
-`setup` instala as dependências e cria `backend/.env` com um segredo local. `dev` inicia PostgreSQL, armazenamento de imagens e Mailpit pelo Docker Compose, aplica as migrations e abre a API e o site. Acesse http://localhost:3000. Encerre com `Ctrl+C`; os containers e os dados continuam disponíveis para a próxima execução. Para parar os containers: `npm run local:down`.
+`setup` instala as versões registradas nos lockfiles (`npm ci`) e cria `backend/.env` com um segredo local. Isso também refaz `node_modules` de forma limpa, evitando misturar binários nativos de instalações anteriores. `dev` inicia PostgreSQL, armazenamento de imagens e Mailpit pelo Docker Compose, aplica as migrations e abre a API e o site. Acesse http://localhost:3000. Encerre com `Ctrl+C`; os containers e os dados continuam disponíveis para a próxima execução. Para parar os containers: `npm run local:down`.
 
 Comandos úteis na raiz: `npm run db:setup`, `npm run db:seed`, `npm run dev:backend` e `npm run dev:frontend`. Para configurar e diagnosticar cada parte, consulte os READMEs do [backend](backend/README.md) e [frontend](frontend/README.md).
 

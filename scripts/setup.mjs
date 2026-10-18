@@ -38,10 +38,10 @@ if (env.includes("BETTER_AUTH_SECRET=replace-with-a-random-secret")) {
 }
 
 for (const directory of ["backend", "frontend"]) {
-  console.log(`Instalando dependências de ${directory}...`);
+  console.log(`Instalando dependências travadas no lockfile de ${directory}...`);
   const result = spawnSync(
     npm,
-    [...npmPrefix, "install", ...(directory === "backend" ? ["--legacy-peer-deps"] : [])],
+    [...npmPrefix, "ci", ...(directory === "backend" ? ["--legacy-peer-deps"] : [])],
     { cwd: path.join(root, directory), stdio: "inherit" },
   );
   if (result.status !== 0) process.exit(result.status ?? 1);
