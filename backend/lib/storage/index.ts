@@ -143,6 +143,7 @@ export async function uploadImage(
   objectName: string,
   contents: Buffer,
   contentType: string,
+  upsert = false,
 ) {
   if (supabaseUrl) {
     const response = await supabaseRequest(
@@ -152,7 +153,7 @@ export async function uploadImage(
         headers: {
           "Content-Type": contentType,
           "Cache-Control": "max-age=31536000",
-          "x-upsert": "false",
+          "x-upsert": String(upsert),
         },
         body: new Uint8Array(contents),
       },
@@ -172,8 +173,9 @@ export async function uploadImageFile(
   objectName: string,
   filePath: string,
   contentType: string,
+  upsert = false,
 ) {
-  await uploadImage(objectName, await readFile(filePath), contentType);
+  await uploadImage(objectName, await readFile(filePath), contentType, upsert);
 }
 
 export async function downloadImage(objectName: string) {

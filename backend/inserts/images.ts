@@ -35,7 +35,7 @@ export async function uploadSeedImages() {
           continue;
         }
         await uploadImageFile(`seed/${category}-${entry.name}-${number}.jpg`,
-          join(root, category, entry.name, `${number}.jpg`), "image/jpeg");
+          join(root, category, entry.name, `${number}.jpg`), "image/jpeg", true);
         count++;
       }
     }

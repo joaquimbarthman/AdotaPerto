@@ -213,13 +213,13 @@ http://localhost:4000
 
 ## Seeder
 
-O seeder associa os animais ao usuário mais antigo. Crie pelo menos uma conta pelo frontend antes de executá-lo.
+No painel administrativo, use **Adicionar animais e itens** para carregar o conteúdo de exemplo na conta do administrador conectado. Apenas registros ausentes são criados; os existentes são preservados. Também é possível executar a carga pelo terminal, associando os novos registros ao usuário mais antigo:
 
 ```powershell
 npm run db:seed
 ```
 
-Execute `npm run startup` antes do seeder. O seeder envia as imagens de `inserts/images` ao bucket e salva URLs da API. O comando pode ser repetido; animais e itens existentes são atualizados pelo `id`.
+Execute `npm run startup` antes do seeder. O seeder envia as imagens de `inserts/images` ao bucket e salva URLs da API. O comando pode ser repetido; animais e itens existentes não são alterados.
 
 ## Verificação de tipos
 

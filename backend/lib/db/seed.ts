@@ -1,6 +1,6 @@
-import { asc, eq } from "drizzle-orm";
+import { inArray } from "drizzle-orm";
 import { db } from "./index.ts";
-import { animal, donationItem, user } from "./schemas/index.ts";
+import { animal, donationItem } from "./schemas/index.ts";
 import { seedPhotos, uploadSeedImages } from "../../inserts/images.ts";
 
 const mockAnimals = [
@@ -254,71 +254,44 @@ const mockDonationItems = [
   },
 ] satisfies Array<Omit<typeof donationItem.$inferInsert, "userId">>;
 
-async function seed() {
-  const [firstUser] = await db
-    .select({ id: user.id, name: user.name })
-    .from(user)
-    .orderBy(asc(user.createdAt), asc(user.id))
-    .limit(1);
-
-  if (!firstUser) {
-    throw new Error(
-      "Nenhum usuário encontrado. Crie um usuário antes de executar o seeder.",
-    );
-  }
-
-  await uploadSeedImages();
+export async function seedForUser(firstUser: { id: string; name: string }) {
   const animalMedia = ["bento", "amora", "simba", "nina", "melissa", "frajola", "tobias", "olivia"];
   const itemMedia = ["racao", "racao", "caminha", "coleira", "shampoo", "brinquedos", "caixa", "petiscos"];
 
+  const [existingAnimals, existingItems] = await Promise.all([
+    db.select({ id: animal.id }).from(animal).where(inArray(animal.id, mockAnimals.map(({ id }) => id))),
+    db.select({ id: donationItem.id }).from(donationItem).where(inArray(donationItem.id, mockDonationItems.map(({ id }) => id))),
+  ]);
+  const animalIds = new Set(existingAnimals.map(({ id }) => id));
+  const itemIds = new Set(existingItems.map(({ id }) => id));
+  const missingAnimals = mockAnimals.filter(({ id }) => !animalIds.has(id));
+  const missingItems = mockDonationItems.filter(({ id }) => !itemIds.has(id));
+  if (missingAnimals.length === 0 && missingItems.length === 0) {
+    return { animalsCreated: 0, itemsCreated: 0 };
+  }
+
+  await uploadSeedImages();
+  let animalsCreated = 0;
+  let itemsCreated = 0;
+
   await db.transaction(async (tx) => {
-    for (const mockAnimal of mockAnimals) {
+    for (const mockAnimal of missingAnimals) {
       const [image, ...images] = seedPhotos(`animals/${animalMedia[mockAnimals.indexOf(mockAnimal)]}`);
       const values = { ...mockAnimal, image, images, userId: firstUser.id };
-      const [existing] = await tx
-        .select({ id: animal.id })
-        .from(animal)
-        .where(eq(animal.id, mockAnimal.id));
-
-      if (existing) {
-        await tx
-          .update(animal)
-          .set({ ...values, updatedAt: new Date() })
-          .where(eq(animal.id, mockAnimal.id));
-      } else {
-        await tx.insert(animal).values(values);
-      }
+      const inserted = await tx.insert(animal).values(values).onConflictDoNothing().returning({ id: animal.id });
+      animalsCreated += inserted.length;
     }
 
-    for (const mockItem of mockDonationItems) {
+    for (const mockItem of missingItems) {
       const [mainImage, ...images] = seedPhotos(`items/${itemMedia[mockDonationItems.indexOf(mockItem)]}`);
       const values = { ...mockItem, mainImage, images, userId: firstUser.id };
-      const [existing] = await tx
-        .select({ id: donationItem.id })
-        .from(donationItem)
-        .where(eq(donationItem.id, mockItem.id));
-
-      if (existing) {
-        await tx
-          .update(donationItem)
-          .set({ ...values, updatedAt: new Date() })
-          .where(eq(donationItem.id, mockItem.id));
-      } else {
-        await tx.insert(donationItem).values(values);
-      }
+      const inserted = await tx.insert(donationItem).values(values).onConflictDoNothing().returning({ id: donationItem.id });
+      itemsCreated += inserted.length;
     }
   });
 
   console.log(
-    `${mockAnimals.length} animais e ${mockDonationItems.length} itens associados ao usuário ${firstUser.name}.`,
+    `${animalsCreated} animais e ${itemsCreated} itens associados ao usuário ${firstUser.name}.`,
   );
+  return { animalsCreated, itemsCreated };
 }
-
-seed()
-  .catch((error) => {
-    console.error("Falha ao executar o seeder:", error);
-    process.exitCode = 1;
-  })
-  .finally(async () => {
-    await db.$client.end();
-  });

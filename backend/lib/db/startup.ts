@@ -3,8 +3,25 @@ import { fileURLToPath } from "node:url";
 import { migrate } from "drizzle-orm/node-postgres/migrator";
 
 async function startup() {
-  if (!process.env.DATABASE_URL) {
+  const databaseUrl = process.env.DATABASE_URL?.trim();
+  if (!databaseUrl) {
     throw new Error("DATABASE_URL não configurada no ambiente do serviço.");
+  }
+
+  let parsedDatabaseUrl: URL;
+  try {
+    parsedDatabaseUrl = new URL(databaseUrl);
+  } catch {
+    throw new Error("DATABASE_URL inválida. Copie a URI PostgreSQL completa em Supabase > Connect > Session pooler, sem aspas nem placeholders.");
+  }
+  if (
+    !["postgresql:", "postgres:"].includes(parsedDatabaseUrl.protocol) ||
+    !parsedDatabaseUrl.hostname ||
+    !parsedDatabaseUrl.username ||
+    !parsedDatabaseUrl.pathname ||
+    /[<>]/.test(databaseUrl)
+  ) {
+    throw new Error("DATABASE_URL inválida. Use a URI PostgreSQL completa do Supabase Session pooler, substituindo todos os placeholders.");
   }
 
   console.log("Conectando ao PostgreSQL...");

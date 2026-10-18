@@ -75,6 +75,9 @@ export default function AdminPage() {
   const [access, setAccess] = useState<number | null>(null);
   const [loading, setLoading] = useState(true);
   const [version, setVersion] = useState(0);
+  const [seeding, setSeeding] = useState(false);
+  const [seedMessage, setSeedMessage] = useState<string | null>(null);
+  const [seedError, setSeedError] = useState(false);
 
   useEffect(() => {
     const controller = new AbortController();
@@ -94,6 +97,31 @@ export default function AdminPage() {
 
   function refresh() { setLoading(true); setData(null); setError(null); setVersion((value) => value + 1); }
 
+  async function seedContent() {
+    setSeeding(true);
+    setSeedMessage(null);
+    try {
+      const response = await fetch(`${apiBaseUrl()}/api/admin/seed-content`, {
+        method: "POST",
+        credentials: "include",
+      });
+      const result: { animalsCreated?: number; itemsCreated?: number; error?: string } = await response.json();
+      if (!response.ok) throw new Error(result.error || "Não foi possível carregar o conteúdo de exemplo.");
+      const animalsCreated = result.animalsCreated ?? 0;
+      const itemsCreated = result.itemsCreated ?? 0;
+      setSeedMessage(animalsCreated + itemsCreated === 0
+        ? "Os animais e itens de exemplo já estão cadastrados."
+        : `${number.format(animalsCreated)} animais e ${number.format(itemsCreated)} itens adicionados à sua conta.`);
+      setSeedError(false);
+      refresh();
+    } catch (cause) {
+      setSeedMessage(cause instanceof Error ? cause.message : "Não foi possível conectar ao servidor.");
+      setSeedError(true);
+    } finally {
+      setSeeding(false);
+    }
+  }
+
   return <div className="admin-shell min-h-screen"><SiteHeader />
     <main className="mx-auto max-w-[1200px] px-4 pb-28 pt-7 sm:px-6 lg:px-12 lg:pb-14 lg:pt-10">
       <Link href="/" className="admin-back-button"><svg viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="m12.5 15-5-5 5-5" /></svg><span>Voltar ao site</span></Link>
@@ -104,6 +132,10 @@ export default function AdminPage() {
 
       {data && !loading && <>
         <section className="admin-metrics-grid" aria-label="Indicadores gerais"><MetricCard featured label="Usuários cadastrados" value={data.users} detail={`${number.format(data.newUsers)} novos nos últimos 7 dias`} icon={<DashboardIcon name="users" />} /><MetricCard label="ONGs cadastradas" value={data.organizations} detail="Total de ONGs cadastradas" icon={<DashboardIcon name="users" />} /><MetricCard label="Animais publicados" value={total(data.animals)} detail="Em todas as situações" icon={<AnimalAdminIcon />} /><MetricCard label="Itens para doação" value={total(data.items)} detail="Anúncios cadastrados" icon={<DashboardIcon name="gift" />} /><MetricCard label="Sessões válidas" value={data.activeSessions} detail="Sessões ainda não expiradas" icon={<DashboardIcon name="session" />} /></section>
+        <section className="admin-card mt-6 flex flex-wrap items-center justify-between gap-4 p-5 sm:p-6">
+          <div><h2 className="admin-card-title">Conteúdo de exemplo</h2><p className="admin-muted mt-1 text-xs">Adiciona os animais e itens de exemplo ausentes à sua conta. Publicações existentes não são alteradas.</p>{seedMessage && <p role="status" className={`mt-3 text-sm ${seedError ? "text-red-600" : "text-green-700"}`}>{seedMessage}</p>}</div>
+          <button type="button" onClick={seedContent} disabled={seeding} className="admin-primary-link disabled:cursor-wait disabled:opacity-60">{seeding ? "Carregando conteúdo..." : "Adicionar animais e itens"}</button>
+        </section>
         <div className="mb-4 mt-10 flex items-end justify-between gap-4"><div><p className="admin-section-kicker">Distribuição</p><h2 className="admin-section-title">Atividade da plataforma</h2></div><p className="admin-muted hidden max-w-sm text-right text-xs sm:block">Uma leitura rápida da situação atual de anúncios e pedidos.</p></div>
         <div className="grid gap-5 md:grid-cols-2"><StatusPanel title="Animais" description="Situação das publicações" rows={data.animals} icon={<AnimalAdminIcon />} /><StatusPanel title="Itens para doação" description="Situação dos anúncios" rows={data.items} icon={<DashboardIcon name="gift" />} /><StatusPanel title="Solicitações de adoção" description="Distribuição por situação" rows={data.adoptions} icon={<DashboardIcon name="users" />} /><StatusPanel title="Solicitações de itens" description="Distribuição por situação" rows={data.donations} icon={<DashboardIcon name="session" />} /></div>
         <section className="admin-card mt-6 overflow-hidden p-0"><div className="flex items-center justify-between gap-4 px-5 py-5 sm:px-6"><div><p className="admin-section-kicker">Comunidade</p><h2 className="admin-card-title mt-1">Cadastros recentes</h2><p className="admin-muted mt-1 text-xs">As últimas oito contas cadastradas.</p></div><span className="admin-panel-icon hidden sm:grid"><DashboardIcon name="users" /></span></div>{data.recentUsers.length === 0 ? <p className="admin-muted px-6 pb-6 text-sm">Nenhum usuário cadastrado.</p> : <div className="admin-table-wrap overflow-x-auto"><table className="admin-table w-full text-left text-sm"><caption className="sr-only">Usuários cadastrados recentemente</caption><thead><tr>{["Nome", "Localização", "Perfil", "Cadastro"].map((label) => <th scope="col" key={label}>{label}</th>)}</tr></thead><tbody>{data.recentUsers.map((person) => <tr key={person.id}><td data-label="Nome"><span className="admin-avatar">{person.name.charAt(0).toUpperCase()}</span><strong>{person.name}</strong></td><td data-label="Localização" className="admin-muted">{[person.city, person.state].filter(Boolean).join(" / ") || "Não informada"}</td><td data-label="Perfil"><span className={person.role?.split(",").includes("admin") ? "admin-role-badge admin-role-manager" : "admin-role-badge"}>{person.role?.split(",").includes("admin") ? "Administrador" : "Usuário"}</span></td><td data-label="Cadastro" className="admin-muted whitespace-nowrap">{new Date(person.createdAt).toLocaleDateString("pt-BR")}</td></tr>)}</tbody></table></div>}</section>

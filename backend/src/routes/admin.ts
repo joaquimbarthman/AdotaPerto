@@ -37,3 +37,22 @@ adminRoutes.get("/overview", async (c) => {
     return c.json({ error: "Não foi possível carregar os dados do painel." }, 503);
   }
 });
+
+adminRoutes.post("/seed-content", async (c) => {
+  const currentUser = c.get("user");
+  if (!currentUser) return c.json({ error: "Entre na sua conta para continuar." }, 401);
+  const [account] = await db
+    .select({ id: user.id, name: user.name })
+    .from(user)
+    .where(eq(user.id, currentUser.id));
+  if (!account) return c.json({ error: "Usuário não encontrado." }, 404);
+
+  try {
+    const { seedForUser } = await import("../../lib/db/seed.ts");
+    const result = await seedForUser(account);
+    return c.json(result);
+  } catch (error) {
+    console.error("Falha ao carregar conteúdo de exemplo:", error);
+    return c.json({ error: "Não foi possível carregar os animais e itens. Verifique o Storage e tente novamente." }, 503);
+  }
+});
