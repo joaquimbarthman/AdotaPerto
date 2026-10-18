@@ -1,4 +1,5 @@
 "use client";
+import { apiBaseUrl } from "@/lib/api-url";
 
 import { useEffect, useMemo, useState } from "react";
 import { DirectionalChevron } from "@/components/directional-chevron";
@@ -13,7 +14,7 @@ import { useSession } from "@/lib/auth-client";
 import { distanceInKm, type Coordinates } from "@/lib/map-distance";
 import { mapApi } from "@/lib/map-api";
 
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:4000";
+const API_BASE_URL = apiBaseUrl();
 const CATEGORY_OPTIONS = ["Ração", "Petiscos", "Produtos de higiene", "Caminhas e cobertores", "Coleiras e guias", "Caixas de transporte", "Brinquedos", "Utensílios", "Produtos de limpeza", "Outros"];
 const CONDITION_OPTIONS = ["Novo", "Lacrado", "Aberto em boas condições", "Usado em boas condições"];
 

@@ -1,4 +1,5 @@
 "use client";
+import { apiBaseUrl } from "@/lib/api-url";
 
 import { Notification, notify } from "@/components/notification";
 
@@ -13,7 +14,7 @@ import { uploadImages } from "@/lib/uploads";
 import { useProfileAddressGuard } from "@/hooks/use-profile-address-guard";
 import { DonationField as Field, DonationFormSection as Section, DonationPhotoPreview as PhotoPreview, DonationSelect as Select, DonationStepProgress, donationInputClass as inputClass } from "@/components/donation-form-ui";
 
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:4000";
+const API_BASE_URL = apiBaseUrl();
 
 function YesNoUnknown({ name, unknown = true }: { name: string; unknown?: boolean }) {
   return <div className="donation-radio-group flex min-h-11 flex-wrap items-center gap-x-4 gap-y-1.5 rounded-lg border border-[#c5cec7] px-3 sm:min-h-12 sm:gap-x-5 sm:gap-y-2 sm:px-3.5">{["Sim", "Não", ...(unknown ? ["Não sei"] : [])].map((value) => <label key={value} className="inline-flex items-center gap-1.5 text-xs font-normal sm:gap-2 sm:text-sm"><input type="radio" name={name} value={value} required className="size-3.5 accent-[#256441] sm:size-4" />{value}</label>)}</div>;

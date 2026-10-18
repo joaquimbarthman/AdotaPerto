@@ -1,4 +1,5 @@
 "use client";
+import { apiBaseUrl } from "@/lib/api-url";
 
 import Image from "next/image";
 import Link from "next/link";
@@ -7,7 +8,7 @@ import { useEffect, useState } from "react";
 import type { Animal } from "@/data/animals";
 import { useSession } from "@/lib/auth-client";
 
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:4000";
+const API_BASE_URL = apiBaseUrl();
 
 export function AnimalCard({ animal, compactMobile = false, isInitiallyFavorite = false, onFavoriteChange }: { animal: Animal; compactMobile?: boolean; isInitiallyFavorite?: boolean; onFavoriteChange?: (favorite: boolean) => void }) {
   const router = useRouter();

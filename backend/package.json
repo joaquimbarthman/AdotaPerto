@@ -6,6 +6,7 @@
   "scripts": {
     "test:integration": "tsx --test tests/*.test.mjs",
     "dev": "tsx watch src/index.ts",
+    "start:render": "tsx render-server.mjs",
     "build": "tsc",
     "start": "tsx src/index.ts",
     "startup": "tsx lib/db/startup.ts",

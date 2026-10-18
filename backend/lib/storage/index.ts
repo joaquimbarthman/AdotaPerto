@@ -3,7 +3,7 @@ import { readFile } from "node:fs/promises";
 import { Client } from "minio";
 
 const supabaseUrl = process.env.SUPABASE_URL?.trim().replace(/\/+$/, "");
-const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY?.trim();
+const supabaseKey = process.env.SUPABASE_SECRET_KEY?.trim() || process.env.SUPABASE_SERVICE_ROLE_KEY?.trim();
 const supabaseStorageUrl = supabaseUrl ? `${supabaseUrl}/storage/v1` : "";
 
 export const imageBucket =
@@ -42,7 +42,7 @@ export const imageStorageConfigured = Boolean(
 
 if (!imageStorageConfigured) {
   console.warn(
-    "Configure SUPABASE_URL e SUPABASE_SERVICE_ROLE_KEY para habilitar imagens no deploy.",
+    "Configure SUPABASE_URL e SUPABASE_SECRET_KEY (ou SUPABASE_SERVICE_ROLE_KEY legado) para habilitar imagens no deploy.",
   );
 }
 
@@ -60,17 +60,17 @@ function objectPath(objectName: string) {
 }
 
 function supabaseHeaders(extra?: HeadersInit) {
-  if (!supabaseKey) throw new Error("SUPABASE_SERVICE_ROLE_KEY não configurada.");
+  if (!supabaseKey) throw new Error("SUPABASE_SECRET_KEY ou SUPABASE_SERVICE_ROLE_KEY não configurada.");
   return new Headers({
     apikey: supabaseKey,
-    Authorization: `Bearer ${supabaseKey}`,
+    ...(supabaseKey.startsWith("sb_secret_") ? {} : { Authorization: `Bearer ${supabaseKey}` }),
     ...Object.fromEntries(new Headers(extra).entries()),
   });
 }
 
 async function supabaseRequest(path: string, init: RequestInit = {}) {
   if (!supabaseUrl || !supabaseKey) {
-    throw new Error("Configure SUPABASE_URL e SUPABASE_SERVICE_ROLE_KEY.");
+    throw new Error("Configure SUPABASE_URL e SUPABASE_SECRET_KEY (ou SUPABASE_SERVICE_ROLE_KEY legado).");
   }
   const response = await fetch(`${supabaseStorageUrl}${path}`, {
     ...init,

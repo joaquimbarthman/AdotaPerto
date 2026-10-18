@@ -1,4 +1,5 @@
 "use client";
+import { apiBaseUrl } from "@/lib/api-url";
 
 import Image from "next/image";
 import Link from "next/link";
@@ -6,7 +7,7 @@ import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import { useSession } from "@/lib/auth-client";
 
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:4000";
+const API_BASE_URL = apiBaseUrl();
 
 export type DonationItemCardData = {
   id: string; title: string; category: string; itemName: string; quantity: number; unit: string;

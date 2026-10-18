@@ -1,4 +1,5 @@
 "use client";
+import { apiBaseUrl } from "@/lib/api-url";
 
 import { Notification } from "@/components/notification";
 
@@ -42,7 +43,7 @@ export default function RegisterPage() {
       controller = new AbortController();
       const { signal } = controller;
       try {
-        const apiUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:4000";
+        const apiUrl = apiBaseUrl();
         const response = await fetch(`${apiUrl}/api/registration/status`, {
           cache: "no-store",
           signal,

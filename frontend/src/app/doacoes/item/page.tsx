@@ -1,4 +1,5 @@
 "use client";
+import { apiBaseUrl } from "@/lib/api-url";
 
 import { Notification, notify } from "@/components/notification";
 
@@ -14,7 +15,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { FormEvent, useEffect, useMemo, useRef, useState } from "react";
 
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:4000";
+const API_BASE_URL = apiBaseUrl();
 const expiryCategories = new Set(["Ração", "Petiscos", "Produtos de higiene", "Produtos de limpeza"]);
 const conditions = ["Novo", "Lacrado", "Aberto em boas condições", "Usado em boas condições"];
 

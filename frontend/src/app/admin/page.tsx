@@ -1,4 +1,5 @@
 "use client";
+import { apiBaseUrl } from "@/lib/api-url";
 
 import Link from "next/link";
 import Image from "next/image";
@@ -79,7 +80,7 @@ export default function AdminPage() {
     const controller = new AbortController();
     async function load() {
       try {
-        const base = process.env.NEXT_PUBLIC_API_URL || "http://localhost:4000";
+        const base = apiBaseUrl();
         const response = await fetch(`${base}/api/admin/overview`, { credentials: "include", cache: "no-store", signal: controller.signal });
         if (!response.ok) { setAccess(response.status); throw new Error(response.status === 401 ? "Entre na sua conta para acessar o painel." : response.status === 403 ? "Esta área é exclusiva para administradores." : "Não foi possível carregar o painel. Tente novamente."); }
         const overview: Overview = await response.json();

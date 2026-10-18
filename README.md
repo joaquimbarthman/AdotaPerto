@@ -22,14 +22,19 @@ Comandos úteis na raiz: `npm run db:setup`, `npm run db:seed`, `npm run dev:bac
 
 ## Deploy no Render com Supabase
 
-O arquivo `render.yaml` cria dois serviços Node.js: API e frontend. No Render, crie um Blueprint a partir do repositório e preencha as variáveis marcadas para configuração manual:
+O Render publica frontend e API em um único serviço Docker e domínio. A imagem compila as duas aplicações; o servidor encaminha `/api/*` e `/status` para Hono e as demais rotas para Next.js.
 
-1. No Supabase, copie a connection string **Session pooler** em Connect → Session pooler e configure-a como `DATABASE_URL` na API. Use a senha do banco e codifique caracteres especiais nela para URL. Acrescente `?sslmode=require` (ou `&sslmode=require` se a URL já tiver parâmetros). O pooler Session aceita conexões IPv4, úteis para serviços hospedados; evite a connection string direta se a rede do Render não tiver IPv6. [Guia de conexão do Supabase](https://supabase.com/docs/guides/database/connecting-to-postgres).
-2. Configure o armazenamento de imagens da API com `SUPABASE_URL` e `SUPABASE_SERVICE_ROLE_KEY`. O Blueprint usa o bucket privado `adotaperto-images` (`SUPABASE_STORAGE_BUCKET`) e o comando de inicialização o cria se ainda não existir. Encontre a URL e a chave secreta nas configurações do projeto Supabase. Mantenha a chave somente no serviço da API no Render; não a coloque em variáveis `NEXT_PUBLIC_*` nem no frontend. [Controle de acesso do Supabase Storage](https://supabase.com/docs/guides/storage/security/access-control).
-3. Confira os dois endereços públicos no Render: `https://adotaperto-web.onrender.com` (site) e `https://adotaperto-api.onrender.com` (API; use os endereços reais exibidos na sua conta). Configure a URL do site em `FRONTEND_URL`. O Blueprint preenche `BETTER_AUTH_URL` com a URL da API e `NEXT_PUBLIC_API_URL` no frontend, também com a URL da API. Os estilos claro/escuro do mapa são configurados em `NEXT_PUBLIC_MAP_STYLE_LIGHT_URL` e `NEXT_PUBLIC_MAP_STYLE_DARK_URL` no serviço do frontend.
-4. Para habilitar e-mails de autenticação, adicione `RESEND_API_KEY` ao serviço da API no Render. Sem ela, o deploy não é bloqueado, mas envio e recuperação de e-mail não ficam disponíveis.
+No Render, use **New Web Service** conectado ao repositório com estas opções:
 
-O Render executa `npm run db:setup` antes de iniciar a API: aplica as migrations do Drizzle e prepara o bucket do Supabase Storage. O `NEXT_PUBLIC_API_URL` é ligado à URL pública da API pelo Blueprint antes do build do site, eliminando a necessidade de copiar essa URL manualmente. Os endpoints de CEP, geocodificação e busca de estabelecimentos também são declarados no Blueprint para o backend. O Supabase deve estar vazio ou já alinhado às migrations do projeto; faça backup antes de apontar para um banco com tabelas existentes. Consulte [.env.example.deploy](.env.example.deploy) para ver as variáveis e URLs. As configurações locais continuam usando PostgreSQL e RustFS/MinIO via Docker Compose.
+1. Language: **Docker**; Branch: a branch do deploy; Root Directory: vazio.
+2. Dockerfile Path: `./Dockerfile`; Docker Context: `.`; plano conforme sua conta.
+3. Em **Environment**, configure `DATABASE_URL`, `SUPABASE_URL`, `SUPABASE_SECRET_KEY`, `BETTER_AUTH_SECRET` e as cinco URLs de CEP/mapas de [.env.example.deploy](.env.example.deploy). A chave antiga `SUPABASE_SERVICE_ROLE_KEY` também é aceita.
+
+O Render injeta `PORT` e `RENDER_EXTERNAL_URL`. Site, API e autenticação usam o mesmo domínio, sem `NEXT_PUBLIC_API_URL` no painel. Ao iniciar, o container aplica migrations e prepara o bucket `adotaperto-images` no Supabase Storage. Os URLs de mapas e geocodificação estão no exemplo de ambiente; os estilos do mapa têm valores padrão no frontend.
+
+Para habilitar e-mails, adicione `RESEND_API_KEY` e `AUTH_EMAIL_FROM` com um remetente do seu domínio verificado.
+
+O `render.yaml` oferece a mesma imagem para quem criar um Blueprint. A tela **New Web Service** usa as opções preenchidas no painel e não carrega esse arquivo. O desenvolvimento local continua usando PostgreSQL e armazenamento de imagens via Docker Compose.
 
 ## Funcionalidades gerais
 

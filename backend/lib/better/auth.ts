@@ -49,7 +49,7 @@ const schema = {
 export function createAuth(database = db) {
   const trustedOrigins = [
     "http://localhost:3000",
-    ...(process.env.CORS_ORIGINS || process.env.FRONTEND_URL || "")
+    ...(process.env.CORS_ORIGINS || process.env.FRONTEND_URL || process.env.BETTER_AUTH_URL || process.env.RENDER_EXTERNAL_URL || "")
       .split(",")
       .map((origin) => origin.trim())
       .filter(Boolean),
@@ -69,6 +69,7 @@ export function createAuth(database = db) {
   };
 
   return betterAuth({
+  baseURL: process.env.BETTER_AUTH_URL || process.env.RENDER_EXTERNAL_URL,
   database: authDatabase,
   databaseHooks: {
     user: {

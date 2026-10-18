@@ -1,4 +1,5 @@
 "use client";
+import { apiBaseUrl } from "@/lib/api-url";
 
 import { useEffect, useMemo, useState } from "react";
 import { AnimalCard } from "@/components/animal-card";
@@ -14,7 +15,7 @@ import { distanceInKm, type Coordinates } from "@/lib/map-distance";
 import { mapApi } from "@/lib/map-api";
 import type { Animal } from "@/data/animals";
 
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:4000";
+const API_BASE_URL = apiBaseUrl();
 
 export default function AdoptionPage() {
   const { data: session, isPending: sessionPending } = useSession();

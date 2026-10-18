@@ -1,13 +1,8 @@
 import type { Coordinates } from "@/lib/map-distance";
 import type { MapCategory, MapResult } from "@/types/map";
+import { apiBaseUrl } from "@/lib/api-url";
 
-const CONFIGURED_API_URL = process.env.NEXT_PUBLIC_API_URL;
-
-export function apiBaseUrl() {
-  if (CONFIGURED_API_URL) return CONFIGURED_API_URL;
-  if (typeof window !== "undefined") return `${window.location.protocol}//${window.location.hostname}:4000`;
-  return "http://localhost:4000";
-}
+export { apiBaseUrl } from "@/lib/api-url";
 
 async function getJson<T>(path: string, signal?: AbortSignal): Promise<T> {
   const response = await fetch(`${apiBaseUrl()}${path}`, { signal });

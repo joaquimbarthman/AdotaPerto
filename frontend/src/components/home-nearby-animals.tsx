@@ -1,4 +1,5 @@
 "use client";
+import { apiBaseUrl } from "@/lib/api-url";
 
 import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
@@ -9,7 +10,7 @@ import { useSession } from "@/lib/auth-client";
 import { distanceInKm, type Coordinates } from "@/lib/map-distance";
 import { mapApi } from "@/lib/map-api";
 
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:4000";
+const API_BASE_URL = apiBaseUrl();
 
 export function HomeNearbyAnimals({ animals }: { animals: Animal[] }) {
   const { data: session, isPending } = useSession();

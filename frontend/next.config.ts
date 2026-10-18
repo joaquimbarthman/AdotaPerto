@@ -13,6 +13,11 @@ const nextConfig: NextConfig = {
       },
       {
         protocol: "https",
+        hostname: "**.onrender.com",
+        pathname: "/api/uploads/images/**",
+      },
+      {
+        protocol: "https",
         hostname: "images.pexels.com",
         pathname: "/photos/**",
       },

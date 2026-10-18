@@ -1,4 +1,5 @@
 "use client";
+import { apiBaseUrl } from "@/lib/api-url";
 
 import { PhotoGallery } from "@/components/photo-gallery";
 import { AuthBlurredContent } from "@/components/auth-blurred-content";
@@ -14,7 +15,7 @@ import Link from "next/link";
 import { useParams, useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:4000";
+const API_BASE_URL = apiBaseUrl();
 
 export default function PetDetailsPage() {
   const params = useParams();

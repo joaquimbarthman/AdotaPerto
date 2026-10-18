@@ -1,5 +1,6 @@
+import { apiBaseUrl } from "@/lib/api-url";
 export const API_BASE_URL =
-  process.env.NEXT_PUBLIC_API_URL || "http://localhost:4000";
+  apiBaseUrl();
 
 export const tabs = [
   { id: "publicacoes", label: "Minhas publicações" },

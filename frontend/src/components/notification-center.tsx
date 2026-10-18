@@ -1,9 +1,10 @@
 "use client";
+import { apiBaseUrl } from "@/lib/api-url";
 
 import Link from "next/link";
 import { useEffect, useMemo, useRef, useState } from "react";
 
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:4000";
+const API_BASE_URL = apiBaseUrl();
 
 type Notice = { id: string; title: string; description: string; href: string; createdAt: string; tone: "success" | "info" | "publication" };
 type RequestRecord = { id: string; status?: string; createdAt?: string; animal?: { name?: string }; item?: { title?: string; itemName?: string }; requester?: { name?: string } };

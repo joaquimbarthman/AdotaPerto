@@ -1,4 +1,5 @@
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:4000";
+import { apiBaseUrl } from "@/lib/api-url";
+const API_BASE_URL = apiBaseUrl();
 
 export async function uploadImages(files: File[]) {
   if (files.length === 0) return [];

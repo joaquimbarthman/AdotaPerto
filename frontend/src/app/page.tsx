@@ -1,3 +1,4 @@
+import { apiBaseUrl } from "@/lib/api-url";
 import { DirectionalChevron } from "@/components/directional-chevron";
 import { HomeMapPreview } from "@/components/home-map-preview";
 import { HomeNearbyAnimals } from "@/components/home-nearby-animals";
@@ -14,7 +15,7 @@ export const metadata: Metadata = {
     "Encontre animais para adoção, doações e serviços para pets perto de você.",
 };
 
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:4000";
+const API_BASE_URL = apiBaseUrl();
 
 async function getFeaturedAnimals(): Promise<Animal[]> {
   try {

@@ -1,4 +1,5 @@
 "use client";
+import { apiBaseUrl } from "@/lib/api-url";
 
 import { Notification, notify } from "@/components/notification";
 
@@ -20,7 +21,7 @@ import {
 } from "@/lib/profile-address";
 import type { DonationItem } from "../page";
 
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:4000";
+const API_BASE_URL = apiBaseUrl();
 type ItemDetails = DonationItem & { owner?: { name: string; image?: string | null; city?: string | null; state?: string | null; verified?: boolean | null } };
 
 export default function ItemDetailsPage() {
