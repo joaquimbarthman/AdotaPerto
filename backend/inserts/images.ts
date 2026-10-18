@@ -2,7 +2,13 @@ import { readdir } from "node:fs/promises";
 import { existsSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 import { join } from "node:path";
-import { imageBucket, publicImageUrl, storage } from "../lib/storage/index.ts";
+import {
+  ensureImageBucket,
+  imageBucket,
+  imageStorageConfigured,
+  publicImageUrl,
+  uploadImageFile,
+} from "../lib/storage/index.ts";
 
 const root = fileURLToPath(new URL("./images/", import.meta.url));
 
@@ -15,9 +21,10 @@ export function seedPhotos(mediaKey: string) {
 }
 
 export async function uploadSeedImages() {
-  if (!(await storage.bucketExists(imageBucket))) {
-    throw new Error("Bucket ausente. Execute npm run startup antes do seeder.");
+  if (!imageStorageConfigured) {
+    throw new Error("Configure o Supabase Storage ou MinIO local antes de enviar imagens do seed.");
   }
+  await ensureImageBucket();
   let count = 0;
   for (const category of ["animals", "items"]) {
     for (const entry of await readdir(join(root, category), { withFileTypes: true })) {
@@ -27,8 +34,8 @@ export async function uploadSeedImages() {
           console.warn(`Imagem ausente, ignorada: ${category}/${entry.name}/${number}.jpg`);
           continue;
         }
-        await storage.fPutObject(imageBucket, `seed/${category}-${entry.name}-${number}.jpg`,
-          join(root, category, entry.name, `${number}.jpg`), { "Content-Type": "image/jpeg" });
+        await uploadImageFile(`seed/${category}-${entry.name}-${number}.jpg`,
+          join(root, category, entry.name, `${number}.jpg`), "image/jpeg");
         count++;
       }
     }

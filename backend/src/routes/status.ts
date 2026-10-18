@@ -1,6 +1,10 @@
 import { Hono } from "hono";
 import { db } from "../../lib/db/index.ts";
-import { imageBucket, storage } from "../../lib/storage/index.ts";
+import {
+  checkImageBucket,
+  imageBucket,
+  imageStorageConfigured,
+} from "../../lib/storage/index.ts";
 
 async function checkService(check: () => Promise<unknown>) {
   let timer: ReturnType<typeof setTimeout> | undefined;
@@ -26,11 +30,13 @@ statusRoutes.get("/", async (c) => {
     checkService(async () => {
       await db.$client.query("SELECT 1");
     }),
-    checkService(async () => {
-      if (!(await storage.bucketExists(imageBucket))) throw new Error("Bucket ausente");
-    }),
+    imageStorageConfigured
+      ? checkService(async () => {
+          if (!(await checkImageBucket())) throw new Error("Bucket ausente");
+        })
+      : Promise.resolve({ status: "not_configured" as const }),
   ]);
-  const healthy = database.status === "ok" && bucket.status === "ok";
+  const healthy = database.status === "ok" && bucket.status !== "error";
   c.header("Cache-Control", "no-store");
   return c.json({
     status: healthy ? "ok" : "error",

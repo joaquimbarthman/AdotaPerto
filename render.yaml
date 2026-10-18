@@ -10,6 +10,12 @@ services:
     envVars:
       - key: DATABASE_URL
         sync: false
+      - key: SUPABASE_URL
+        sync: false
+      - key: SUPABASE_SERVICE_ROLE_KEY
+        sync: false
+      - key: SUPABASE_STORAGE_BUCKET
+        value: adotaperto-images
       - key: BETTER_AUTH_SECRET
         generateValue: true
       - key: BETTER_AUTH_URL
@@ -17,18 +23,6 @@ services:
       - key: FRONTEND_URL
         sync: false
       - key: API_PUBLIC_URL
-        sync: false
-      - key: RUSTFS_ENDPOINT
-        sync: false
-      - key: RUSTFS_API_PORT
-        value: "443"
-      - key: RUSTFS_USE_SSL
-        value: "true"
-      - key: RUSTFS_BUCKET
-        sync: false
-      - key: RUSTFS_ACCESS_KEY
-        sync: false
-      - key: RUSTFS_SECRET_KEY
         sync: false
       - key: RESEND_API_KEY
         sync: false

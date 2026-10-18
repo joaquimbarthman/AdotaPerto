@@ -9,7 +9,7 @@ async function startup() {
   await migrate(db, {
     migrationsFolder: fileURLToPath(new URL("./migrations", import.meta.url)),
   });
-  console.log("Migrations aplicadas. Preparando MinIO...");
+  console.log("Migrations aplicadas. Preparando armazenamento de imagens...");
   await ensureImageBucket();
   console.log(`Startup concluído. Bucket ${imageBucket} pronto.`);
 }

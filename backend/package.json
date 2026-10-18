@@ -9,6 +9,7 @@
     "build": "tsc",
     "start": "tsx src/index.ts",
     "startup": "tsx lib/db/startup.ts",
+    "db:migrate": "tsx lib/db/migrate.ts",
     "db:setup": "npm run startup",
     "typecheck": "tsc --noEmit",
     "db:seed": "tsx lib/db/seed.ts",

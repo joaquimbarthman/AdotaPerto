@@ -1,10 +1,11 @@
 import { Hono } from "hono";
 import crypto from "node:crypto";
 import {
+  downloadImage,
   ensureImageBucket,
-  imageBucket,
+  imageStorageConfigured,
   publicImageUrl,
-  storage,
+  uploadImage,
 } from "../../lib/storage/index.ts";
 import type { AuthContext } from "./index.ts";
 
@@ -19,23 +20,17 @@ const maxFiles = 6;
 export const uploadRoutes = new Hono<AuthContext>();
 
 uploadRoutes.get("/images/:userId/:fileName", async (c) => {
+  if (!imageStorageConfigured) {
+    return c.json({ error: "Armazenamento de imagens indisponível" }, 503);
+  }
   const objectName = `${c.req.param("userId")}/${c.req.param("fileName")}`;
 
   try {
-    const [stream, stat] = await Promise.all([
-      storage.getObject(imageBucket, objectName),
-      storage.statObject(imageBucket, objectName),
-    ]);
-    const chunks: Buffer[] = [];
-    for await (const chunk of stream) {
-      chunks.push(Buffer.isBuffer(chunk) ? chunk : Buffer.from(chunk));
-    }
-    const image = Buffer.concat(chunks);
+    const { body: image, contentType } = await downloadImage(objectName);
 
     return new Response(image, {
       headers: {
-        "Content-Type":
-          stat.metaData?.["content-type"] || "application/octet-stream",
+        "Content-Type": contentType,
         "Cache-Control": "public, max-age=31536000, immutable",
         "Content-Length": String(image.length),
       },
@@ -46,6 +41,9 @@ uploadRoutes.get("/images/:userId/:fileName", async (c) => {
 });
 
 uploadRoutes.post("/images", async (c) => {
+  if (!imageStorageConfigured) {
+    return c.json({ error: "Armazenamento de imagens indisponível" }, 503);
+  }
   const currentUser = c.get("user");
   if (!currentUser) {
     return c.json({ error: "Não autorizado" }, 401);
@@ -79,10 +77,7 @@ uploadRoutes.post("/images", async (c) => {
       const extension = allowedTypes.get(file.type)!;
       const objectName = `${currentUser.id}/${crypto.randomUUID()}.${extension}`;
       const buffer = Buffer.from(await file.arrayBuffer());
-      await storage.putObject(imageBucket, objectName, buffer, buffer.length, {
-        "Content-Type": file.type,
-        "Cache-Control": "public, max-age=31536000, immutable",
-      });
+      await uploadImage(objectName, buffer, file.type);
       return publicImageUrl(objectName);
     }),
   );

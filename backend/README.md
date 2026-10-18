@@ -1,6 +1,6 @@
 # Backend
 
-API em Node.js e TypeScript, com Hono, Better Auth, Drizzle ORM, PostgreSQL e MinIO. Veja também a [visão geral do projeto](../README.md) e a [documentação do frontend](../frontend/README.md).
+API em Node.js e TypeScript, com Hono, Better Auth, Drizzle ORM e PostgreSQL. No desenvolvimento local, usa RustFS/MinIO para imagens; no Render, usa Supabase Storage. Veja também a [visão geral do projeto](../README.md) e a [documentação do frontend](../frontend/README.md).
 
 ## Funcionalidades
 
@@ -13,11 +13,11 @@ API em Node.js e TypeScript, com Hono, Better Auth, Drizzle ORM, PostgreSQL e Mi
 | Itens para doação | Cadastro e gerenciamento de anúncios com categoria, quantidade, condição, imagens e forma de entrega. | `/api/donation-items`, `/api/donation-items/mine`, `/api/donation-items/:id` |
 | Solicitações de itens | Envio e consulta das solicitações, alteração de status e atualização do item para doado após aprovação. | `/api/donation-item-requests`, `/api/donation-item-requests/received`, `/api/donation-item-requests/:id/status` |
 | Favoritos | Consulta, inclusão, remoção e verificação dos animais e itens salvos pelo usuário. | `/api/favorites`, `/api/favorites/items` |
-| Imagens | Upload autenticado e entrega de imagens armazenadas no MinIO; aceita JPEG, PNG e WebP, com até 6 arquivos de até 5 MB por envio. | `/api/uploads/images`, `/api/uploads/images/:userId/:fileName` |
+| Imagens | Upload autenticado e entrega de imagens armazenadas no RustFS/MinIO local ou Supabase Storage no deploy; aceita JPEG, PNG e WebP, com até 6 arquivos de até 5 MB por envio. | `/api/uploads/images`, `/api/uploads/images/:userId/:fileName` |
 | Geocodificação | Conversão de cidade, bairro ou CEP em coordenadas, integrando ViaCEP e Nominatim. | `/api/map/geocode` |
 | Anúncios no mapa | Consulta de animais e itens disponíveis com posição residencial aproximada e tratamento de indisponibilidade do banco. | `/api/map/listings` |
 | Estabelecimentos próximos | Consulta de veterinários, pet shops e abrigos via Overpass, com cache e limite de tempo das requisições externas. | `/api/map/places` |
-| Status | Verificação do servidor, PostgreSQL e bucket MinIO em JSON. | `/status` |
+| Status | Verificação do servidor, PostgreSQL e bucket de imagens em JSON. | `/status` |
 
 As operações sobre dados pessoais, favoritos, publicações e solicitações aplicam autenticação e verificações de permissão conforme a rota. Os endpoints de mapas são públicos.
 
@@ -134,7 +134,7 @@ A preparação também copia os source maps (`.mjs.map`) usados pelas ferramenta
 
 ## Status da API
 
-`GET /status` é público e consulta PostgreSQL e a existência do bucket MinIO, com limite de 5 segundos por verificação. Retorna JSON e HTTP `200` quando tudo está disponível ou `503` quando uma dependência falha. A consulta não cria o bucket. Exemplo: `{"status":"ok","server":{"status":"ok","uptime":42},"database":{"status":"ok"},"bucket":{"status":"ok","name":"adotaperto-images"}}`.
+`GET /status` é público e consulta PostgreSQL e, quando configurado, a existência do bucket de imagens, com limite de 5 segundos por verificação. Retorna HTTP `200` quando o banco está disponível; sem storage, informa `bucket.status: "not_configured"` e mantém a API saudável. Retorna `503` se o banco ou um storage configurado falhar. A consulta não cria o bucket.
 
 ```powershell
 curl.exe -i http://localhost:4000/status
