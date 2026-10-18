@@ -2,13 +2,13 @@
 
 import { Notification } from "@/components/notification";
 
-import Link from "next/link";
-import { useRouter } from "next/navigation";
-import { FormEvent, useEffect, useRef, useState } from "react";
 import { AuthField } from "@/components/auth-field";
 import { AuthBrand, AuthShell } from "@/components/auth-shell";
 import { authClient } from "@/lib/auth-client";
 import { authErrorMessage } from "@/lib/auth-error-message";
+import Link from "next/link";
+import { useRouter } from "next/navigation";
+import { FormEvent, useEffect, useRef, useState } from "react";
 
 export default function LoginPage() {
   const router = useRouter();
@@ -21,7 +21,11 @@ export default function LoginPage() {
     if (reason === "unauthenticated") {
       queueMicrotask(() => setErrorMessage("Você não está autenticado."));
     } else if (reason === "recovery-email-required") {
-      queueMicrotask(() => setErrorMessage("Informe o e-mail da sua conta e clique em Esqueci minha senha."));
+      queueMicrotask(() =>
+        setErrorMessage(
+          "Informe o e-mail da sua conta e clique em Esqueci minha senha.",
+        ),
+      );
     }
   }, []);
 
@@ -46,7 +50,9 @@ export default function LoginPage() {
     setLoading(false);
 
     if (error) {
-      setErrorMessage(authErrorMessage(error, "Não foi possível entrar. Tente novamente."));
+      setErrorMessage(
+        authErrorMessage(error, "Não foi possível entrar. Tente novamente."),
+      );
       return;
     }
 
@@ -54,37 +60,79 @@ export default function LoginPage() {
   }
 
   function beginPasswordRecovery() {
-    const emailInput = formRef.current?.elements.namedItem("email") as HTMLInputElement | null;
+    const emailInput = formRef.current?.elements.namedItem(
+      "email",
+    ) as HTMLInputElement | null;
     if (!emailInput?.value.trim() || !emailInput.checkValidity()) {
       setErrorMessage("Informe o e-mail da sua conta para recuperar a senha.");
       emailInput?.focus();
       emailInput?.reportValidity();
       return;
     }
-    sessionStorage.setItem("password-recovery-email", emailInput.value.trim().toLowerCase());
+    sessionStorage.setItem(
+      "password-recovery-email",
+      emailInput.value.trim().toLowerCase(),
+    );
     router.push("/esqueci-senha");
   }
 
   return (
-    <AuthShell image="/images/login-cover-v2.png" imageAlt="Mulher acolhendo um cachorro caramelo em casa">
+    <AuthShell
+      image="/images/login-cover-v2.png"
+      imageAlt="Mulher acolhendo um cachorro caramelo em casa"
+    >
       <header className="mb-5 sm:mb-8">
         <AuthBrand />
-        <h1 className="mt-4 text-2xl font-extrabold leading-7 tracking-[-0.02em] sm:mt-7 sm:text-[32px] sm:leading-10">Bem-vindo de volta</h1>
-        <p className="mt-1.5 text-sm leading-5 text-[#4d5b53] sm:mt-2 sm:text-base sm:leading-6">Entre para acompanhar seus favoritos e processos de adoção.</p>
+        <h1 className="mt-4 text-2xl font-extrabold leading-7 tracking-[-0.02em] sm:mt-7 sm:text-[32px] sm:leading-10">
+          Bem-vindo de volta
+        </h1>
+        <p className="mt-1.5 text-sm leading-5 text-[#4d5b53] sm:mt-2 sm:text-base sm:leading-6">
+          Entre para acompanhar seus favoritos e processos de adoção.
+        </p>
       </header>
 
       {errorMessage && <Notification text={errorMessage} />}
 
-      <form ref={formRef} onSubmit={handleSubmit} className="space-y-3.5 sm:space-y-5">
-        <AuthField label="Email" icon="/icons/email.svg" name="email" type="email" placeholder="seu@email.com" autoComplete="email" required />
-        <AuthField label="Senha" icon="/icons/password.svg" name="password" type="password" placeholder="••••••••" autoComplete="current-password" required />
+      <form
+        ref={formRef}
+        onSubmit={handleSubmit}
+        className="space-y-3.5 sm:space-y-5"
+      >
+        <AuthField
+          label="Email"
+          icon="/icons/email.svg"
+          name="email"
+          type="email"
+          placeholder="seu@email.com"
+          autoComplete="email"
+          required
+        />
+        <AuthField
+          label="Senha"
+          icon="/icons/password.svg"
+          name="password"
+          type="password"
+          placeholder="••••••••"
+          autoComplete="current-password"
+          required
+        />
 
         <div className="flex flex-wrap items-center justify-between gap-2 text-xs sm:gap-3 sm:text-sm">
           <label className="flex cursor-pointer items-center gap-2 text-[#404942]">
-            <input type="checkbox" name="rememberMe" className="size-4 accent-[#0f5d39]" />
+            <input
+              type="checkbox"
+              name="rememberMe"
+              className="size-4 accent-[#0f5d39]"
+            />
             Lembrar de mim
           </label>
-          <button type="button" onClick={beginPasswordRecovery} className="font-semibold text-[#0f5d39] transition hover:underline">Esqueci minha senha</button>
+          <button
+            type="button"
+            onClick={beginPasswordRecovery}
+            className="font-semibold text-[#0f5d39] transition hover:underline"
+          >
+            Esqueci minha senha
+          </button>
         </div>
 
         <button
@@ -96,7 +144,13 @@ export default function LoginPage() {
         </button>
       </form>
       <p className="mt-5 border-t border-[#e1e8e2] pt-4 text-center text-xs text-[#4d5b53] sm:mt-7 sm:pt-6 sm:text-sm">
-        Ainda não tem uma conta? <Link href="/cadastro" className="font-semibold text-[#0f5d39] hover:underline">Criar conta</Link>
+        Ainda não tem uma conta?{" "}
+        <Link
+          href="/cadastro"
+          className="font-semibold text-[#0f5d39] hover:underline"
+        >
+          Criar conta
+        </Link>
       </p>
     </AuthShell>
   );

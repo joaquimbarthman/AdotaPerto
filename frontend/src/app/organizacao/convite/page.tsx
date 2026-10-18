@@ -5,17 +5,21 @@ import { SiteHeader } from "@/components/site-header";
 import { SiteFooter } from "@/components/site-footer";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useEffect, useState } from "react";
+import { useState, useSyncExternalStore } from "react";
+
+const subscribeToUrl = (onChange: () => void) => {
+  window.addEventListener("popstate", onChange);
+  return () => window.removeEventListener("popstate", onChange);
+};
+const invitationFromUrl = () => new URLSearchParams(window.location.search).get("id");
 
 export default function OrganizationInvitationPage() {
   const router = useRouter();
   const { data: session, isPending } = useSession();
-  const [invitationId, setInvitationId] = useState<string | null>(null);
+  const invitationId = useSyncExternalStore(subscribeToUrl, invitationFromUrl, () => null);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [message, setMessage] = useState<string | null>(null);
-
-  useEffect(() => { setInvitationId(new URLSearchParams(window.location.search).get("id")); }, []);
 
   async function accept() {
     if (!invitationId) return;

@@ -4,6 +4,7 @@ const nextConfig: NextConfig = {
   allowedDevOrigins: ["192.168.0.111"],
   images: {
     dangerouslyAllowLocalIP: true,
+    minimumCacheTTL: 60 * 60 * 24,
     remotePatterns: [
       {
         protocol: "http",

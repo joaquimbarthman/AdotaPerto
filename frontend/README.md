@@ -26,6 +26,12 @@ Veja também a [visão geral do projeto](../README.md) e a [configuração do ba
 
 Os marcadores residenciais usam coordenadas aproximadas fornecidas pelo backend. A prévia da página inicial contém marcadores ilustrativos; os resultados de `/mapa` são consultados na API.
 
+## Cache no frontend
+
+React Query mantém em memória listas e detalhes de animais e itens, além dos resultados do mapa. As consultas gerais permanecem atuais por 1 minuto; locais externos do mapa, por 10 minutos. Ao criar, editar, excluir ou atualizar uma publicação, as consultas afetadas são invalidadas. Zustand mantém os filtros dos catálogos ao navegar entre páginas, sem guardar dados da API.
+
+As imagens exibidas com `next/image` usam o cache do otimizador do Next.js, com validade mínima de 1 dia. As imagens enviadas pelo backend possuem URLs próprias e cabeçalhos de cache para arquivos imutáveis.
+
 ## Executar
 
 Dentro de `frontend`, instale as dependências e inicie o servidor:

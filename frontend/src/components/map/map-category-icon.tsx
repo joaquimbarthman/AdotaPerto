@@ -1,5 +1,5 @@
-import Image from "next/image";
 import type { MapCategory } from "@/types/map";
+import Image from "next/image";
 
 export const mapCategoryIcons: Record<MapCategory, string> = {
   adoption: "/icons/adocao.svg",
@@ -9,6 +9,28 @@ export const mapCategoryIcons: Record<MapCategory, string> = {
   shelter: "/icons/map-house.svg",
 };
 
-export function MapCategoryIcon({ category, size = 18, className = "" }: { category: MapCategory; size?: number; className?: string }) {
-  return <span className={`inline-grid shrink-0 place-items-center leading-none ${className}`} style={{ width: size, height: size }} aria-hidden="true"><Image src={mapCategoryIcons[category]} alt="" width={size} height={size} className="block size-full object-contain" /></span>;
+export function MapCategoryIcon({
+  category,
+  size = 18,
+  className = "",
+}: {
+  category: MapCategory;
+  size?: number;
+  className?: string;
+}) {
+  return (
+    <span
+      className={`inline-grid shrink-0 place-items-center leading-none ${className}`}
+      style={{ width: size, height: size }}
+      aria-hidden="true"
+    >
+      <Image
+        src={mapCategoryIcons[category]}
+        alt=""
+        width={size}
+        height={size}
+        className="block size-full object-contain"
+      />
+    </span>
+  );
 }

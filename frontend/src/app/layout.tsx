@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import "./globals.css";
 import { NotificationProvider } from "@/components/notification";
+import { QueryProvider } from "@/components/query-provider";
 
 export const metadata: Metadata = {
   title: {
@@ -29,7 +30,7 @@ export default function RootLayout({
           }}
         />
       </head>
-      <body><NotificationProvider />{children}</body>
+      <body><QueryProvider><NotificationProvider />{children}</QueryProvider></body>
     </html>
   );
 }

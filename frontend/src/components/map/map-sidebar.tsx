@@ -1,18 +1,167 @@
-import Image from "next/image";
-import { FormEvent, useState } from "react";
 import { MapFilterChips } from "@/components/map/map-filter-chips";
 import { MapResultCard } from "@/components/map/map-result-card";
 import type { MapCategory, MapResult } from "@/types/map";
+import Image from "next/image";
+import { FormEvent, useState } from "react";
 
-export function MapSidebar({ category, results, selectedId, loading, search, onSearchChange, onSearch, onCategory, onSelect }: { category: MapCategory; results: MapResult[]; selectedId: string | null; loading: boolean; search: string; onSearchChange: (value: string) => void; onSearch: () => void; onCategory: (value: MapCategory) => void; onSelect: (result: MapResult) => void }) {
+export function MapSidebar({
+  category,
+  results,
+  selectedId,
+  loading,
+  search,
+  onSearchChange,
+  onSearch,
+  onCategory,
+  onSelect,
+}: {
+  category: MapCategory;
+  results: MapResult[];
+  selectedId: string | null;
+  loading: boolean;
+  search: string;
+  onSearchChange: (value: string) => void;
+  onSearch: () => void;
+  onCategory: (value: MapCategory) => void;
+  onSelect: (result: MapResult) => void;
+}) {
   const [collapsed, setCollapsed] = useState(false);
-  function submit(event: FormEvent) { event.preventDefault(); onSearch(); }
-  return <aside className="map-sidebar relative z-10 flex min-h-0 flex-col border-r shadow-[8px_0_28px_rgba(38,51,43,0.04)] lg:w-[480px] lg:shrink-0">
-    <div className="map-sidebar-header border-b px-4 py-3 backdrop-blur-sm sm:px-6 lg:pb-6 lg:pt-6">
-      <div className="flex items-center justify-between gap-3"><div className="min-w-0"><h1 className="truncate text-xl font-semibold leading-7 tracking-[-0.025em] text-[#256441] lg:text-2xl lg:leading-8">Explorar Mapa</h1><p className="mt-0.5 hidden text-xs text-[#707971] lg:block">Encontre cuidado e companhia por perto</p></div><div className="flex shrink-0 items-center gap-2">{!loading && <span className="map-result-count hidden rounded-md px-3 py-1.5 text-xs font-bold sm:inline-flex">{results.length} {results.length === 1 ? "resultado" : "resultados"}</span>}<button type="button" onClick={() => setCollapsed((value) => !value)} className="map-collapse-button grid size-8 place-items-center rounded-lg border border-[#cbd7cd] bg-[#f6faf7] text-[#256441] transition hover:bg-[#e9f5ec] lg:hidden" aria-expanded={!collapsed} aria-controls="map-sidebar-content" aria-label={collapsed ? "Expandir opções do mapa" : "Recolher opções do mapa"}><svg viewBox="0 0 20 20" className={`size-4 transition-transform ${collapsed ? "rotate-180" : ""}`} fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="m4 12 6-6 6 6" /></svg></button></div></div>
-      <div id="map-sidebar-content" className={collapsed ? "hidden lg:block" : "block"}><form onSubmit={submit} className="map-search-form relative mt-2.5 lg:mt-4"><label htmlFor="map-search" className="sr-only">Buscar por cidade, bairro ou CEP</label><Image src="/icons/map-search.svg" alt="" width={18} height={18} className="map-search-icon pointer-events-none absolute left-3.5 top-1/2 -translate-y-1/2 lg:left-4" /><input id="map-search" value={search} onChange={(event) => onSearchChange(event.target.value)} placeholder="Cidade, bairro ou CEP..." className="map-search-input h-10 w-full rounded-lg border pl-10 pr-11 text-sm outline-none transition lg:h-[50px] lg:pl-12 lg:pr-12 lg:text-base" /><button type="submit" disabled={loading} className="map-search-button absolute right-1.5 top-1/2 grid size-8 -translate-y-1/2 place-items-center rounded-md text-lg font-bold transition focus-visible:outline-2 focus-visible:outline-[#256441] disabled:opacity-50 lg:right-2 lg:size-9" aria-label="Buscar localização">{loading ? <span className="size-4 animate-spin rounded-full border-2 border-[#86a590] border-t-[#256441]" /> : ">"}</button></form>
-      <div className="mt-2 lg:mt-3"><MapFilterChips value={category} onChange={onCategory} /></div></div>
-    </div>
-    <div className={`map-results-scroll min-h-0 shrink-0 overflow-x-auto overflow-y-hidden px-4 py-2 sm:px-6 lg:flex-1 lg:overflow-x-hidden lg:overflow-y-auto lg:px-5 lg:py-5 ${collapsed ? "hidden lg:block" : "block"}`}>{loading ? <div className="flex gap-2 lg:block lg:space-y-3" role="status" aria-label="Carregando resultados do mapa">{[1,2,3].map((item) => <div key={item} className="skeleton-shimmer h-24 w-[min(74vw,290px)] shrink-0 rounded-lg lg:h-[130px] lg:w-full lg:rounded-xl" />)}</div> : results.length ? <div key={category} className="map-results-enter flex gap-2 lg:block lg:space-y-3">{results.map((result) => <div key={result.id} className="h-24 w-[min(74vw,290px)] shrink-0 lg:h-auto lg:w-full"><MapResultCard result={result} selected={selectedId === result.id} onSelect={() => onSelect(result)} /></div>)}</div> : <div key={category} className="map-empty-state map-results-enter min-h-20 lg:min-h-[112px]"><strong>Nenhum resultado nesta região</strong></div>}</div>
-  </aside>;
+  function submit(event: FormEvent) {
+    event.preventDefault();
+    onSearch();
+  }
+  return (
+    <aside className="map-sidebar relative z-10 flex min-h-0 flex-col border-r shadow-[8px_0_28px_rgba(38,51,43,0.04)] lg:w-120 lg:shrink-0">
+      <div className="map-sidebar-header border-b px-4 py-3 backdrop-blur-sm sm:px-6 lg:pb-6 lg:pt-6">
+        <div className="flex items-center justify-between gap-3">
+          <div className="min-w-0">
+            <h1 className="truncate text-xl font-semibold leading-7 tracking-tight text-[#256441] lg:text-2xl lg:leading-8">
+              Explorar Mapa
+            </h1>
+            <p className="mt-0.5 hidden text-xs text-[#707971] lg:block">
+              Encontre cuidado e companhia por perto
+            </p>
+          </div>
+          <div className="flex shrink-0 items-center gap-2">
+            {!loading && (
+              <span className="map-result-count hidden rounded-md px-3 py-1.5 text-xs font-bold sm:inline-flex">
+                {results.length}{" "}
+                {results.length === 1 ? "resultado" : "resultados"}
+              </span>
+            )}
+            <button
+              type="button"
+              onClick={() => setCollapsed((value) => !value)}
+              className="map-collapse-button grid size-8 place-items-center rounded-lg border border-[#cbd7cd] bg-[#f6faf7] text-[#256441] transition hover:bg-[#e9f5ec] lg:hidden"
+              aria-expanded={!collapsed}
+              aria-controls="map-sidebar-content"
+              aria-label={
+                collapsed
+                  ? "Expandir opções do mapa"
+                  : "Recolher opções do mapa"
+              }
+            >
+              <svg
+                viewBox="0 0 20 20"
+                className={`size-4 transition-transform ${collapsed ? "rotate-180" : ""}`}
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="2"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                aria-hidden="true"
+              >
+                <path d="m4 12 6-6 6 6" />
+              </svg>
+            </button>
+          </div>
+        </div>
+        <div
+          id="map-sidebar-content"
+          className={collapsed ? "hidden lg:block" : "block"}
+        >
+          <form
+            onSubmit={submit}
+            className="map-search-form relative mt-2.5 lg:mt-4"
+          >
+            <label htmlFor="map-search" className="sr-only">
+              Buscar por cidade, bairro ou CEP
+            </label>
+            <Image
+              src="/icons/map-search.svg"
+              alt=""
+              width={18}
+              height={18}
+              className="map-search-icon pointer-events-none absolute left-3.5 top-1/2 -translate-y-1/2 lg:left-4"
+            />
+            <input
+              id="map-search"
+              value={search}
+              onChange={(event) => onSearchChange(event.target.value)}
+              placeholder="Cidade, bairro ou CEP..."
+              className="map-search-input h-10 w-full rounded-lg border pl-10 pr-11 text-sm outline-none transition lg:h-12.5 lg:pl-12 lg:pr-12 lg:text-base"
+            />
+            <button
+              type="submit"
+              disabled={loading}
+              className="map-search-button absolute right-1.5 top-1/2 grid size-8 -translate-y-1/2 place-items-center rounded-md text-lg font-bold transition focus-visible:outline-2 focus-visible:outline-[#256441] disabled:opacity-50 lg:right-2 lg:size-9"
+              aria-label="Buscar localização"
+            >
+              {loading ? (
+                <span className="size-4 animate-spin rounded-full border-2 border-[#86a590] border-t-[#256441]" />
+              ) : (
+                ">"
+              )}
+            </button>
+          </form>
+          <div className="mt-2 lg:mt-3">
+            <MapFilterChips value={category} onChange={onCategory} />
+          </div>
+        </div>
+      </div>
+      <div
+        className={`map-results-scroll min-h-0 shrink-0 overflow-x-auto overflow-y-hidden px-4 py-2 sm:px-6 lg:flex-1 lg:overflow-x-hidden lg:overflow-y-auto lg:px-5 lg:py-5 ${collapsed ? "hidden lg:block" : "block"}`}
+      >
+        {loading ? (
+          <div
+            className="flex gap-2 lg:block lg:space-y-3"
+            role="status"
+            aria-label="Carregando resultados do mapa"
+          >
+            {[1, 2, 3].map((item) => (
+              <div
+                key={item}
+                className="skeleton-shimmer h-24 w-[min(74vw,290px)] shrink-0 rounded-lg lg:h-32.5 lg:w-full lg:rounded-xl"
+              />
+            ))}
+          </div>
+        ) : results.length ? (
+          <div
+            key={category}
+            className="map-results-enter flex gap-2 lg:block lg:space-y-3"
+          >
+            {results.map((result) => (
+              <div
+                key={result.id}
+                className="h-24 w-[min(74vw,290px)] shrink-0 lg:h-auto lg:w-full"
+              >
+                <MapResultCard
+                  result={result}
+                  selected={selectedId === result.id}
+                  onSelect={() => onSelect(result)}
+                />
+              </div>
+            ))}
+          </div>
+        ) : (
+          <div
+            key={category}
+            className="map-empty-state map-results-enter min-h-20 lg:min-h-28"
+          >
+            <strong>Nenhum resultado nesta região</strong>
+          </div>
+        )}
+      </div>
+    </aside>
+  );
 }

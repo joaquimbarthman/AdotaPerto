@@ -1,6 +1,5 @@
 import { apiBaseUrl } from "@/lib/api-url";
-export const API_BASE_URL =
-  apiBaseUrl();
+export const API_BASE_URL = apiBaseUrl();
 
 export const tabs = [
   { id: "publicacoes", label: "Minhas publicações" },

@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useQuery } from "@tanstack/react-query";
 import { MapCanvas } from "@/components/map/map-canvas";
 import { MapSidebar } from "@/components/map/map-sidebar";
 import { notify } from "@/components/notification";
@@ -14,15 +15,25 @@ export function MapExplorer() {
   const [center, setCenter] = useState<Coordinates>(DEFAULT_CENTER);
   const [userLocation, setUserLocation] = useState<Coordinates | null>(null);
   const [category, setCategory] = useState<MapCategory>("adoption");
-  const [listings, setListings] = useState<MapResult[]>([]);
-  const [external, setExternal] = useState<MapResult[]>([]);
+  const { data: listings = [], isPending: listingsPending, error: listingsError } = useQuery({
+    queryKey: ["map", "listings"],
+    queryFn: ({ signal }) => mapApi.listings(signal),
+  });
+  const externalCategory = category === "veterinary" || category === "pet_shop" || category === "shelter";
+  const nearbyCenter = { lat: Math.round(center.lat * 100) / 100, lng: Math.round(center.lng * 100) / 100 };
+  const { data: external = [], isPending: externalPending, error: externalError } = useQuery({
+    queryKey: ["map", "places", category, nearbyCenter.lat, nearbyCenter.lng],
+    queryFn: ({ signal }) => mapApi.places(category as "veterinary" | "pet_shop" | "shelter", nearbyCenter, signal),
+    enabled: externalCategory,
+    staleTime: 10 * 60_000,
+    retry: 0,
+  });
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [search, setSearch] = useState("");
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const displayError = error ?? listingsError?.message ?? externalError?.message ?? null;
   const searchRequestRef = useRef<AbortController | null>(null);
-  const placesRequestRef = useRef<AbortController | null>(null);
-  const placesLoadingOwnerRef = useRef<number | null>(null);
   const locationIntentRef = useRef(0);
   const loadingOwnerRef = useRef(0);
 
@@ -42,10 +53,10 @@ export function MapExplorer() {
   }, []);
 
   useEffect(() => {
-    if (error && !/abort|signal/i.test(error)) {
+    if (displayError && !/abort|signal/i.test(displayError)) {
       notify("Não foi possível atualizar os resultados.", "error");
     }
-  }, [error]);
+  }, [displayError]);
 
   const locate = useCallback(() => {
     if (!navigator.geolocation) { setError("A geolocalização não está disponível neste navegador."); return; }
@@ -55,24 +66,7 @@ export function MapExplorer() {
     navigator.geolocation.getCurrentPosition(({ coords }) => { if (intent !== locationIntentRef.current) return; const point = { lat: coords.latitude, lng: coords.longitude }; setUserLocation(point); setCenter(point); finishLoading(loadingOwner); }, () => { if (intent !== locationIntentRef.current) return; setError("Não foi possível acessar sua localização. Pesquise uma cidade ou CEP."); finishLoading(loadingOwner); }, { enableHighAccuracy: false, timeout: 9000, maximumAge: 300000 });
   }, [beginLoading, finishLoading]);
 
-  useEffect(() => { const controller = new AbortController(); const loadingOwner = beginLoading(); mapApi.listings(controller.signal).then(setListings).catch((cause: unknown) => { if (!controller.signal.aborted && (cause as Error)?.name !== "AbortError") setError(cause instanceof Error ? cause.message : "Não foi possível carregar os anúncios."); }).finally(() => { if (!controller.signal.aborted) finishLoading(loadingOwner); }); queueMicrotask(locate); return () => controller.abort(); }, [beginLoading, finishLoading, locate]);
-
-  useEffect(() => {
-    if (!(["veterinary", "pet_shop", "shelter"] as MapCategory[]).includes(category)) {
-      placesRequestRef.current?.abort();
-      placesRequestRef.current = null;
-      if (placesLoadingOwnerRef.current !== null) finishLoading(placesLoadingOwnerRef.current);
-      placesLoadingOwnerRef.current = null;
-      queueMicrotask(() => { setExternal([]); setError(null); });
-      return;
-    }
-    placesRequestRef.current?.abort(); const controller = new AbortController(); placesRequestRef.current = controller; const queryCenter = { lat: center.lat, lng: center.lng };
-    const loadingOwner = beginLoading();
-    placesLoadingOwnerRef.current = loadingOwner;
-    queueMicrotask(() => { setError(null); setExternal([]); });
-    mapApi.places(category as "veterinary" | "pet_shop" | "shelter", queryCenter, controller.signal).then(setExternal).catch((cause: unknown) => { if ((cause as Error)?.name !== "AbortError") setError(cause instanceof Error ? cause.message : "Não foi possível consultar locais próximos."); }).finally(() => { if (!controller.signal.aborted) finishLoading(loadingOwner); if (placesLoadingOwnerRef.current === loadingOwner) placesLoadingOwnerRef.current = null; });
-    return () => controller.abort();
-  }, [beginLoading, category, center.lat, center.lng, finishLoading]);
+  useEffect(() => { queueMicrotask(locate); }, [locate]);
 
   const results = useMemo(() => {
     const source = category === "adoption" || category === "donation" ? listings.filter((item) => item.category === category) : external;
@@ -90,5 +84,5 @@ export function MapExplorer() {
     finally { if (!controller.signal.aborted) finishLoading(loadingOwner); }
   }
 
-  return <div className="flex h-[calc(100dvh-68px)] min-h-0 flex-col overflow-hidden lg:h-[calc(100dvh-80px)] lg:flex-row"><MapSidebar category={category} results={results} selectedId={selectedId} loading={loading} search={search} onSearchChange={setSearch} onSearch={runSearch} onCategory={(value) => { setCategory(value); setSelectedId(null); }} onSelect={select} /><MapCanvas center={center} results={results} selectedId={selectedId} userLocation={userLocation} onSelect={select} onLocate={locate} /></div>;
+  return <div className="flex h-[calc(100dvh-68px)] min-h-0 flex-col overflow-hidden lg:h-[calc(100dvh-80px)] lg:flex-row"><MapSidebar category={category} results={results} selectedId={selectedId} loading={loading || listingsPending || (externalCategory && externalPending)} search={search} onSearchChange={setSearch} onSearch={runSearch} onCategory={(value) => { setCategory(value); setSelectedId(null); setError(null); }} onSelect={select} /><MapCanvas center={center} results={results} selectedId={selectedId} userLocation={userLocation} onSelect={select} onLocate={locate} /></div>;
 }

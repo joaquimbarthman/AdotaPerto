@@ -1,14 +1,14 @@
 "use client";
 
+import { LoadErrorState } from "@/components/load-error-state";
+import { SkeletonLoader } from "@/components/skeleton-loader";
+import type { Animal } from "@/data/animals";
 import Image from "next/image";
 import Link from "next/link";
 import { useEffect, useState } from "react";
 import { createPortal } from "react-dom";
-import { SkeletonLoader } from "@/components/skeleton-loader";
-import { LoadErrorState } from "@/components/load-error-state";
-import type { Animal } from "@/data/animals";
+import { EmptyTab, PageHeading, ProfileSearch, SegmentedControl } from "./profile-ui";
 import type { DonationItem, EditablePublication } from "./types";
-import { PageHeading, SegmentedControl, ProfileSearch, EmptyTab } from "./profile-ui";
 import { useDebouncedValue } from "./use-debounced-value";
 
 export function DeletePublicationModal({ publication, loading, onCancel, onConfirm }: { publication: EditablePublication; loading: boolean; onCancel: () => void; onConfirm: () => void }) {
@@ -26,7 +26,7 @@ export function DeletePublicationModal({ publication, loading, onCancel, onConfi
   if (typeof document === "undefined") return null;
   return createPortal(
     <div className="fixed inset-0 z-[1000] grid place-items-center bg-[#0d1c13]/65 p-4 backdrop-blur-sm sm:p-5" role="presentation" onMouseDown={(event) => { if (event.target === event.currentTarget && !loading) onCancel(); }}>
-      <section role="alertdialog" aria-modal="true" aria-labelledby="delete-publication-title" aria-describedby="delete-publication-description" className="w-full max-w-[330px] overflow-hidden rounded-xl border border-[#d7e6da] bg-white shadow-[0_28px_80px_rgba(5,22,12,.32)] sm:max-w-md">
+      <section role="alertdialog" aria-modal="true" aria-labelledby="delete-publication-title" aria-describedby="delete-publication-description" className="w-full max-w-82.5 overflow-hidden rounded-xl border border-[#d7e6da] bg-white shadow-[0_28px_80px_rgba(5,22,12,.32)] sm:max-w-md">
         <div className="p-4 sm:p-7">
           <p className="text-[9px] font-extrabold uppercase tracking-[.12em] text-red-700 sm:text-[10px] sm:tracking-[.14em]">Excluir publicação</p>
           <h2 id="delete-publication-title" className="mt-1.5 truncate text-base font-extrabold tracking-[-.02em] text-[#253129] sm:mt-2 sm:text-xl" title={`Excluir “${title}”?`}>Excluir “{title}”?</h2>
@@ -43,7 +43,7 @@ export function DeletePublicationModal({ publication, loading, onCancel, onConfi
 }
 
 export function PublicationsPanel({ filter, onFilter, animals, items, loading, error, onEdit, onRemove }: { filter: "animais" | "itens"; onFilter: (value: "animais" | "itens") => void; animals: Animal[]; items: DonationItem[]; loading: boolean; error: string | null; onEdit: (publication: EditablePublication) => void; onRemove: (publication: EditablePublication) => void }) {
-  const [page, setPage] = useState(1);
+  const [pageState, setPage] = useState(1);
   const [search, setSearch] = useState("");
   const debouncedSearch = useDebouncedValue(search, 300);
   const query = debouncedSearch.trim().toLocaleLowerCase("pt-BR");
@@ -54,14 +54,12 @@ export function PublicationsPanel({ filter, onFilter, animals, items, loading, e
   });
   const pageSize = 6;
   const totalPages = Math.max(1, Math.ceil(publications.length / pageSize));
+  const page = Math.min(pageState, totalPages);
   const visiblePublications = publications.slice((page - 1) * pageSize, page * pageSize);
-
-  useEffect(() => { setPage(1); }, [filter, debouncedSearch]);
-  useEffect(() => { if (page > totalPages) setPage(totalPages); }, [page, totalPages]);
 
   return <div className="space-y-5 sm:space-y-7">
     <PageHeading title="Minhas publicações" description="Gerencie os anúncios que outras pessoas encontram na plataforma." action={<div className="flex gap-2"><Link href="/doacoes/animal" className="profile-action rounded-xl border border-[#256441] bg-white px-4 py-2.5 text-sm font-bold text-[#256441] hover:bg-[#eefdf1]">+ Animal</Link><Link href="/doacoes/item" className="profile-action rounded-xl bg-[#256441] px-4 py-2.5 text-sm font-bold text-white hover:bg-[#194b30]">+ Item</Link></div>} />
-    <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between"><SegmentedControl value={filter} options={[{ id: "animais", label: "Animais", count: filter === "animais" ? publications.length : animals.length }, { id: "itens", label: "Itens", count: filter === "itens" ? publications.length : items.length }]} onChange={(value) => onFilter(value as "animais" | "itens")} /><ProfileSearch value={search} onChange={setSearch} placeholder="Buscar publicações..." /></div>
+    <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between"><SegmentedControl value={filter} options={[{ id: "animais", label: "Animais", count: filter === "animais" ? publications.length : animals.length }, { id: "itens", label: "Itens", count: filter === "itens" ? publications.length : items.length }]} onChange={(value) => { onFilter(value as "animais" | "itens"); setPage(1); }} /><ProfileSearch value={search} onChange={(value) => { setSearch(value); setPage(1); }} placeholder="Buscar publicações..." /></div>
     {loading ? (
       <PublicationSkeleton />
     ) : error ? (
@@ -82,5 +80,5 @@ export function PublicationCard({ publication, onEdit, onRemove }: { publication
   const title = publication.kind === "animal" ? publication.data.name : publication.data.title;
   const image = publication.kind === "animal" ? publication.data.image : publication.data.mainImage;
   const detail = publication.kind === "animal" ? `${publication.data.species} • ${publication.data.sex} • ${publication.data.age}` : `${publication.data.quantity} ${publication.data.unit} • ${publication.data.category}`;
-  return <article className="group grid grid-cols-[112px_1fr] overflow-hidden rounded-xl border border-[#e1e8e2] bg-white shadow-[0_5px_16px_rgba(38,51,43,0.06)] transition-all duration-300 ease-out hover:border-[#9fc5aa] hover:shadow-[0_18px_38px_rgba(31,91,57,0.15)] motion-reduce:transition-none sm:block sm:rounded-2xl sm:hover:-translate-y-1.5 sm:hover:scale-[1.01]"><div className="relative h-full min-h-[150px] overflow-hidden bg-[#e3f2e6] sm:h-44 sm:min-h-0"><Image src={image || "/images/login-cover-v2.png"} alt={title} fill className="object-cover transition-transform duration-500 ease-out group-hover:scale-[1.06] motion-reduce:transform-none" /><span className="absolute left-2 top-2 max-w-[calc(100%-1rem)] truncate rounded-full bg-white/95 px-2 py-1 text-[10px] font-bold text-[#256441] shadow-sm sm:left-3 sm:top-3 sm:px-3 sm:py-1.5 sm:text-xs">{data.status}</span></div><div className="min-w-0 p-3.5 sm:p-5"><p className="text-[10px] font-bold uppercase tracking-wider text-[#708078] sm:text-xs">{isAnimal ? "Adoção" : "Doação de item"}</p><h3 className="mt-0.5 truncate text-base font-extrabold transition-colors group-hover:text-[#256441] sm:mt-1 sm:text-xl">{title}</h3><p className="mt-0.5 truncate text-xs text-[#526057] sm:mt-1 sm:text-sm">{detail}</p><div className="mt-3 grid gap-1.5 border-t border-[#e7eee9] pt-3 sm:mt-5 sm:grid-cols-[1fr_auto] sm:gap-2 sm:pt-4"><button type="button" onClick={() => onEdit(publication)} className="rounded-lg bg-[#e3f2e6] px-2 py-2 text-[11px] font-bold text-[#256441] transition hover:bg-[#d7eeda] sm:px-4 sm:py-2.5 sm:text-sm">Editar</button><button type="button" onClick={() => onRemove(publication)} className="rounded-lg px-2 py-1.5 text-[11px] font-bold text-red-700 transition hover:bg-red-50 sm:px-3 sm:py-2.5 sm:text-sm" aria-label={`Excluir ${title}`}>Excluir</button></div></div></article>;
+  return <article className="group grid grid-cols-[112px_1fr] overflow-hidden rounded-xl border border-[#e1e8e2] bg-white shadow-[0_5px_16px_rgba(38,51,43,0.06)] transition-all duration-300 ease-out hover:border-[#9fc5aa] hover:shadow-[0_18px_38px_rgba(31,91,57,0.15)] motion-reduce:transition-none sm:block sm:rounded-2xl sm:hover:-translate-y-1.5 sm:hover:scale-[1.01]"><div className="relative h-full min-h-37.5 overflow-hidden bg-[#e3f2e6] sm:h-44 sm:min-h-0"><Image src={image || "/images/login-cover-v2.png"} alt={title} fill className="object-cover transition-transform duration-500 ease-out group-hover:scale-[1.06] motion-reduce:transform-none" /><span className="absolute left-2 top-2 max-w-[calc(100%-1rem)] truncate rounded-full bg-white/95 px-2 py-1 text-[10px] font-bold text-[#256441] shadow-sm sm:left-3 sm:top-3 sm:px-3 sm:py-1.5 sm:text-xs">{data.status}</span></div><div className="min-w-0 p-3.5 sm:p-5"><p className="text-[10px] font-bold uppercase tracking-wider text-[#708078] sm:text-xs">{isAnimal ? "Adoção" : "Doação de item"}</p><h3 className="mt-0.5 truncate text-base font-extrabold transition-colors group-hover:text-[#256441] sm:mt-1 sm:text-xl">{title}</h3><p className="mt-0.5 truncate text-xs text-[#526057] sm:mt-1 sm:text-sm">{detail}</p><div className="mt-3 grid gap-1.5 border-t border-[#e7eee9] pt-3 sm:mt-5 sm:grid-cols-[1fr_auto] sm:gap-2 sm:pt-4"><button type="button" onClick={() => onEdit(publication)} className="rounded-lg bg-[#e3f2e6] px-2 py-2 text-[11px] font-bold text-[#256441] transition hover:bg-[#d7eeda] sm:px-4 sm:py-2.5 sm:text-sm">Editar</button><button type="button" onClick={() => onRemove(publication)} className="rounded-lg px-2 py-1.5 text-[11px] font-bold text-red-700 transition hover:bg-red-50 sm:px-3 sm:py-2.5 sm:text-sm" aria-label={`Excluir ${title}`}>Excluir</button></div></div></article>;
 }

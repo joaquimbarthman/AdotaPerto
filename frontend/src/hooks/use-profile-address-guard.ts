@@ -21,11 +21,11 @@ export function useProfileAddressGuard(
   useEffect(() => {
     if (sessionPending || !userId) return;
     if (skipWhenEditing && new URLSearchParams(window.location.search).get("edit")) {
-      setCheckingAddress(false);
+      queueMicrotask(() => setCheckingAddress(false));
       return;
     }
     if (skipForOrganization && new URLSearchParams(window.location.search).get("organization")) {
-      setCheckingAddress(false);
+      queueMicrotask(() => setCheckingAddress(false));
       return;
     }
     const controller = new AbortController();
