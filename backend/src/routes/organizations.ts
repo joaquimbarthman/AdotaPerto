@@ -2,7 +2,7 @@ import { and, desc, eq, isNull } from "drizzle-orm";
 import { Hono } from "hono";
 import { z } from "zod";
 import { db } from "../../lib/db/index.ts";
-import { adoptionRequest, animal, donationItem, donationItemRequest, invitation, member, organization, user } from "../../lib/db/schemas/index.ts";
+import { adoptionRequest, animal, donationItem, donationItemRequest, invitation, member, organization, organizationExternal, user } from "../../lib/db/schemas/index.ts";
 import { canManageOrganization, organizationMembership } from "../services/organization-access.ts";
 import type { AuthContext } from "./index.ts";
 
@@ -34,7 +34,7 @@ organizationRoutes.get("/:id/dashboard", async (c) => {
   const [org] = await db.select().from(organization).where(eq(organization.id, organizationId));
   if (!org) return c.json({ error: "Organização não encontrada." }, 404);
 
-  const [members, animals, items, adoptionRequests, itemRequests, invitations] = await Promise.all([
+  const [members, animals, items, adoptionRequests, itemRequests, invitations, externals] = await Promise.all([
     db.select({ id: member.id, userId: user.id, name: user.name, email: user.email, role: member.role, createdAt: member.createdAt })
       .from(member).innerJoin(user, eq(member.userId, user.id))
       .where(eq(member.organizationId, organizationId)).orderBy(member.createdAt),
@@ -55,9 +55,61 @@ organizationRoutes.get("/:id/dashboard", async (c) => {
         .from(invitation).where(and(eq(invitation.organizationId, organizationId), eq(invitation.status, "pending")))
         .orderBy(desc(invitation.createdAt))
       : Promise.resolve([]),
+    db.select().from(organizationExternal)
+      .where(eq(organizationExternal.organizationId, organizationId))
+      .orderBy(desc(organizationExternal.createdAt)),
   ]);
 
-  return c.json({ organization: org, role: membership.role, members, animals, items, adoptionRequests, itemRequests, invitations });
+  return c.json({ organization: org, role: membership.role, members, animals, items, adoptionRequests, itemRequests, invitations, externals });
+});
+
+const externalSchema = z.object({
+  name: z.string().trim().min(2).max(160),
+  kind: z.enum(["prestador", "parceiro", "outro"]),
+  email: z.union([z.email().max(255), z.literal("")]).nullable(),
+  phone: z.string().trim().max(30).nullable(),
+  notes: z.string().trim().max(500).nullable(),
+});
+
+organizationRoutes.post("/:id/externals", async (c) => {
+  const organizationId = c.req.param("id");
+  const membership = await organizationMembership(c.get("user")!.id, organizationId);
+  if (!membership || !canManageOrganization(membership.role)) return c.json({ error: "Apenas gestores podem cadastrar contatos externos." }, 403);
+  const parsed = externalSchema.safeParse(await c.req.json().catch(() => null));
+  if (!parsed.success) return c.json({ error: "Revise os dados do contato externo." }, 400);
+  const [created] = await db.insert(organizationExternal).values({
+    id: crypto.randomUUID(), organizationId, ...parsed.data,
+    email: parsed.data.email || null,
+  }).returning();
+  return c.json(created, 201);
+});
+
+organizationRoutes.patch("/:id/externals/:externalId", async (c) => {
+  const organizationId = c.req.param("id");
+  const membership = await organizationMembership(c.get("user")!.id, organizationId);
+  if (!membership || !canManageOrganization(membership.role)) return c.json({ error: "Apenas gestores podem editar contatos externos." }, 403);
+  const parsed = externalSchema.safeParse(await c.req.json().catch(() => null));
+  if (!parsed.success) return c.json({ error: "Revise os dados do contato externo." }, 400);
+  const [updated] = await db.update(organizationExternal).set({
+    ...parsed.data, email: parsed.data.email || null,
+  }).where(and(
+    eq(organizationExternal.id, c.req.param("externalId")),
+    eq(organizationExternal.organizationId, organizationId),
+  )).returning();
+  if (!updated) return c.json({ error: "Contato externo não encontrado." }, 404);
+  return c.json(updated);
+});
+
+organizationRoutes.delete("/:id/externals/:externalId", async (c) => {
+  const organizationId = c.req.param("id");
+  const membership = await organizationMembership(c.get("user")!.id, organizationId);
+  if (!membership || !canManageOrganization(membership.role)) return c.json({ error: "Apenas gestores podem remover contatos externos." }, 403);
+  const [deleted] = await db.delete(organizationExternal).where(and(
+    eq(organizationExternal.id, c.req.param("externalId")),
+    eq(organizationExternal.organizationId, organizationId),
+  )).returning({ id: organizationExternal.id });
+  if (!deleted) return c.json({ error: "Contato externo não encontrado." }, 404);
+  return c.json({ success: true });
 });
 
 const updateOrganizationSchema = z.object({

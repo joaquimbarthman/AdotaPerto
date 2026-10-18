@@ -2,13 +2,14 @@
 
 import type { DashboardProps } from "./dashboard-props";
 import { box, button, input, roleLabel } from "./styles";
+import { ExternalsSection } from "./externals-section";
 
-export function TeamTab({ dashboard, canManage, busy, changeRole, removeMember, invite, inviteEmail, setInviteEmail, inviteRole, setInviteRole, cancelInvitation, setMessage }: Pick<DashboardProps, "dashboard" | "canManage" | "busy" | "changeRole" | "removeMember" | "invite" | "inviteEmail" | "setInviteEmail" | "inviteRole" | "setInviteRole" | "cancelInvitation" | "setMessage">) {
+export function TeamTab({ dashboard, canManage, busy, changeRole, removeMember, invite, inviteEmail, setInviteEmail, inviteRole, setInviteRole, cancelInvitation, setMessage, saveExternal, removeExternal }: Pick<DashboardProps, "dashboard" | "canManage" | "busy" | "changeRole" | "removeMember" | "invite" | "inviteEmail" | "setInviteEmail" | "inviteRole" | "setInviteRole" | "cancelInvitation" | "setMessage" | "saveExternal" | "removeExternal">) {
   const date = (value: string) => new Date(value).toLocaleDateString("pt-BR");
   return (
         <div className="mt-6 grid gap-5 lg:grid-cols-2">
           <section className={box}>
-            <h2 className="text-lg font-bold">Membros</h2>
+            <h2 className="text-lg font-bold">Equipe e voluntários</h2>
             <div className="mt-4 divide-y divide-[#e4eee7]">
               {dashboard.members.map((person) => (
                 <div
@@ -35,7 +36,7 @@ export function TeamTab({ dashboard, canManage, busy, changeRole, removeMember, 
                         }
                         className={input}
                       >
-                        <option value="member">Membro</option>
+                        <option value="member">Voluntário</option>
                         <option value="admin">Gestor</option>
                       </select>
                       <button
@@ -73,7 +74,7 @@ export function TeamTab({ dashboard, canManage, busy, changeRole, removeMember, 
                       }
                       className={input}
                     >
-                      <option value="member">Membro</option>
+                      <option value="member">Voluntário</option>
                       <option value="admin">Gestor</option>
                     </select>
                     <button disabled={busy} className={`${button} shrink-0`}>
@@ -127,6 +128,7 @@ export function TeamTab({ dashboard, canManage, busy, changeRole, removeMember, 
               </p>
             )}
           </section>
+          <ExternalsSection externals={dashboard.externals} canManage={canManage} busy={busy} saveExternal={saveExternal} removeExternal={removeExternal} />
         </div>
   );
 }

@@ -7,7 +7,7 @@ import { box, button } from "./styles";
 export function OverviewTab({ dashboard }: { dashboard: Dashboard }) {
   return (
         <div className="mt-6 space-y-6">
-          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-5">
             {[
               ["Animais", dashboard.animals.length],
               ["Itens", dashboard.items.length],
@@ -16,7 +16,8 @@ export function OverviewTab({ dashboard }: { dashboard: Dashboard }) {
                 dashboard.adoptionRequests.length +
                   dashboard.itemRequests.length,
               ],
-              ["Membros", dashboard.members.length],
+              ["Voluntários", dashboard.members.filter((person) => person.role === "member").length],
+              ["Externos", dashboard.externals.length],
             ].map(([label, value]) => (
               <div key={label} className={box}>
                 <p className="text-sm text-[#68726b]">{label}</p>

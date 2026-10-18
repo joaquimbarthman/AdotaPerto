@@ -6,6 +6,7 @@ import { db } from "../../lib/db/index.ts";
 import {
   adoptionRequest,
   animal,
+  organization,
   user as userTable,
 } from "../../lib/db/schemas/index.ts";
 import type { AuthContext } from "./index.ts";
@@ -114,12 +115,13 @@ animalRoutes.get("/", async (c) => {
   if (status) conditions.push(eq(animal.status, status));
 
   const list = await db
-    .select()
+    .select({ animal, organizationName: organization.name })
     .from(animal)
+    .leftJoin(organization, eq(animal.organizationId, organization.id))
     .where(conditions.length ? and(...conditions) : undefined)
     .orderBy(desc(animal.createdAt));
 
-  return c.json(list);
+  return c.json(list.map((row) => ({ ...row.animal, organization: row.organizationName })));
 });
 
 animalRoutes.get("/mine", async (c) => {
@@ -149,9 +151,11 @@ animalRoutes.get("/:id", async (c) => {
         state: userTable.state,
         verified: userTable.emailVerified,
       },
+      organizationName: organization.name,
     })
     .from(animal)
     .innerJoin(userTable, eq(animal.userId, userTable.id))
+    .leftJoin(organization, eq(animal.organizationId, organization.id))
     .where(eq(animal.id, id));
 
   if (!result) {
@@ -172,7 +176,7 @@ animalRoutes.get("/:id", async (c) => {
     viewerRequestStatus = viewerRequest?.status ?? null;
   }
 
-  return c.json({ ...result.animal, owner: result.owner, viewerRequestStatus });
+  return c.json({ ...result.animal, organization: result.organizationName, owner: result.owner, viewerRequestStatus });
 });
 
 animalRoutes.post("/", async (c) => {

@@ -9,6 +9,6 @@ export function roleLabel(role: string) {
     ? "Responsável"
     : role === "admin"
       ? "Gestor"
-      : "Membro";
+      : "Voluntário";
 }
 

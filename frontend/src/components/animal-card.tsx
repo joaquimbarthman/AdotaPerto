@@ -103,6 +103,7 @@ export function AnimalCard({
         </div>
 
         <div className={`mt-auto ${compactMobile ? "pt-2.5 sm:pt-5" : "pt-5"}`}>
+          {animal.organization && <p className="mb-2 truncate text-xs font-semibold text-[#256441]">ONG {animal.organization}</p>}
           <div
             className={`flex items-center border-t border-[#d7e6da] ${compactMobile ? "min-h-8 pt-2 sm:min-h-10 sm:pt-3" : "min-h-10 pt-3"}`}
           >

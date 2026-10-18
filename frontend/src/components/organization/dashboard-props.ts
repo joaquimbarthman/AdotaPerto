@@ -1,5 +1,5 @@
 import type { FormEvent } from "react";
-import type { Dashboard, Tab } from "./types";
+import type { Dashboard, ExternalValues, Tab } from "./types";
 
 type Kind = "animal" | "item";
 export type DashboardProps = {
@@ -24,6 +24,8 @@ export type DashboardProps = {
   inviteRole: "member" | "admin";
   setInviteRole: (role: "member" | "admin") => void;
   cancelInvitation: (invitationId: string) => Promise<void>;
+  saveExternal: (id: string | null, values: ExternalValues) => Promise<boolean>;
+  removeExternal: (id: string) => Promise<void>;
   setMessage: (message: string | null) => void;
   saveOrganization: (event: FormEvent<HTMLFormElement>) => Promise<void>;
   setLogoFile: (file: File | null) => void;

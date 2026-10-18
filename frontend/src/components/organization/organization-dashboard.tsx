@@ -26,6 +26,8 @@ export function OrganizationDashboard({
   inviteRole,
   setInviteRole,
   cancelInvitation,
+  saveExternal,
+  removeExternal,
   setMessage,
   saveOrganization,
   setLogoFile,
@@ -80,6 +82,8 @@ export function OrganizationDashboard({
           inviteRole={inviteRole}
           setInviteRole={setInviteRole}
           cancelInvitation={cancelInvitation}
+          saveExternal={saveExternal}
+          removeExternal={removeExternal}
           setMessage={setMessage}
         />
       )}

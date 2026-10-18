@@ -1,12 +1,22 @@
+"use client";
+
 import { DashboardIcon } from "./admin-ui";
 import { AdminMetrics } from "./admin-metrics";
 import { AdminStatusGrid } from "./admin-status-grid";
 import { RecentUsersTable } from "./recent-users-table";
+import { OrganizationsTable } from "./organizations-table";
+import { AnimalTransferPanel } from "./animal-transfer-panel";
+import { useState } from "react";
 import type { Overview } from "./types";
 
 type Props = { data: Overview; seedContent: () => Promise<void>; seeding: boolean; seedMessage: string | null; seedError: boolean };
 
 export function AdminOverview({ data, seedContent, seeding, seedMessage, seedError }: Props) {
+  const [transferOrgId, setTransferOrgId] = useState<string | null>(null);
+  function selectTransferOrganization(id: string) {
+    setTransferOrgId(id);
+    document.getElementById("admin-animal-transfer")?.scrollIntoView({ behavior: "smooth" });
+  }
   return (
 
           <>
@@ -49,6 +59,8 @@ export function AdminOverview({ data, seedContent, seeding, seedMessage, seedErr
               </p>
             </div>
             <AdminStatusGrid data={data} />
+            <OrganizationsTable updatedAt={data.generatedAt} onTransfer={selectTransferOrganization} />
+            <AnimalTransferPanel key={transferOrgId || "none"} initialOrgId={transferOrgId} updatedAt={data.generatedAt} />
             <RecentUsersTable data={data} />
             <p className="admin-updated">
               <DashboardIcon name="clock" />

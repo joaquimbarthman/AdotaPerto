@@ -18,6 +18,17 @@ export type Member = {
   role: string;
   createdAt: string;
 };
+export type External = {
+  id: string;
+  organizationId: string;
+  name: string;
+  kind: "prestador" | "parceiro" | "outro";
+  email: string | null;
+  phone: string | null;
+  notes: string | null;
+  createdAt: string;
+};
+export type ExternalValues = Pick<External, "name" | "kind" | "email" | "phone" | "notes">;
 export type Publication = {
   id: string;
   name?: string;
@@ -48,6 +59,7 @@ export type Dashboard = {
   organization: Org;
   role: string;
   members: Member[];
+  externals: External[];
   animals: Publication[];
   items: Publication[];
   adoptionRequests: Request[];

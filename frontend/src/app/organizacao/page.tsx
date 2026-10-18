@@ -37,6 +37,8 @@ export default function OrganizationPage() {
     changeRole,
     removeMember,
     cancelInvitation,
+    saveExternal,
+    removeExternal,
     updateRequest,
     deletePublication,
     claimPublications,
@@ -157,6 +159,8 @@ export default function OrganizationPage() {
             inviteRole={inviteRole}
             setInviteRole={setInviteRole}
             cancelInvitation={cancelInvitation}
+            saveExternal={saveExternal}
+            removeExternal={removeExternal}
             setMessage={setMessage}
             saveOrganization={saveOrganization}
             setLogoFile={setLogoFile}

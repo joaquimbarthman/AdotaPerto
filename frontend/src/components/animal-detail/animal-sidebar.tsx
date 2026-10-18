@@ -2,8 +2,8 @@ import type { AnimalDetailsProps } from "./animal-details";
 import Image from "next/image";
 
 export function AnimalSidebar({ animal, sessionPending, approximateDistance, favorite, favoriteLoading, toggleFavorite, handleRequestAdoption }: AnimalDetailsProps) {
-  const ownerName = animal.owner?.name || "Responsável pelo animal";
-  const ownerLocation = [animal.owner?.city, animal.owner?.state]
+  const ownerName = animal.organization || animal.owner?.name || "Responsável pelo animal";
+  const ownerLocation = (animal.organization ? [] : [animal.owner?.city, animal.owner?.state])
     .filter(Boolean)
     .join(", ");
 
@@ -16,7 +16,7 @@ export function AnimalSidebar({ animal, sessionPending, approximateDistance, fav
             </h2>
             <div className="mt-4 flex items-center gap-4">
               <div className="relative grid size-16 shrink-0 place-items-center overflow-hidden rounded-full border border-[#e3f2e6] bg-[#e3f2e6]">
-                {animal.owner?.image ? (
+                {!animal.organization && animal.owner?.image ? (
                   <Image
                     src={animal.owner.image}
                     alt={ownerName}
@@ -35,7 +35,7 @@ export function AnimalSidebar({ animal, sessionPending, approximateDistance, fav
                   <p className="mt-1 text-xs text-[#526057]">{ownerLocation}</p>
                 )}
                 <p className="mt-1 text-xs text-[#404942]">
-                  {animal.owner?.verified
+                  {animal.organization ? "ONG cadastrada" : animal.owner?.verified
                     ? "Responsável verificado"
                     : "Responsável cadastrado"}
                 </p>

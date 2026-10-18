@@ -34,6 +34,23 @@ export const member = pgTable(
   ],
 );
 
+export const organizationExternal = pgTable(
+  "organization_external",
+  {
+    id: text("id").primaryKey(),
+    organizationId: text("organization_id")
+      .notNull()
+      .references(() => organization.id, { onDelete: "cascade" }),
+    name: text("name").notNull(),
+    kind: text("kind").notNull(),
+    email: text("email"),
+    phone: text("phone"),
+    notes: text("notes"),
+    createdAt: timestamp("created_at").defaultNow().notNull(),
+  },
+  (table) => [index("organization_external_organizationId_idx").on(table.organizationId)],
+);
+
 export const invitation = pgTable(
   "invitation",
   {

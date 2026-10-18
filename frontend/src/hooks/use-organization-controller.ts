@@ -7,7 +7,7 @@ import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useState, type FormEvent } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import { catalogKeys } from "@/lib/catalog";
-import { organizationTabs, type Dashboard, type OrgOption, type Tab } from "@/components/organization/types";
+import { organizationTabs, type Dashboard, type ExternalValues, type OrgOption, type Tab } from "@/components/organization/types";
 function slugFor(name: string) {
   return `${name.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "") || "ong"}-${crypto.randomUUID().slice(0, 8)}`;
 }
@@ -142,6 +142,43 @@ export function useOrganizationController() {
     await load(selectedId);
   }
 
+  async function saveExternal(id: string | null, values: ExternalValues) {
+    if (!selectedId) return false;
+    setBusy(true); setError(null); setMessage(null);
+    try {
+      const url = `${apiBaseUrl()}/api/organizations/${encodeURIComponent(selectedId)}/externals${id ? `/${encodeURIComponent(id)}` : ""}`;
+      const response = await fetch(url, {
+        method: id ? "PATCH" : "POST",
+        credentials: "include",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(values),
+      });
+      const result = await response.json();
+      if (!response.ok) throw new Error(result.error || "Não foi possível salvar o contato externo.");
+      setMessage(id ? "Contato externo atualizado." : "Contato externo cadastrado.");
+      await load(selectedId);
+      return true;
+    } catch (cause) {
+      setError(cause instanceof Error ? cause.message : "Erro ao salvar o contato externo.");
+      return false;
+    } finally { setBusy(false); }
+  }
+
+  async function removeExternal(id: string) {
+    if (!selectedId || !window.confirm("Remover este contato externo da ONG?")) return;
+    setBusy(true); setError(null); setMessage(null);
+    try {
+      const response = await fetch(`${apiBaseUrl()}/api/organizations/${encodeURIComponent(selectedId)}/externals/${encodeURIComponent(id)}`, {
+        method: "DELETE", credentials: "include",
+      });
+      const result = await response.json();
+      if (!response.ok) throw new Error(result.error || "Não foi possível remover o contato externo.");
+      setMessage("Contato externo removido.");
+      await load(selectedId);
+    } catch (cause) { setError(cause instanceof Error ? cause.message : "Erro ao remover o contato externo."); }
+    finally { setBusy(false); }
+  }
+
   async function updateRequest(kind: "animal" | "item", id: string, status: "Aprovada" | "Recusada") {
     if (!selectedId) return;
     setBusy(true); setError(null);
@@ -195,6 +232,7 @@ export function useOrganizationController() {
     session, isPending, organizations, selectedId, dashboard, tab, loading, busy, error, message,
     inviteEmail, setInviteEmail, inviteRole, setInviteRole, selectOrganization, selectTab,
     createOrganization, saveOrganization, invite, changeRole, removeMember, cancelInvitation,
+    saveExternal, removeExternal,
     updateRequest, deletePublication, claimPublications, canManage, setMessage, setLogoFile,
   };
 }
