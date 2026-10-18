@@ -25,6 +25,14 @@ services:
           envVarKey: RENDER_EXTERNAL_URL
       - key: FRONTEND_URL
         sync: false
+      - key: VIACEP_BASE_URL
+        value: https://viacep.com.br/ws
+      - key: NOMINATIM_SEARCH_URL
+        value: https://nominatim.openstreetmap.org/search
+      - key: OVERPASS_API_URL
+        value: https://overpass-api.de/api/interpreter
+      - key: WIKIMEDIA_FILE_URL
+        value: https://commons.wikimedia.org/wiki/Special:Redirect/file
       - key: AUTH_EMAIL_FROM
         value: AdotaPerto <onboarding@resend.dev>
 
@@ -41,3 +49,7 @@ services:
           type: web
           name: adotaperto-api
           envVarKey: RENDER_EXTERNAL_URL
+      - key: NEXT_PUBLIC_MAP_STYLE_LIGHT_URL
+        value: https://tiles.openfreemap.org/styles/positron
+      - key: NEXT_PUBLIC_MAP_STYLE_DARK_URL
+        value: https://tiles.openfreemap.org/styles/dark
