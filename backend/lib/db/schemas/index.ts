@@ -14,3 +14,4 @@ export * from "./favoriteRelations.ts";
 export * from "./donationItem.ts";
 export * from "./donationItemRequest.ts";
 export * from "./donationItemFavorite.ts";
+export * from "./organization.ts";

@@ -1,7 +1,7 @@
 import { count, desc, eq, gte } from "drizzle-orm";
 import { Hono } from "hono";
 import { db } from "../../lib/db/index.ts";
-import { adoptionRequest, animal, donationItem, donationItemRequest, session, user } from "../../lib/db/schemas/index.ts";
+import { adoptionRequest, animal, donationItem, donationItemRequest, organization, session, user } from "../../lib/db/schemas/index.ts";
 import type { AuthContext } from "./index.ts";
 
 export const adminRoutes = new Hono<AuthContext>();
@@ -21,8 +21,9 @@ adminRoutes.use("*", async (c, next) => {
 adminRoutes.get("/overview", async (c) => {
   try {
     const since = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000);
-    const [users, newUsers, activeSessions, animals, items, adoptions, donations, recentUsers] = await Promise.all([
+    const [users, organizations, newUsers, activeSessions, animals, items, adoptions, donations, recentUsers] = await Promise.all([
       db.select({ total: count() }).from(user),
+      db.select({ total: count() }).from(organization),
       db.select({ total: count() }).from(user).where(gte(user.createdAt, since)),
       db.select({ total: count() }).from(session).where(gte(session.expiresAt, new Date())),
       db.select({ status: animal.status, total: count() }).from(animal).groupBy(animal.status).orderBy(animal.status),
@@ -31,7 +32,7 @@ adminRoutes.get("/overview", async (c) => {
       db.select({ status: donationItemRequest.status, total: count() }).from(donationItemRequest).groupBy(donationItemRequest.status).orderBy(donationItemRequest.status),
       db.select({ id: user.id, name: user.name, role: user.role, city: user.city, state: user.state, createdAt: user.createdAt }).from(user).orderBy(desc(user.createdAt), desc(user.id)).limit(8),
     ]);
-    return c.json({ generatedAt: new Date().toISOString(), users: users[0].total, newUsers: newUsers[0].total, activeSessions: activeSessions[0].total, animals, items, adoptions, donations, recentUsers });
+    return c.json({ generatedAt: new Date().toISOString(), users: users[0].total, organizations: organizations[0].total, newUsers: newUsers[0].total, activeSessions: activeSessions[0].total, animals, items, adoptions, donations, recentUsers });
   } catch {
     return c.json({ error: "Não foi possível carregar os dados do painel." }, 503);
   }

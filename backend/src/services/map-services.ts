@@ -110,27 +110,35 @@ export async function nearbyPlaces(category: MapCategory, lat: number, lng: numb
     : [12_000];
 
   const mainPublicEndpoint = "https://overpass-api.de/api/interpreter";
+  const lz4Endpoint = "https://lz4.overpass-api.de/api/interpreter";
   const fallbackEndpoint = "https://overpass.private.coffee/api/interpreter";
   const secondaryFallbackEndpoint = "https://maps.mail.ru/osm/tools/overpass/api/interpreter";
   const configured = process.env.OVERPASS_API_URL?.split(",").map((value) => value.trim().replace(/\/+$/, "")).filter(Boolean) ?? [];
   const custom = configured.filter((endpoint) => endpoint !== mainPublicEndpoint);
   // Public instances can reject otherwise valid requests while overloaded.
   // Race independent providers so one overloaded service does not block the whole map.
-  const endpoints = [...new Set([...custom, fallbackEndpoint, ...configured, mainPublicEndpoint, secondaryFallbackEndpoint])];
+  const endpoints = [...new Set([...custom, fallbackEndpoint, ...configured, mainPublicEndpoint, lz4Endpoint, secondaryFallbackEndpoint])];
   let lastError: unknown;
   let receivedValidResponse = false;
 
   for (const radius of radii) {
-    const query = `[out:json][timeout:15];nwr${tag}(around:${radius},${lat},${lng});out tags center 40;`;
+    const query = `[out:json][timeout:60];nwr${tag}(around:${radius},${lat},${lng});out tags center 40;`;
     let data: OverpassResponse | null = null;
     try {
-      data = await Promise.any(endpoints.map((endpoint) => fetchJson<OverpassResponse>(
-        endpoint,
-        { method: "POST", headers: { "Content-Type": "application/x-www-form-urlencoded;charset=UTF-8" }, body: new URLSearchParams({ data: query }).toString() },
-        12_000,
-        `overpass:${category}:${lat.toFixed(4)}:${lng.toFixed(4)}:${radius}`,
-        0,
-      )));
+      data = await Promise.any(endpoints.map(async (endpoint) => {
+        try {
+          return await fetchJson<OverpassResponse>(
+            endpoint,
+            { method: "POST", headers: { "Content-Type": "application/x-www-form-urlencoded;charset=UTF-8" }, body: new URLSearchParams({ data: query }).toString() },
+            65_000,
+            `overpass:${category}:${lat.toFixed(4)}:${lng.toFixed(4)}:${radius}`,
+            0,
+          );
+        } catch (error) {
+          const reason = error instanceof Error ? error.message : String(error);
+          throw new Error(`${new URL(endpoint).host}: ${reason}`, { cause: error });
+        }
+      }));
       receivedValidResponse = true;
     } catch (error) {
       lastError = error;
@@ -156,6 +164,10 @@ export async function nearbyPlaces(category: MapCategory, lat: number, lng: numb
     if (places.length > 0) return places;
   }
 
+  if (!receivedValidResponse && lastError instanceof AggregateError) {
+    const details = lastError.errors.map((reason) => reason instanceof Error ? reason.message : String(reason)).join("; ");
+    throw new Error(`Todos os provedores Overpass falharam: ${details}`, { cause: lastError });
+  }
   if (!receivedValidResponse && lastError) throw lastError;
   return [];
 }

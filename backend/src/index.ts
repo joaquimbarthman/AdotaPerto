@@ -6,6 +6,10 @@ import { apiRoutes } from "./routes/index.ts";
 import { statusRoutes } from "./routes/status.ts";
 
 const app = new Hono();
+const configuredOrigins = (process.env.CORS_ORIGINS || process.env.FRONTEND_URL || "")
+  .split(",")
+  .map((origin) => origin.trim().replace(/\/$/, ""))
+  .filter(Boolean);
 
 
 app.use(
@@ -18,6 +22,7 @@ app.use(
         )
       )
         return origin;
+      if (configuredOrigins.includes(origin.replace(/\/$/, ""))) return origin;
       return "http://localhost:3000";
     },
     allowHeaders: ["Content-Type", "Authorization"],
@@ -35,7 +40,7 @@ app.route("/api", apiRoutes);
 serve(
   {
     fetch: app.fetch,
-    port: 4000,
+    port: Number(process.env.PORT) || 4000,
   },
   () => {
     const apiPublicUrl = process.env.API_PUBLIC_URL?.trim().replace(/\/+$/, "");

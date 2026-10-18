@@ -9,6 +9,11 @@ services:
       - "${POSTGRES_PORT:?POSTGRES_PORT não definida no .env}:5432"
     volumes:
       - postgres_data:/var/lib/postgresql
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER} -d ${POSTGRES_DB}"]
+      interval: 2s
+      timeout: 3s
+      retries: 30
 
   storage:
     image: rustfs/rustfs:latest

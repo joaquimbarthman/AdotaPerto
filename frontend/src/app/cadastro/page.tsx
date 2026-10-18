@@ -10,11 +10,28 @@ import { AuthBrand, AuthShell } from "@/components/auth-shell";
 import { authClient } from "@/lib/auth-client";
 import { authErrorMessage } from "@/lib/auth-error-message";
 
+type OrganizationRegistration = {
+  name: string;
+  slug: string;
+  cnpj: string;
+  phone: string;
+  website: string;
+  instagram: string;
+  description: string;
+};
+
+function organizationSlug(name: string) {
+  const base = name.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "") || "ong";
+  return `${base}-${crypto.randomUUID().slice(0, 8)}`;
+}
+
 export default function RegisterPage() {
   const router = useRouter();
   const [loading, setLoading] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [isFirstUser, setIsFirstUser] = useState(false);
+  const [isOrganization, setIsOrganization] = useState(false);
+  const [pendingOrganization, setPendingOrganization] = useState<OrganizationRegistration | null>(null);
   const [registrationCheck, setRegistrationCheck] = useState<"loading" | "ready" | "error">("loading");
   const [checkAttempt, setCheckAttempt] = useState(0);
 
@@ -61,9 +78,15 @@ export default function RegisterPage() {
     const email = formData.get("email") as string;
     const password = formData.get("password") as string;
     const confirmPassword = formData.get("confirmPassword") as string;
+    const organizationName = (formData.get("organizationName") as string | null)?.trim() ?? "";
 
     if (password !== confirmPassword) {
       setErrorMessage("As senhas não coincidem.");
+      return;
+    }
+
+    if (isOrganization && !organizationName) {
+      setErrorMessage("Informe o nome da ONG ou organização.");
       return;
     }
 
@@ -75,13 +98,47 @@ export default function RegisterPage() {
       password,
     });
 
-    setLoading(false);
-
     if (error) {
+      setLoading(false);
       setErrorMessage(authErrorMessage(error, "Erro ao criar conta. Tente novamente."));
       return;
     }
 
+    if (isOrganization) {
+      const organizationData: OrganizationRegistration = {
+        name: organizationName,
+        slug: organizationSlug(organizationName),
+        cnpj: formData.get("organizationDocument") as string,
+        phone: formData.get("organizationPhone") as string,
+        website: formData.get("organizationWebsite") as string,
+        instagram: formData.get("organizationInstagram") as string,
+        description: formData.get("organizationDescription") as string,
+      };
+      setPendingOrganization(organizationData);
+      const result = await authClient.organization.create(organizationData);
+      if (result.error) {
+        setLoading(false);
+        setErrorMessage("Sua conta foi criada, mas não conseguimos salvar os dados da ONG. Tente novamente.");
+        return;
+      }
+      setPendingOrganization(null);
+    }
+
+    setLoading(false);
+    router.replace("/");
+    router.refresh();
+  }
+
+  async function retryOrganizationRegistration() {
+    if (!pendingOrganization) return;
+    setLoading(true);
+    const { error } = await authClient.organization.create(pendingOrganization);
+    setLoading(false);
+    if (error) {
+      setErrorMessage("Ainda não foi possível salvar os dados da ONG. Tente novamente.");
+      return;
+    }
+    setPendingOrganization(null);
     router.replace("/");
     router.refresh();
   }
@@ -95,6 +152,7 @@ export default function RegisterPage() {
       </header>
 
       {errorMessage && <Notification text={errorMessage} />}
+      {pendingOrganization && <button type="button" onClick={retryOrganizationRegistration} disabled={loading} className="mb-4 min-h-11 w-full rounded-lg border border-[#0f5d39] px-4 py-2 text-sm font-semibold text-[#0f5d39] disabled:opacity-60">{loading ? "Salvando ONG..." : "Tentar salvar os dados da ONG"}</button>}
 
       {registrationCheck === "loading" && <p role="status" className="mb-4 text-xs text-[#4d5b53]">Verificando se esta é a primeira conta…</p>}
       {registrationCheck === "error" && (
@@ -110,9 +168,24 @@ export default function RegisterPage() {
         </p>
       )}
 
-      <form onSubmit={handleSubmit} className="space-y-3 sm:space-y-4">
+      <form onSubmit={handleSubmit} className={`space-y-3 sm:space-y-4 ${pendingOrganization ? "hidden" : ""}`} aria-hidden={Boolean(pendingOrganization)}>
         <AuthField label="Nome Completo" icon="/icons/user.svg" name="name" placeholder="Seu nome completo" autoComplete="name" required />
         <AuthField label="E-mail" icon="/icons/email.svg" name="email" type="email" placeholder="exemplo@email.com" autoComplete="email" required />
+        <label className="flex cursor-pointer items-start gap-3 rounded-xl border border-[#c8d2ca] bg-[#fbfdfb] p-3 text-sm text-[#243129] sm:p-4">
+          <input type="checkbox" name="isOrganization" checked={isOrganization} onChange={(event) => setIsOrganization(event.target.checked)} className="mt-0.5 size-4 shrink-0 accent-[#0f5d39]" />
+          <span><strong className="block">Represento uma ONG ou organização</strong><span className="mt-0.5 block text-xs font-normal text-[#647067]">Ative para incluir os dados da organização no cadastro.</span></span>
+        </label>
+
+        {isOrganization && <fieldset className="space-y-3 rounded-xl border border-[#d7e6da] bg-[#f7fbf8] p-3 sm:space-y-4 sm:p-4">
+          <legend className="px-1 text-sm font-bold text-[#0f5d39]">Informações da ONG</legend>
+          <AuthField label="Nome da ONG ou organização" icon="/icons/perfil.svg" name="organizationName" placeholder="Nome público da organização" autoComplete="organization" maxLength={160} required />
+          <AuthField label="CNPJ" icon="/icons/user.svg" name="organizationDocument" placeholder="00.000.000/0000-00" maxLength={18} />
+          <AuthField label="Telefone ou WhatsApp" icon="/icons/user.svg" name="organizationPhone" type="tel" placeholder="(11) 99999-9999" autoComplete="tel" maxLength={20} />
+          <AuthField label="Site" icon="/icons/email.svg" name="organizationWebsite" type="url" placeholder="https://suaong.org.br" autoComplete="url" maxLength={255} />
+          <AuthField label="Instagram" icon="/icons/perfil.svg" name="organizationInstagram" placeholder="@suaong" maxLength={50} />
+          <label className="block text-xs font-semibold tracking-[0.01em] text-[#243129] sm:text-sm">Sobre a ONG<span className="mt-1 block sm:mt-1.5"><textarea name="organizationDescription" rows={3} maxLength={600} placeholder="Conte brevemente sobre o trabalho da organização" className="w-full rounded-lg border border-[#c8d2ca] bg-[#fbfdfb] px-3 py-2.5 text-sm font-normal outline-none transition placeholder:text-[#7b857e] focus:border-[#0f5d39] focus:ring-2 focus:ring-[#0f5d39]/10 sm:rounded-xl sm:px-4 sm:py-3" /></span></label>
+        </fieldset>}
+
         <AuthField label="Senha" icon="/icons/password.svg" name="password" type="password" placeholder="Mínimo 8 caracteres" autoComplete="new-password" minLength={8} required />
         <AuthField label="Confirmar Senha" icon="/icons/password.svg" name="confirmPassword" type="password" placeholder="Digite a senha novamente" autoComplete="new-password" minLength={8} required />
 
@@ -123,7 +196,7 @@ export default function RegisterPage() {
 
         <button
           type="submit"
-          disabled={loading}
+          disabled={loading || Boolean(pendingOrganization)}
           className="min-h-11 w-full rounded-lg bg-[#0f5d39] px-5 py-2.5 text-sm font-semibold text-white shadow-sm transition-all hover:-translate-y-0.5 hover:bg-[#0b482c] hover:shadow-md active:scale-[0.99] disabled:opacity-60 sm:rounded-xl sm:px-6 sm:py-3.5"
         >
           {loading ? "Criando conta..." : "Criar minha conta"}
