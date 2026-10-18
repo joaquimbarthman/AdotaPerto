@@ -5,7 +5,7 @@ import { Notification } from "@/components/notification";
 
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { FormEvent, useEffect, useState } from "react";
+import { FormEvent, useEffect, useRef, useState } from "react";
 import { AuthField } from "@/components/auth-field";
 import { AuthBrand, AuthShell } from "@/components/auth-shell";
 import { authClient } from "@/lib/auth-client";
@@ -28,10 +28,12 @@ function organizationSlug(name: string) {
 
 export default function RegisterPage() {
   const router = useRouter();
+  const userFieldsRef = useRef<HTMLDivElement>(null);
   const [loading, setLoading] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [isFirstUser, setIsFirstUser] = useState(false);
   const [isOrganization, setIsOrganization] = useState(false);
+  const [step, setStep] = useState<"user" | "organization">("user");
   const [pendingOrganization, setPendingOrganization] = useState<OrganizationRegistration | null>(null);
   const [registrationCheck, setRegistrationCheck] = useState<"loading" | "ready" | "error">("loading");
   const [checkAttempt, setCheckAttempt] = useState(0);
@@ -70,8 +72,28 @@ export default function RegisterPage() {
     };
   }, [checkAttempt]);
 
+  function continueToOrganization() {
+    const fields = userFieldsRef.current?.querySelectorAll<HTMLInputElement>("input");
+    for (const field of fields ?? []) {
+      if (!field.reportValidity()) return;
+    }
+    const password = userFieldsRef.current?.querySelector<HTMLInputElement>('input[name="password"]')?.value;
+    const confirmation = userFieldsRef.current?.querySelector<HTMLInputElement>('input[name="confirmPassword"]')?.value;
+    if (password !== confirmation) {
+      setErrorMessage("As senhas não coincidem.");
+      return;
+    }
+    setErrorMessage(null);
+    setStep("organization");
+    userFieldsRef.current?.parentElement?.scrollIntoView({ behavior: "smooth", block: "start" });
+  }
+
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
+    if (isOrganization && step === "user") {
+      continueToOrganization();
+      return;
+    }
     setErrorMessage(null);
 
     const formData = new FormData(event.currentTarget);
@@ -149,7 +171,7 @@ export default function RegisterPage() {
       <div className="mb-3 sm:mb-6"><AuthBrand /></div>
       <header className="mb-4 sm:mb-7">
         <h1 className="text-2xl font-extrabold leading-7 tracking-[-0.02em] sm:text-[30px] sm:leading-9">Crie sua conta</h1>
-        <p className="mt-1 text-xs leading-4 text-[#4d5b53] sm:mt-2 sm:text-base sm:leading-6">Leva menos de um minuto para começar.</p>
+        <p className="mt-1 text-xs leading-4 text-[#4d5b53] sm:mt-2 sm:text-base sm:leading-6">Preencha seus dados para começar.</p>
       </header>
 
       {errorMessage && <Notification text={errorMessage} />}
@@ -169,39 +191,43 @@ export default function RegisterPage() {
         </p>
       )}
 
-      <form onSubmit={handleSubmit} className={`space-y-3 sm:space-y-4 ${pendingOrganization ? "hidden" : ""}`} aria-hidden={Boolean(pendingOrganization)}>
-        <AuthField label="Nome Completo" icon="/icons/user.svg" name="name" placeholder="Seu nome completo" autoComplete="name" required />
-        <AuthField label="E-mail" icon="/icons/email.svg" name="email" type="email" placeholder="exemplo@email.com" autoComplete="email" required />
-        <label className="flex cursor-pointer items-start gap-3 rounded-xl border border-[#c8d2ca] bg-[#fbfdfb] p-3 text-sm text-[#243129] sm:p-4">
-          <input type="checkbox" name="isOrganization" checked={isOrganization} onChange={(event) => setIsOrganization(event.target.checked)} className="mt-0.5 size-4 shrink-0 accent-[#0f5d39]" />
-          <span><strong className="block">Represento uma ONG ou organização</strong><span className="mt-0.5 block text-xs font-normal text-[#647067]">Ative para incluir os dados da organização no cadastro.</span></span>
-        </label>
+      <form onSubmit={handleSubmit} className={`space-y-4 ${pendingOrganization ? "hidden" : ""}`} aria-hidden={Boolean(pendingOrganization)}>
+        {isOrganization && <p className="text-sm font-semibold text-[#0f5d39]">Etapa {step === "user" ? "1" : "2"} de 2 · {step === "user" ? "Seus dados" : "Dados da ONG"}</p>}
 
-        {isOrganization && <fieldset className="space-y-3 rounded-xl border border-[#d7e6da] bg-[#f7fbf8] p-3 sm:space-y-4 sm:p-4">
-          <legend className="px-1 text-sm font-bold text-[#0f5d39]">Informações da ONG</legend>
-          <AuthField label="Nome da ONG ou organização" icon="/icons/perfil.svg" name="organizationName" placeholder="Nome público da organização" autoComplete="organization" maxLength={160} required />
-          <AuthField label="CNPJ" icon="/icons/user.svg" name="organizationDocument" placeholder="00.000.000/0000-00" maxLength={18} />
-          <AuthField label="Telefone ou WhatsApp" icon="/icons/user.svg" name="organizationPhone" type="tel" placeholder="(11) 99999-9999" autoComplete="tel" maxLength={20} />
-          <AuthField label="Site" icon="/icons/email.svg" name="organizationWebsite" type="url" placeholder="https://suaong.org.br" autoComplete="url" maxLength={255} />
-          <AuthField label="Instagram" icon="/icons/perfil.svg" name="organizationInstagram" placeholder="@suaong" maxLength={50} />
-          <label className="block text-xs font-semibold tracking-[0.01em] text-[#243129] sm:text-sm">Sobre a ONG<span className="mt-1 block sm:mt-1.5"><textarea name="organizationDescription" rows={3} maxLength={600} placeholder="Conte brevemente sobre o trabalho da organização" className="w-full rounded-lg border border-[#c8d2ca] bg-[#fbfdfb] px-3 py-2.5 text-sm font-normal outline-none transition placeholder:text-[#7b857e] focus:border-[#0f5d39] focus:ring-2 focus:ring-[#0f5d39]/10 sm:rounded-xl sm:px-4 sm:py-3" /></span></label>
-        </fieldset>}
+        <div ref={userFieldsRef} className={`space-y-3 sm:space-y-4 ${step === "organization" ? "hidden" : ""}`}>
+          <AuthField label="Nome completo" icon="/icons/user.svg" name="name" placeholder="Seu nome completo" autoComplete="name" required />
+          <AuthField label="E-mail" icon="/icons/email.svg" name="email" type="email" placeholder="exemplo@email.com" autoComplete="email" required />
+          <AuthField label="Senha" icon="/icons/password.svg" name="password" type="password" placeholder="Mínimo 8 caracteres" autoComplete="new-password" minLength={8} required />
+          <AuthField label="Confirmar senha" icon="/icons/password.svg" name="confirmPassword" type="password" placeholder="Digite a senha novamente" autoComplete="new-password" minLength={8} required />
 
-        <AuthField label="Senha" icon="/icons/password.svg" name="password" type="password" placeholder="Mínimo 8 caracteres" autoComplete="new-password" minLength={8} required />
-        <AuthField label="Confirmar Senha" icon="/icons/password.svg" name="confirmPassword" type="password" placeholder="Digite a senha novamente" autoComplete="new-password" minLength={8} required />
+          <label className="flex cursor-pointer items-start gap-2 py-0.5 text-[11px] leading-4 text-[#4d5b53] sm:gap-3 sm:py-1 sm:text-sm sm:leading-5">
+            <input type="checkbox" required className="mt-0.5 size-4 shrink-0 accent-[#0f5d39]" />
+            <span>Li e aceito os <Link href="#" className="font-semibold text-[#0f5d39] hover:underline">Termos de Uso</Link> e a <Link href="#" className="font-semibold text-[#0f5d39] hover:underline">Política de Privacidade</Link>.</span>
+          </label>
 
-        <label className="flex cursor-pointer items-start gap-2 py-0.5 text-[11px] leading-4 text-[#4d5b53] sm:gap-3 sm:py-1 sm:text-sm sm:leading-5">
-          <input type="checkbox" required className="mt-0.5 size-4 shrink-0 accent-[#0f5d39]" />
-          <span>Li e aceito os <Link href="#" className="font-semibold text-[#0f5d39] hover:underline">Termos de Uso</Link> e a <Link href="#" className="font-semibold text-[#0f5d39] hover:underline">Política de Privacidade</Link>.</span>
-        </label>
+          <label className="flex cursor-pointer items-start gap-3 rounded-xl border border-[#c8d2ca] p-3 text-sm text-[#243129] sm:p-4">
+            <input type="checkbox" name="isOrganization" checked={isOrganization} onChange={(event) => setIsOrganization(event.target.checked)} className="mt-0.5 size-4 shrink-0 accent-[#0f5d39]" />
+            <span><strong className="block">Represento uma ONG ou organização</strong><span className="mt-0.5 block text-xs font-normal text-[#647067]">Os dados da ONG serão preenchidos na próxima etapa.</span></span>
+          </label>
 
-        <button
-          type="submit"
-          disabled={loading || Boolean(pendingOrganization)}
-          className="min-h-11 w-full rounded-lg bg-[#0f5d39] px-5 py-2.5 text-sm font-semibold text-white shadow-sm transition-all hover:-translate-y-0.5 hover:bg-[#0b482c] hover:shadow-md active:scale-[0.99] disabled:opacity-60 sm:rounded-xl sm:px-6 sm:py-3.5"
-        >
-          {loading ? "Criando conta..." : "Criar minha conta"}
-        </button>
+          <button type="submit" disabled={loading || Boolean(pendingOrganization)} className="min-h-11 w-full rounded-lg bg-[#0f5d39] px-5 py-2.5 text-sm font-semibold text-white shadow-sm transition-all hover:-translate-y-0.5 hover:bg-[#0b482c] hover:shadow-md active:scale-[0.99] disabled:opacity-60 sm:rounded-xl sm:px-6 sm:py-3.5">
+            {loading ? "Criando conta..." : isOrganization ? "Continuar para dados da ONG" : "Criar minha conta"}
+          </button>
+        </div>
+
+        {isOrganization && <div className={`space-y-3 sm:space-y-4 ${step === "user" ? "hidden" : ""}`}>
+          <p className="text-sm text-[#4d5b53]">Agora preencha os dados da organização que você representa.</p>
+          <AuthField label="Nome da ONG ou organização" icon="/icons/perfil.svg" name="organizationName" placeholder="Nome público da organização" autoComplete="organization" maxLength={160} required disabled={step === "user"} />
+          <AuthField label="CNPJ" icon="/icons/user.svg" name="organizationDocument" placeholder="00.000.000/0000-00" maxLength={18} disabled={step === "user"} />
+          <AuthField label="Telefone ou WhatsApp" icon="/icons/user.svg" name="organizationPhone" type="tel" placeholder="(11) 99999-9999" autoComplete="tel" maxLength={20} disabled={step === "user"} />
+          <AuthField label="Site" icon="/icons/email.svg" name="organizationWebsite" type="url" placeholder="https://suaong.org.br" autoComplete="url" maxLength={255} disabled={step === "user"} />
+          <AuthField label="Instagram" icon="/icons/perfil.svg" name="organizationInstagram" placeholder="@suaong" maxLength={50} disabled={step === "user"} />
+          <label className="block text-xs font-semibold tracking-[0.01em] text-[#243129] sm:text-sm">Sobre a ONG<span className="mt-1 block sm:mt-1.5"><textarea name="organizationDescription" rows={3} maxLength={600} disabled={step === "user"} placeholder="Conte brevemente sobre o trabalho da organização" className="w-full rounded-lg border border-[#c8d2ca] bg-[#fbfdfb] px-3 py-2.5 text-sm font-normal outline-none transition placeholder:text-[#7b857e] focus:border-[#0f5d39] focus:ring-2 focus:ring-[#0f5d39]/10 sm:rounded-xl sm:px-4 sm:py-3" /></span></label>
+          <div className="flex flex-col gap-3 sm:flex-row">
+            <button type="button" onClick={() => { setStep("user"); userFieldsRef.current?.parentElement?.scrollIntoView({ behavior: "smooth", block: "start" }); }} disabled={loading} className="min-h-11 rounded-lg border border-[#c8d2ca] px-5 py-2.5 text-sm font-semibold text-[#0f5d39] disabled:opacity-60">Voltar aos meus dados</button>
+            <button type="submit" disabled={loading || Boolean(pendingOrganization)} className="min-h-11 flex-1 rounded-lg bg-[#0f5d39] px-5 py-2.5 text-sm font-semibold text-white shadow-sm transition-all hover:bg-[#0b482c] disabled:opacity-60">{loading ? "Criando conta..." : "Criar conta e ONG"}</button>
+          </div>
+        </div>}
       </form>
       <p className="mt-4 border-t border-[#e1e8e2] pt-3.5 text-center text-xs text-[#4d5b53] sm:mt-6 sm:pt-5 sm:text-sm">
         Já tem uma conta? <Link href="/login" className="font-semibold text-[#0f5d39] hover:underline">Entrar</Link>
