@@ -88,7 +88,6 @@ MINIO_ENDPOINT=localhost
 MINIO_BUCKET=adotaperto-images
 MINIO_USE_SSL=false
 
-API_PUBLIC_URL=http://localhost:4000
 
 VIACEP_BASE_URL=https://viacep.com.br/ws
 NOMINATIM_SEARCH_URL=https://nominatim.openstreetmap.org/search

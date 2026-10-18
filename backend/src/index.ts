@@ -43,7 +43,9 @@ serve(
     port: Number(process.env.PORT) || 4000,
   },
   () => {
-    const apiPublicUrl = process.env.API_PUBLIC_URL?.trim().replace(/\/+$/, "");
+    const apiPublicUrl = (process.env.BETTER_AUTH_URL || process.env.RENDER_EXTERNAL_URL)
+      ?.trim()
+      .replace(/\/+$/, "");
     console.log(apiPublicUrl ? `Servidor Aberto em ${apiPublicUrl}/status` : "Servidor aberto na porta 4000");
   },
 );

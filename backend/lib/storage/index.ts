@@ -277,6 +277,9 @@ export async function removeStorageObjects(prefix?: string) {
 }
 
 export function publicImageUrl(objectName: string) {
-  const apiBaseUrl = process.env.API_PUBLIC_URL || "http://localhost:4000";
+  const apiBaseUrl =
+    process.env.BETTER_AUTH_URL ||
+    process.env.RENDER_EXTERNAL_URL ||
+    "http://localhost:4000";
   return `${apiBaseUrl}/api/uploads/images/${objectName}`;
 }

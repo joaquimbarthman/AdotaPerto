@@ -19,12 +19,11 @@ services:
       - key: BETTER_AUTH_SECRET
         generateValue: true
       - key: BETTER_AUTH_URL
-        sync: false
+        fromService:
+          type: web
+          name: adotaperto-api
+          envVarKey: RENDER_EXTERNAL_URL
       - key: FRONTEND_URL
-        sync: false
-      - key: API_PUBLIC_URL
-        sync: false
-      - key: RESEND_API_KEY
         sync: false
       - key: AUTH_EMAIL_FROM
         value: AdotaPerto <onboarding@resend.dev>
@@ -38,4 +37,7 @@ services:
     startCommand: npm run start
     envVars:
       - key: NEXT_PUBLIC_API_URL
-        sync: false
+        fromService:
+          type: web
+          name: adotaperto-api
+          envVarKey: RENDER_EXTERNAL_URL
