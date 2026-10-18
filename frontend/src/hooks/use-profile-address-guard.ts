@@ -12,12 +12,17 @@ import { useEffect, useState } from "react";
 export function useProfileAddressGuard(
   userId: string | undefined,
   sessionPending: boolean,
+  skipWhenEditing = false,
 ) {
   const router = useRouter();
   const [checkingAddress, setCheckingAddress] = useState(true);
 
   useEffect(() => {
     if (sessionPending || !userId) return;
+    if (skipWhenEditing && new URLSearchParams(window.location.search).get("edit")) {
+      setCheckingAddress(false);
+      return;
+    }
     const controller = new AbortController();
 
     fetchProfileAddressCompletion(controller.signal)
@@ -36,7 +41,7 @@ export function useProfileAddressGuard(
       });
 
     return () => controller.abort();
-  }, [router, sessionPending, userId]);
+  }, [router, sessionPending, skipWhenEditing, userId]);
 
   return checkingAddress;
 }

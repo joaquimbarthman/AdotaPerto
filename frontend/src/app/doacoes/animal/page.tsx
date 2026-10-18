@@ -30,7 +30,7 @@ function StoryIcon() { return <svg viewBox="0 0 24 24" className="size-5" fill="
 export default function AnimalDonationPage() {
   const router = useRouter();
   const { data: session, isPending } = useSession();
-  const checkingAddress = useProfileAddressGuard(session?.user.id, isPending);
+  const checkingAddress = useProfileAddressGuard(session?.user.id, isPending, true);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [mainPhoto, setMainPhoto] = useState<File | null>(null);

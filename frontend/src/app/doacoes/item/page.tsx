@@ -22,7 +22,7 @@ const conditions = ["Novo", "Lacrado", "Aberto em boas condições", "Usado em b
 export default function ItemDonationPage() {
   const router = useRouter();
   const { data: session, isPending } = useSession();
-  const checkingAddress = useProfileAddressGuard(session?.user.id, isPending);
+  const checkingAddress = useProfileAddressGuard(session?.user.id, isPending, true);
   const [category, setCategory] = useState("");
   const [mainPhoto, setMainPhoto] = useState<File | null>(null);
   const [extraPhotos, setExtraPhotos] = useState<File[]>([]);
