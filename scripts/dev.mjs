@@ -3,11 +3,13 @@ import { fileURLToPath } from "node:url";
 import path from "node:path";
 
 const root = fileURLToPath(new URL("..", import.meta.url));
-const npm = process.platform === "win32" ? "npm.cmd" : "npm";
-const npmOptions = { cwd: root, stdio: "inherit", shell: process.platform === "win32" };
+const npmCli = process.env.npm_execpath;
+const npm = npmCli ? process.execPath : process.platform === "win32" ? "npm.exe" : "npm";
+const npmPrefix = npmCli ? [npmCli] : [];
+const npmOptions = { cwd: root, stdio: "inherit" };
 
 function runNpm(args) {
-  const result = spawnSync(npm, args, npmOptions);
+  const result = spawnSync(npm, [...npmPrefix, ...args], npmOptions);
   if (result.status !== 0) process.exit(result.status ?? 1);
 }
 
@@ -15,8 +17,8 @@ runNpm(["run", "local:up"]);
 runNpm(["run", "db:setup"]);
 
 const children = [
-  spawn(npm, ["run", "dev:backend"], npmOptions),
-  spawn(npm, ["run", "dev:frontend"], npmOptions),
+  spawn(npm, [...npmPrefix, "run", "dev:backend"], npmOptions),
+  spawn(npm, [...npmPrefix, "run", "dev:frontend"], npmOptions),
 ];
 
 let stopping = false;

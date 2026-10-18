@@ -7,7 +7,9 @@ import path from "node:path";
 const root = fileURLToPath(new URL("..", import.meta.url));
 const envPath = path.join(root, "backend", ".env");
 const envExamplePath = path.join(root, "backend", ".env.example");
-const npm = process.platform === "win32" ? "npm.cmd" : "npm";
+const npmCli = process.env.npm_execpath;
+const npm = npmCli ? process.execPath : process.platform === "win32" ? "npm.exe" : "npm";
+const npmPrefix = npmCli ? [npmCli] : [];
 
 async function exists(filePath) {
   try {
@@ -39,8 +41,8 @@ for (const directory of ["backend", "frontend"]) {
   console.log(`Instalando dependências de ${directory}...`);
   const result = spawnSync(
     npm,
-    ["install", ...(directory === "backend" ? ["--legacy-peer-deps"] : [])],
-    { cwd: path.join(root, directory), stdio: "inherit", shell: process.platform === "win32" },
+    [...npmPrefix, "install", ...(directory === "backend" ? ["--legacy-peer-deps"] : [])],
+    { cwd: path.join(root, directory), stdio: "inherit" },
   );
   if (result.status !== 0) process.exit(result.status ?? 1);
 }
