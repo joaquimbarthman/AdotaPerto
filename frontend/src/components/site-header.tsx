@@ -9,7 +9,6 @@ import { BrandLogo } from "@/components/brand-logo";
 import { NotificationCenter } from "@/components/notification-center";
 import { notify } from "@/components/notification";
 import { signOut, useSession } from "@/lib/auth-client";
-import { OrganizationContextSelector } from "@/components/organization-context-selector";
 
 const links = [
   { label: "Início", href: "/" },
@@ -27,11 +26,20 @@ const profileLinks = [
   { label: "Acesso à conta", href: "/perfil#acesso", icon: "lock" },
 ] as const;
 
+const organizationProfileLinks = [
+  { label: "Minhas publicações", href: "/perfil#publicacoes", icon: "heart" },
+  { label: "Solicitações", href: "/perfil#solicitacoes", icon: "bell" },
+  { label: "Perfil da ONG", href: "/perfil#organizacao", icon: "user" },
+  { label: "Endereço da ONG", href: "/perfil#endereco-organizacao", icon: "pin" },
+  { label: "Acesso à conta", href: "/perfil#acesso", icon: "lock" },
+] as const;
+
 export function SiteHeader() {
   const pathname = usePathname();
   const router = useRouter();
   const [open, setOpen] = useState(false);
   const [profileOpen, setProfileOpen] = useState(false);
+  const [accountType, setAccountType] = useState<string | null>(null);
   const profileMenuRef = useRef<HTMLDivElement>(null);
   const { data: session, isPending } = useSession();
   const isAdmin = session?.user.role?.split(",").includes("admin");
@@ -48,6 +56,14 @@ export function SiteHeader() {
     document.addEventListener("keydown", closeOnEscape);
     return () => { document.removeEventListener("mousedown", closeMenu); document.removeEventListener("keydown", closeOnEscape); };
   }, []);
+
+  useEffect(() => {
+    if (!session) { setAccountType(null); return; }
+    fetch(`${process.env.NEXT_PUBLIC_API_URL || "http://localhost:4000"}/api/users/me`, { credentials: "include" })
+      .then((response) => response.ok ? response.json() : null)
+      .then((profile: { accountType?: string } | null) => setAccountType(profile?.accountType || null))
+      .catch(() => setAccountType(null));
+  }, [session]);
 
   async function handleSignOut() {
     await signOut({
@@ -100,8 +116,7 @@ export function SiteHeader() {
               </button>
               <div role="menu" className={`absolute right-0 top-[calc(100%+10px)] w-72 origin-top-right overflow-hidden rounded-2xl border border-[#d7e6da] bg-white shadow-[0_18px_45px_rgba(27,49,35,0.16)] transition-all duration-150 ${profileOpen ? "visible translate-y-0 scale-100 opacity-100" : "invisible -translate-y-2 scale-95 opacity-0"}`}>
                 <div className="border-b border-[#e7eee9] bg-[#f7fcf8] px-4 py-3"><p className="truncate text-sm font-extrabold text-[#253129]">{session.user.name}</p><p className="mt-0.5 truncate text-xs text-[#68726b]">{session.user.email}</p></div>
-                <nav className="p-2" aria-label="Áreas do perfil">{profileLinks.map((item) => <Link key={item.href} href={item.href} role="menuitem" onClick={(event) => { setProfileOpen(false); if (pathname === "/perfil") { event.preventDefault(); window.history.replaceState(null, "", item.href); window.dispatchEvent(new Event("profile-tab-change")); } }} className="flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-semibold text-[#404942] transition hover:bg-[#eefdf1] hover:text-[#256441]"><HeaderMenuIcon name={item.icon} />{item.label}</Link>)}</nav>
-                <OrganizationContextSelector />
+                <nav className="p-2" aria-label="Áreas do perfil">{(accountType === "ORGANIZATION" ? organizationProfileLinks : profileLinks).map((item) => <Link key={item.href} href={item.href} role="menuitem" onClick={(event) => { setProfileOpen(false); if (pathname === "/perfil") { event.preventDefault(); window.history.replaceState(null, "", item.href); window.dispatchEvent(new Event("profile-tab-change")); } }} className="flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-semibold text-[#404942] transition hover:bg-[#eefdf1] hover:text-[#256441]"><HeaderMenuIcon name={item.icon} />{item.label}</Link>)}</nav>
                 {isAdmin && <div className="mx-2 mb-2 border-t border-[#e7eee9] pt-2"><Link href="/admin" role="menuitem" onClick={() => setProfileOpen(false)} className={`flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-semibold transition hover:bg-[#eefdf1] hover:text-[#256441] ${pathname === "/admin" ? "bg-[#eefdf1] text-[#256441]" : "text-[#404942]"}`}><HeaderMenuIcon name="admin" />Painel administrativo</Link></div>}
                 <div className="border-t border-[#e7eee9] p-2"><button type="button" role="menuitem" onClick={() => { setProfileOpen(false); handleSignOut(); }} className="flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-left text-sm font-bold text-red-700 transition hover:bg-red-50"><HeaderMenuIcon name="logout" />Sair da conta</button></div>
               </div>

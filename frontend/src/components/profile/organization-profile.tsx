@@ -1,6 +1,5 @@
 "use client";
 
-import Link from "next/link";
 import { useEffect, useState, type FormEvent } from "react";
 import { authClient } from "@/lib/auth-client";
 import { uploadImages } from "@/lib/uploads";
@@ -195,7 +194,6 @@ export function OrganizationProfile({ section, profile, onUpdated }: { section: 
           title={section === "profile" ? "Perfil da sua ONG" : "Endereço"}
           description={section === "profile" ? "Consulte e atualize as informações públicas da organização." : "Essas informações ajudam as pessoas a encontrar sua organização e suas iniciativas."}
         />
-        {!draft && <Link href={`/ongs/${organization.slug}`} className="shrink-0 rounded-lg border border-[#86a590] px-4 py-2.5 text-center text-sm font-bold text-[#256441] transition hover:bg-[#e8f7eb]">Ver página pública</Link>}
       </div>
 
       <form key={`${organization.id}-${section}`} onSubmit={submit} className="overflow-hidden rounded-xl bg-white shadow-[0_4px_12px_rgba(38,51,43,0.05)]">
