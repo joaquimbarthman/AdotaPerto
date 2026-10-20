@@ -57,6 +57,13 @@
       "when": 1792530000000,
       "tag": "0007_ensure_active_organization_session",
       "breakpoints": true
+    },
+    {
+      "idx": 8,
+      "version": "7",
+      "when": 1792533600000,
+      "tag": "0008_repair_institutional_profiles",
+      "breakpoints": true
     }
   ]
 }

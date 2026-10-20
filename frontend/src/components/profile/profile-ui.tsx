@@ -4,7 +4,7 @@ import { EmptyState } from "@/components/empty-state";
 import { SiteHeader } from "@/components/site-header";
 import { SkeletonLoader } from "@/components/skeleton-loader";
 import Image from "next/image";
-import type { FormEvent, ReactNode } from "react";
+import type { ChangeEventHandler, FormEvent, ReactNode } from "react";
 import { useEffect, useState } from "react";
 import type { TabId } from "./types";
 
@@ -387,6 +387,9 @@ export type ProfileFieldProps = {
   minLength?: number;
   required?: boolean;
   autoFocus?: boolean;
+  value?: string;
+  maxLength?: number;
+  onChange?: ChangeEventHandler<HTMLInputElement>;
 };
 
 export function ProfileField({

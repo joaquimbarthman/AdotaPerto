@@ -37,10 +37,29 @@ function optional(value: FormDataEntryValue | null) {
   return text || null;
 }
 
+function formatCnpj(value: string) {
+  const digits = value.replace(/\D/g, "").slice(0, 14);
+  return digits
+    .replace(/^(\d{2})(\d)/, "$1.$2")
+    .replace(/^(\d{2})\.(\d{3})(\d)/, "$1.$2.$3")
+    .replace(/\.(\d{3})(\d)/, ".$1/$2")
+    .replace(/(\/\d{4})(\d)/, "$1-$2");
+}
+
+function formatPhone(value: string) {
+  const digits = value.replace(/\D/g, "").slice(0, 11);
+  if (digits.length <= 2) return digits ? `(${digits}` : "";
+  if (digits.length <= 6) return `(${digits.slice(0, 2)}) ${digits.slice(2)}`;
+  if (digits.length <= 10) return `(${digits.slice(0, 2)}) ${digits.slice(2, 6)}-${digits.slice(6)}`;
+  return `(${digits.slice(0, 2)}) ${digits.slice(2, 7)}-${digits.slice(7)}`;
+}
+
 export function OrganizationProfile({ section, profile, onUpdated }: { section: "profile" | "address"; profile: UserProfile | null; onUpdated: (profile: UserProfile) => void }) {
   const [organization, setOrganization] = useState<Organization | null>(null);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
+  const [cnpj, setCnpj] = useState("");
+  const [whatsapp, setWhatsapp] = useState("");
   const [notice, setNotice] = useState<{ type: "success" | "error"; text: string } | null>(null);
 
   useEffect(() => {
@@ -50,7 +69,13 @@ export function OrganizationProfile({ section, profile, onUpdated }: { section: 
         if (!response.ok) throw new Error("Não foi possível carregar os dados da ONG.");
         return response.json() as Promise<Organization[]>;
       })
-      .then((organizations) => { if (active) setOrganization(organizations[0] || null); })
+      .then((organizations) => {
+        if (!active) return;
+        const current = organizations[0] || null;
+        setOrganization(current);
+        setCnpj(formatCnpj(current?.cnpj || ""));
+        setWhatsapp(formatPhone(current?.whatsapp || ""));
+      })
       .catch((error) => { if (active) setNotice({ type: "error", text: error instanceof Error ? error.message : "Não foi possível carregar os dados da ONG." }); })
       .finally(() => { if (active) setLoading(false); });
     return () => { active = false; };
@@ -152,10 +177,10 @@ export function OrganizationProfile({ section, profile, onUpdated }: { section: 
               </div>
               <div className="grid content-start gap-4 sm:grid-cols-2 sm:gap-5">
                 <div className="sm:col-span-2"><ProfileField label="Nome da ONG" name="name" defaultValue={organization.name} minLength={3} required /></div>
-                <ProfileField label="CNPJ" name="cnpj" defaultValue={organization.cnpj || ""} placeholder="00.000.000/0000-00" required />
+                <ProfileField label="CNPJ" name="cnpj" value={cnpj} onChange={(event) => setCnpj(formatCnpj(event.target.value))} maxLength={18} inputMode="numeric" placeholder="00.000.000/0000-00" required />
                 <ProfileField label="Responsável legal" name="legalRepresentativeName" defaultValue={organization.legalRepresentativeName} required />
                 <ProfileField label="E-mail institucional" name="contactEmail" type="email" defaultValue={organization.contactEmail} required />
-                <ProfileField label="WhatsApp / número" name="whatsapp" type="tel" defaultValue={organization.whatsapp} required />
+                <ProfileField label="WhatsApp / número" name="whatsapp" type="tel" value={whatsapp} onChange={(event) => setWhatsapp(formatPhone(event.target.value))} maxLength={15} inputMode="tel" placeholder="(00) 00000-0000" required />
                 <ProfileField label="Instagram" name="instagram" defaultValue={organization.instagram || ""} placeholder="@suaong" />
                 <ProfileField label="Site" name="website" type="url" defaultValue={organization.website || ""} placeholder="https://" />
                 <label className="sm:col-span-2">
