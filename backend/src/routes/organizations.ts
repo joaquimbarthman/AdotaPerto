@@ -34,7 +34,7 @@ const updateSchema = z.object({
   neighborhood: z.string().max(120).nullable(),
   city: z.string().trim().min(2).max(120),
   state: z.string().trim().length(2).transform((value) => value.toUpperCase()),
-});
+}).partial();
 
 const publicFields = { id: organization.id, name: organization.name, slug: organization.slug, type: organization.type, description: organization.description, logoUrl: organization.logoUrl, coverUrl: organization.coverUrl, foundedYear: organization.foundedYear, contactEmail: organization.contactEmail, whatsapp: organization.whatsapp, instagram: organization.instagram, website: organization.website, city: organization.city, state: organization.state, verificationStatus: organization.verificationStatus, createdAt: organization.createdAt };
 const privateFields = { cnpj: organization.cnpj, legalRepresentativeName: organization.legalRepresentativeName, postalCode: organization.postalCode, street: organization.street, number: organization.number, neighborhood: organization.neighborhood };
@@ -69,8 +69,14 @@ organizationRoutes.patch("/:id", async (c) => {
   const parsed = updateSchema.safeParse(await c.req.json().catch(() => null));
   if (!parsed.success) return c.json({ error: "Revise os dados da organização", details: parsed.error.flatten() }, 400);
   try {
-    const [existing] = await db.select({ verificationStatus: organization.verificationStatus }).from(organization).where(eq(organization.id, id));
-    const [updated] = await db.update(organization).set({ ...parsed.data, ...(existing?.verificationStatus === "DRAFT" ? { verificationStatus: "PENDING" } : {}), updatedAt: new Date() }).where(eq(organization.id, id)).returning();
+    const [existing] = await db.select().from(organization).where(eq(organization.id, id));
+    if (!existing) return c.json({ error: "Organização não encontrada" }, 404);
+    const candidate = { ...existing, ...parsed.data };
+    const readyForReview = Boolean(
+      candidate.name && candidate.description && candidate.legalRepresentativeName && candidate.contactEmail && candidate.whatsapp &&
+      candidate.city && candidate.state && candidate.cnpj && isValidCnpj(candidate.cnpj),
+    );
+    const [updated] = await db.update(organization).set({ ...parsed.data, ...(existing.verificationStatus === "DRAFT" && readyForReview ? { verificationStatus: "PENDING" } : {}), updatedAt: new Date() }).where(eq(organization.id, id)).returning();
     return updated ? c.json(updated) : c.json({ error: "Organização não encontrada" }, 404);
   } catch {
     return c.json({ error: "CNPJ já cadastrado ou dados conflitantes" }, 409);

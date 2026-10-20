@@ -93,24 +93,26 @@ export function OrganizationProfile({ section, profile, onUpdated }: { section: 
       const [uploadedLogo] = logoFile ? await uploadImages([logoFile]) : [];
       const logoUrl = uploadedLogo || organization.logoUrl;
 
-      const body = {
-        name: section === "profile" ? String(form.get("name") || "").trim() : organization.name,
-        cnpj: section === "profile" ? String(form.get("cnpj") || "") : organization.cnpj || "",
-        description: section === "profile" ? String(form.get("description") || "").trim() : organization.description,
-        legalRepresentativeName: section === "profile" ? String(form.get("legalRepresentativeName") || "").trim() : organization.legalRepresentativeName,
-        logoUrl: logoUrl || null,
-        coverUrl: null,
-        contactEmail: section === "profile" ? String(form.get("contactEmail") || "").trim() : organization.contactEmail,
-        whatsapp: section === "profile" ? String(form.get("whatsapp") || "").trim() : organization.whatsapp,
-        postalCode: section === "address" ? optional(form.get("postalCode")) : organization.postalCode,
-        street: section === "address" ? optional(form.get("street")) : organization.street,
-        number: section === "address" ? optional(form.get("number")) : organization.number,
-        neighborhood: section === "address" ? optional(form.get("neighborhood")) : organization.neighborhood,
-        city: section === "address" ? String(form.get("city") || "").trim() : organization.city,
-        state: section === "address" ? String(form.get("state") || "").trim() : organization.state,
-        instagram: section === "profile" ? optional(form.get("instagram")) : organization.instagram,
-        website: section === "profile" ? optional(form.get("website")) : organization.website,
-      };
+      const body = section === "profile"
+        ? {
+            name: String(form.get("name") || "").trim(),
+            cnpj: String(form.get("cnpj") || ""),
+            description: String(form.get("description") || "").trim(),
+            legalRepresentativeName: String(form.get("legalRepresentativeName") || "").trim(),
+            logoUrl: logoUrl || null,
+            contactEmail: String(form.get("contactEmail") || "").trim(),
+            whatsapp: String(form.get("whatsapp") || "").trim(),
+            instagram: optional(form.get("instagram")),
+            website: optional(form.get("website")),
+          }
+        : {
+            postalCode: optional(form.get("postalCode")),
+            street: optional(form.get("street")),
+            number: optional(form.get("number")),
+            neighborhood: optional(form.get("neighborhood")),
+            city: String(form.get("city") || "").trim(),
+            state: String(form.get("state") || "").trim(),
+          };
 
       const response = await fetch(`${API_BASE_URL}/api/organizations/${organization.id}`, {
         method: "PATCH",
