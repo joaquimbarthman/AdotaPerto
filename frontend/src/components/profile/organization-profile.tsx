@@ -65,6 +65,11 @@ export function OrganizationProfile({ section, profile, onUpdated }: { section: 
   const [saving, setSaving] = useState(false);
   const [cnpj, setCnpj] = useState("");
   const [whatsapp, setWhatsapp] = useState("");
+  const [postalCode, setPostalCode] = useState("");
+  const [street, setStreet] = useState("");
+  const [city, setCity] = useState("");
+  const [state, setState] = useState("");
+  const [cepStatus, setCepStatus] = useState<"idle" | "loading" | "success" | "error">("idle");
   const [notice, setNotice] = useState<{ type: "success" | "error"; text: string } | null>(null);
 
   useEffect(() => {
@@ -80,11 +85,43 @@ export function OrganizationProfile({ section, profile, onUpdated }: { section: 
         setOrganization(current);
         setCnpj(formatCnpj(current?.cnpj || ""));
         setWhatsapp(formatPhone(current?.whatsapp || ""));
+        setPostalCode(current?.postalCode || "");
+        setStreet(current?.street || "");
+        setCity(current?.city || "");
+        setState(current?.state || "");
       })
       .catch((error) => { if (active) setNotice({ type: "error", text: error instanceof Error ? error.message : "Não foi possível carregar os dados da ONG." }); })
       .finally(() => { if (active) setLoading(false); });
     return () => { active = false; };
   }, []);
+
+  useEffect(() => {
+    if (section !== "address") return;
+    const digits = postalCode.replace(/\D/g, "");
+    if (digits.length !== 8) return;
+
+    const controller = new AbortController();
+    const timer = window.setTimeout(async () => {
+      setCepStatus("loading");
+      try {
+        const response = await fetch(`${API_BASE_URL}/api/users/cep/${digits}`, { credentials: "include", signal: controller.signal });
+        const address = await response.json();
+        if (controller.signal.aborted) return;
+        if (!response.ok) throw new Error("CEP não encontrado");
+        setStreet(address.street || "");
+        setCity(address.city || "");
+        setState(address.state || "");
+        setCepStatus("success");
+      } catch (error) {
+        if ((error as Error).name !== "AbortError") setCepStatus("error");
+      }
+    }, 350);
+
+    return () => {
+      window.clearTimeout(timer);
+      controller.abort();
+    };
+  }, [postalCode, section]);
 
   async function submit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -198,13 +235,24 @@ export function OrganizationProfile({ section, profile, onUpdated }: { section: 
             </div>
           ) : (
             <div className="grid max-w-3xl gap-5 sm:grid-cols-2">
-              <div className="sm:max-w-[240px]"><ProfileField label="CEP" name="postalCode" defaultValue={organization.postalCode || ""} placeholder="00000-000" /></div>
+              <label className="sm:max-w-[240px]">
+                <span className="mb-2 block text-sm font-bold text-[#253129]">CEP</span>
+                <span className="relative block">
+                  <input name="postalCode" value={postalCode} maxLength={9} inputMode="numeric" placeholder="00000-000" autoComplete="postal-code" onChange={(event) => {
+                    const digits = event.target.value.replace(/\D/g, "").slice(0, 8);
+                    setPostalCode(digits.length > 5 ? `${digits.slice(0, 5)}-${digits.slice(5)}` : digits);
+                    setCepStatus("idle");
+                  }} className={`h-10 w-full rounded-lg border bg-[#f7fcf8] px-3 pr-10 text-sm text-[#121e17] outline-none transition placeholder:text-[#879188] focus:border-[#3f7d58] focus:ring-2 focus:ring-[#3f7d58]/15 sm:h-12 sm:rounded-xl sm:px-4 ${cepStatus === "error" ? "border-red-300" : "border-[#c0c9bf]"}`} />
+                  {cepStatus === "loading" && <span className="absolute right-3 top-1/2 size-4 -translate-y-1/2 animate-spin rounded-full border-2 border-[#b8d8c1] border-t-[#256441]" aria-label="Buscando CEP" />}
+                  {cepStatus === "success" && <span className="absolute right-3 top-1/2 -translate-y-1/2 text-lg font-bold text-[#256441]" aria-label="CEP encontrado">✓</span>}
+                </span>
+              </label>
               <div className="hidden sm:block" />
-              <div className="sm:col-span-2"><ProfileField label="Rua" name="street" defaultValue={organization.street || ""} placeholder="Digite o nome da rua" /></div>
+              <label className="sm:col-span-2"><span className="mb-2 block text-sm font-bold text-[#253129]">Rua</span><input name="street" value={street} onChange={(event) => setStreet(event.target.value)} placeholder="Digite o nome da rua" autoComplete="street-address" className="h-10 w-full rounded-lg border border-[#c0c9bf] bg-[#f7fcf8] px-3 text-sm text-[#121e17] outline-none transition placeholder:text-[#879188] focus:border-[#3f7d58] focus:ring-2 focus:ring-[#3f7d58]/15 sm:h-12 sm:rounded-xl sm:px-4" /></label>
               <ProfileField label="Número" name="number" defaultValue={organization.number || ""} />
               <ProfileField label="Bairro" name="neighborhood" defaultValue={organization.neighborhood || ""} />
-              <ProfileField label="Cidade" name="city" defaultValue={organization.city} required />
-              <ProfileField label="UF" name="state" defaultValue={organization.state} minLength={2} required />
+              <label><span className="mb-2 block text-sm font-bold text-[#253129]">Cidade</span><input name="city" value={city} onChange={(event) => setCity(event.target.value)} required autoComplete="address-level2" className="h-10 w-full rounded-lg border border-[#c0c9bf] bg-[#f7fcf8] px-3 text-sm text-[#121e17] outline-none transition focus:border-[#3f7d58] focus:ring-2 focus:ring-[#3f7d58]/15 sm:h-12 sm:rounded-xl sm:px-4" /></label>
+              <label><span className="mb-2 block text-sm font-bold text-[#253129]">UF</span><input name="state" value={state} onChange={(event) => setState(event.target.value.toUpperCase().slice(0, 2))} required minLength={2} maxLength={2} autoComplete="address-level1" className="h-10 w-full rounded-lg border border-[#c0c9bf] bg-[#f7fcf8] px-3 text-sm uppercase text-[#121e17] outline-none transition focus:border-[#3f7d58] focus:ring-2 focus:ring-[#3f7d58]/15 sm:h-12 sm:rounded-xl sm:px-4" /></label>
             </div>
           )}
         </div>
