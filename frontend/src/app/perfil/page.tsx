@@ -467,7 +467,7 @@ export default function ProfilePage() {
             )}
             {activeTab === "organizacao" && <OrganizationProfile section="profile" profile={profile} onUpdated={(updated) => setProfile(updated)} />}
             {activeTab === "endereco-organizacao" && <OrganizationProfile section="address" profile={profile} onUpdated={(updated) => setProfile(updated)} />}
-            {activeTab === "acesso" && <ProfileForm showActions={false}><AccountAccess userEmail={userEmail} /></ProfileForm>}
+            {activeTab === "acesso" && <ProfileForm showActions={false}><AccountAccess userEmail={userEmail} institutional={profile?.accountType === "ORGANIZATION"} /></ProfileForm>}
           </section>
         </div>
       </main>

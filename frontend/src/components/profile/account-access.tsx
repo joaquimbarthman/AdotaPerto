@@ -12,7 +12,7 @@ import { createPortal } from "react-dom";
 import { API_BASE_URL } from "./config";
 import { ProfileField, SectionHeading } from "./profile-ui";
 
-export function AccountAccess({ userEmail }: { userEmail: string }) {
+export function AccountAccess({ userEmail, institutional = false }: { userEmail: string; institutional?: boolean }) {
   const router = useRouter();
   const [modal, setModal] = useState<"email" | "senha" | null>(null);
   const [showDeleteConfirmation, setShowDeleteConfirmation] = useState(false);
@@ -120,10 +120,18 @@ export function AccountAccess({ userEmail }: { userEmail: string }) {
 
   return (
     <section id="panel-acesso" role="tabpanel" aria-labelledby="tab-acesso">
-      <SectionHeading
-        title="Acesso à conta"
-        description="Consulte e altere com segurança seus dados de acesso."
-      />
+      {institutional ? (
+        <header className="mb-5 sm:mb-7">
+          <p className="text-xs font-bold uppercase tracking-[0.14em] text-[#3f7d58]">Segurança institucional</p>
+          <h2 className="mt-2 text-2xl font-extrabold text-[#26332b] sm:text-3xl">Acesso à conta</h2>
+          <p className="mt-2 max-w-2xl text-sm leading-6 text-[#5b675f]">Gerencie o e-mail, a senha e a segurança da conta da organização.</p>
+        </header>
+      ) : (
+        <SectionHeading
+          title="Acesso à conta"
+          description="Consulte e altere com segurança seus dados de acesso."
+        />
+      )}
 
       {statusMessage && (
         <Notification text={statusMessage.text} type={statusMessage.type} />
