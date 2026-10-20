@@ -50,6 +50,13 @@
       "when": 1792287063000,
       "tag": "0006_add_organization_plugin",
       "breakpoints": true
+    },
+    {
+      "idx": 7,
+      "version": "7",
+      "when": 1792530000000,
+      "tag": "0007_ensure_active_organization_session",
+      "breakpoints": true
     }
   ]
 }
