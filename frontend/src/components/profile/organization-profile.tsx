@@ -54,6 +54,11 @@ function formatPhone(value: string) {
   return `(${digits.slice(0, 2)}) ${digits.slice(2, 7)}-${digits.slice(7)}`;
 }
 
+function organizationValidationMessage(result: { error?: string; details?: { fieldErrors?: Record<string, string[] | undefined> } }) {
+  const details = Object.values(result.details?.fieldErrors || {}).flat().filter(Boolean);
+  return details[0] || result.error || "Não foi possível salvar os dados institucionais.";
+}
+
 export function OrganizationProfile({ section, profile, onUpdated }: { section: "profile" | "address"; profile: UserProfile | null; onUpdated: (profile: UserProfile) => void }) {
   const [organization, setOrganization] = useState<Organization | null>(null);
   const [loading, setLoading] = useState(true);
@@ -121,7 +126,7 @@ export function OrganizationProfile({ section, profile, onUpdated }: { section: 
         body: JSON.stringify(body),
       });
       const result = await response.json();
-      if (!response.ok) throw new Error(result.error || "Não foi possível salvar os dados institucionais.");
+      if (!response.ok) throw new Error(organizationValidationMessage(result));
 
       setOrganization((current) => current ? { ...current, ...result } : result);
       await authClient.updateUser({ name: result.name, ...(result.logoUrl ? { image: result.logoUrl } : {}) });
