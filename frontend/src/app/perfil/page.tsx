@@ -467,7 +467,16 @@ export default function ProfilePage() {
             )}
             {activeTab === "organizacao" && <OrganizationProfile section="profile" profile={profile} onUpdated={(updated) => setProfile(updated)} />}
             {activeTab === "endereco-organizacao" && <OrganizationProfile section="address" profile={profile} onUpdated={(updated) => setProfile(updated)} />}
-            {activeTab === "acesso" && <ProfileForm showActions={false}><AccountAccess userEmail={userEmail} institutional={profile?.accountType === "ORGANIZATION"} /></ProfileForm>}
+            {activeTab === "acesso" && (profile?.accountType === "ORGANIZATION" ? (
+              <div className="space-y-6">
+                <header>
+                  <p className="text-xs font-bold uppercase tracking-[0.14em] text-[#3f7d58]">Segurança institucional</p>
+                  <h2 className="mt-2 text-2xl font-extrabold text-[#26332b] sm:text-3xl">Acesso à conta</h2>
+                  <p className="mt-2 max-w-2xl text-sm leading-6 text-[#5b675f]">Gerencie o e-mail, a senha e a segurança da conta da organização.</p>
+                </header>
+                <ProfileForm showActions={false}><AccountAccess userEmail={userEmail} showHeading={false} /></ProfileForm>
+              </div>
+            ) : <ProfileForm showActions={false}><AccountAccess userEmail={userEmail} /></ProfileForm>)}
           </section>
         </div>
       </main>
