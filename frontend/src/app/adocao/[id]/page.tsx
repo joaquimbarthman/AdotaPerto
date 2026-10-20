@@ -118,8 +118,10 @@ export default function PetDetailsPage() {
     : [animal.image || "/images/login-cover-v2.png"];
 
   const description = animal.description?.trim();
-  const ownerName = animal.owner?.name || "Responsável pelo animal";
-  const ownerLocation = [animal.owner?.city, animal.owner?.state]
+  const institutionalOwner = typeof animal.organization === "object" ? animal.organization : null;
+  const ownerName = institutionalOwner?.name || animal.owner?.name || "Responsável pelo animal";
+  const ownerImage = institutionalOwner?.logoUrl || animal.owner?.image;
+  const ownerLocation = [institutionalOwner?.city || animal.owner?.city, institutionalOwner?.state || animal.owner?.state]
     .filter(Boolean)
     .join(", ");
   const healthItems = [
@@ -275,9 +277,9 @@ export default function PetDetailsPage() {
               </h2>
               <div className="mt-4 flex items-center gap-4">
                 <div className="relative grid size-16 shrink-0 place-items-center overflow-hidden rounded-full border border-[#e3f2e6] bg-[#e3f2e6]">
-                  {animal.owner?.image ? (
+                  {ownerImage ? (
                     <Image
-                      src={animal.owner.image}
+                      src={ownerImage}
                       alt={ownerName}
                       fill
                       className="object-cover"
@@ -298,9 +300,7 @@ export default function PetDetailsPage() {
                     </p>
                   )}
                   <p className="mt-1 text-xs text-[#404942]">
-                    {animal.owner?.verified
-                      ? "Responsável verificado"
-                      : "Responsável cadastrado"}
+                    {institutionalOwner ? (institutionalOwner.verificationStatus === "VERIFIED" ? "ONG verificada" : "Perfil institucional") : animal.owner?.verified ? "Responsável verificado" : "Responsável cadastrado"}
                   </p>
                   {approximateDistance && (
                     <p className="mt-1.5 flex items-center gap-1 text-xs font-semibold text-[#256441]">

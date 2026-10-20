@@ -21,7 +21,7 @@ import {
 import type { DonationItem } from "../page";
 
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:4000";
-type ItemDetails = DonationItem & { owner?: { name: string; image?: string | null; city?: string | null; state?: string | null; verified?: boolean | null } };
+type ItemDetails = DonationItem & { owner?: { name: string; image?: string | null; city?: string | null; state?: string | null; verified?: boolean | null }; organization?: { id: string; name: string; slug: string; logoUrl?: string | null; city?: string | null; state?: string | null; verificationStatus: string } | null };
 
 export default function ItemDetailsPage() {
   const { id } = useParams<{ id: string }>();
@@ -93,8 +93,9 @@ export default function ItemDetailsPage() {
   if (!item) return <div className="flex min-h-screen flex-col items-center justify-center bg-[#eefdf1] px-4 text-center"><h1 className="text-2xl font-bold">Item não encontrado</h1><p className="mt-2 text-[#526057]">Esta doação não existe ou não está mais disponível.</p><Link href="/itens" className="mt-6 rounded-xl bg-[#256441] px-6 py-3 font-semibold text-white">Ver todas as doações</Link></div>;
 
   const photos = [item.mainImage, ...(item.images || [])].filter((photo, index, all) => Boolean(photo) && all.indexOf(photo) === index);
-  const ownerName = item.owner?.name || "Responsável pela doação";
-  const ownerLocation = [item.owner?.city, item.owner?.state].filter(Boolean).join(", ");
+  const ownerName = item.organization?.name || item.owner?.name || "Responsável pela doação";
+  const ownerImage = item.organization?.logoUrl || item.owner?.image;
+  const ownerLocation = [item.organization?.city || item.owner?.city, item.organization?.state || item.owner?.state].filter(Boolean).join(", ");
   const unavailable = item.status !== "Disponível";
   const description = item.description?.trim();
   const expirationDate = item.expirationDate?.trim();

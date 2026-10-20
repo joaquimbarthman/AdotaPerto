@@ -10,6 +10,7 @@ import {
   user as userTable,
 } from "../../lib/db/schemas/index.ts";
 import type { AuthContext } from "./index.ts";
+import { canDecideForOrganization } from "../services/organization-access.ts";
 
 export const adoptionRequestRoutes = new Hono<AuthContext>();
 
@@ -240,6 +241,7 @@ adoptionRequestRoutes.patch("/:id/status", async (c) => {
   const [existing] = await db
     .select({
       ownerId: animal.userId,
+      organizationId: animal.organizationId,
       animalId: adoptionRequest.animalId,
       currentStatus: adoptionRequest.status,
     })
@@ -251,7 +253,7 @@ adoptionRequestRoutes.patch("/:id/status", async (c) => {
     return c.json({ error: "Solicitação não encontrada" }, 404);
   }
 
-  if (existing.ownerId !== currentUser.id) {
+  if (existing.ownerId !== currentUser.id && (!existing.organizationId || !await canDecideForOrganization(existing.organizationId, currentUser.id))) {
     return c.json({ error: "Sem permissão" }, 403);
   }
 

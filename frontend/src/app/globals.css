@@ -183,6 +183,32 @@ html[data-theme="dark"] input[type="radio"] {
   accent-color: #72c58e;
 }
 
+html[data-theme="dark"] .registration-account-card {
+  border-color: #35483c !important;
+  background: #17251c !important;
+}
+
+html[data-theme="dark"] label:hover .registration-account-card {
+  border-color: #527661 !important;
+  background: #1b2d22 !important;
+}
+
+html[data-theme="dark"] input[type="radio"]:checked + .registration-account-card {
+  border-color: #72c58e !important;
+  background: #264833 !important;
+  box-shadow: 0 0 0 3px rgb(114 197 142 / 18%) !important;
+}
+
+html[data-theme="dark"] .registration-account-icon {
+  background: #22382a !important;
+  color: #8ad7a4 !important;
+}
+
+html[data-theme="dark"] input[type="radio"]:checked + .registration-account-card .registration-account-icon {
+  background: #72c58e !important;
+  color: #102016 !important;
+}
+
 html[data-theme="dark"] .filter-range::-webkit-slider-thumb,
 html[data-theme="dark"] .filter-range::-moz-range-thumb {
   background: #72c58e;

@@ -71,6 +71,9 @@ export function createAuth(database = db) {
     revokeSessionsOnPasswordReset: true,
   },
   user: {
+    additionalFields: {
+      accountType: { type: "string", required: false, defaultValue: "PERSON", input: true },
+    },
     changeEmail: {
       enabled: true,
     },

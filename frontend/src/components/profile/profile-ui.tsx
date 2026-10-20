@@ -78,6 +78,12 @@ export function ProfileNavIcon({ id }: { id: TabId }) {
         <circle cx="12" cy="10" r="2.5" />
       </svg>
     );
+  if (id === "organizacao")
+    return (
+      <svg {...common}>
+        <path d="M4 21V9l8-5 8 5v12M8 21v-6h8v6M9 10h.01M15 10h.01" />
+      </svg>
+    );
   return (
     <svg {...common}>
       <rect x="4" y="10" width="16" height="11" rx="2" />

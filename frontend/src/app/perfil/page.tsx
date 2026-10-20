@@ -24,6 +24,7 @@ import { ItemRequestSection, RequestSection } from "@/components/profile/request
 import { PersonalData, AddressData } from "@/components/profile/personal-data";
 import { AccountAccess } from "@/components/profile/account-access";
 import { useDebouncedValue } from "@/components/profile/use-debounced-value";
+import { OrganizationProfile } from "@/components/profile/organization-profile";
 
 function formatMemberSince(date?: string | Date) {
   if (!date) return "Membro recente";
@@ -103,6 +104,13 @@ export default function ProfilePage() {
           if (res.ok) {
             const data = await res.json();
             setProfile(data);
+            if (data.accountType === "ORGANIZATION" && (!window.location.hash || window.location.hash === "#dados" || window.location.hash === "#endereco")) {
+              setActiveTab("organizacao");
+              window.history.replaceState(null, "", "#organizacao");
+            } else if (data.accountType !== "ORGANIZATION" && window.location.hash === "#organizacao") {
+              setActiveTab("dados");
+              window.history.replaceState(null, "", "#dados");
+            }
           }
         } catch {
           if (session) {
@@ -195,12 +203,15 @@ export default function ProfilePage() {
     return <ProfileLoading label="Redirecionando para o login" />;
   }
 
-  const userName = profile?.name || session.user.name || "Usuário";
+  const userName = profile?.primaryOrganization?.name || profile?.name || session.user.name || "Usuário";
   const userEmail = profile?.email || session.user.email || "";
-  const userImage = profile?.image || session.user.image || "";
-  const userBio = profile?.bio || "";
-  const userCity = profile?.city || "";
-  const userState = profile?.state || "";
+  const userImage = profile?.primaryOrganization?.logoUrl || profile?.image || session.user.image || "";
+  const userBio = profile?.primaryOrganization?.description || profile?.bio || "";
+  const visibleTabs = profile?.accountType === "ORGANIZATION"
+    ? tabs.filter((item) => !["dados", "endereco"].includes(item.id))
+    : tabs.filter((item) => item.id !== "organizacao");
+  const userCity = profile?.primaryOrganization?.city || profile?.city || "";
+  const userState = profile?.primaryOrganization?.state || profile?.state || "";
   const userLocation = userCity && userState ? `${userCity}, ${userState}` : userCity || userState || "";
   const memberSince = formatMemberSince(profile?.createdAt || session.user.createdAt);
   const normalizedRequestSearch = debouncedRequestSearch.trim().toLocaleLowerCase("pt-BR");
@@ -390,7 +401,7 @@ export default function ProfilePage() {
 
         <div className="mt-4 grid items-start gap-5 sm:mt-10 sm:gap-8 lg:grid-cols-[230px_1fr] lg:gap-12">
           <nav className="profile-mobile-tabs sticky top-0 z-20 flex min-w-0 max-w-full gap-1 overflow-x-auto rounded-lg border-y border-[#d7e6da] bg-[#eefdf1]/95 px-1 py-2 backdrop-blur lg:top-28 lg:flex-col lg:gap-2 lg:overflow-visible lg:rounded-none lg:border-0 lg:bg-transparent lg:p-0" aria-label="Áreas do perfil">
-            {tabs.map((item, index) => (
+            {visibleTabs.map((item, index) => (
               <div key={item.id} className={`shrink-0 lg:w-full ${index === 3 ? "lg:mt-3 lg:border-t lg:border-[#c0c9bf] lg:pt-4" : ""}`}>
                 <button id={`tab-${item.id}`} type="button" aria-pressed={activeTab === item.id} onClick={() => { setToastMessage(null); setActiveTab(item.id); window.history.replaceState(null, "", `#${item.id}`); }} className={`flex h-9 w-auto items-center justify-center gap-1.5 whitespace-nowrap rounded-md px-2.5 text-left text-[10px] font-semibold leading-none transition lg:h-auto lg:w-full lg:justify-start lg:gap-3 lg:rounded-lg lg:px-4 lg:py-3 lg:text-sm lg:leading-normal ${activeTab === item.id ? "bg-[#3f7d58] text-white shadow-sm" : "bg-white/60 text-[#404942] hover:bg-white hover:text-[#256441] lg:bg-transparent"}`}>
                   <ProfileNavIcon id={item.id} /><span>{item.label}</span>
@@ -454,6 +465,7 @@ export default function ProfilePage() {
                 <AddressData profile={profile} />
               </ProfileForm>
             )}
+            {activeTab === "organizacao" && <OrganizationProfile profile={profile} onUpdated={(updated) => setProfile(updated)} />}
             {activeTab === "acesso" && <ProfileForm showActions={false}><AccountAccess userEmail={userEmail} /></ProfileForm>}
           </section>
         </div>

@@ -3,8 +3,9 @@ import { Hono } from "hono";
 import crypto from "node:crypto";
 import { z } from "zod";
 import { db } from "../../lib/db/index.ts";
-import { donationItem, user as userTable } from "../../lib/db/schemas/index.ts";
+import { donationItem, organization, user as userTable } from "../../lib/db/schemas/index.ts";
 import type { AuthContext } from "./index.ts";
+import { canPublishForOrganization } from "../services/organization-access.ts";
 
 export const donationItemRoutes = new Hono<AuthContext>();
 
@@ -50,6 +51,7 @@ const itemSchema = z.object({
   images: z.array(z.string()).max(5).default([]),
   deliveryMethod: z.enum(deliveryMethods),
   availableUntil: z.string().nullable().optional(),
+  organizationId: z.string().uuid().nullable().optional(),
 });
 
 donationItemRoutes.get("/", async (c) => {
@@ -100,9 +102,11 @@ donationItemRoutes.get("/:id", async (c) => {
         city: userTable.city,
         state: userTable.state,
       },
+      organization: { id: organization.id, name: organization.name, slug: organization.slug, logoUrl: organization.logoUrl, city: organization.city, state: organization.state, verificationStatus: organization.verificationStatus },
     })
     .from(donationItem)
     .innerJoin(userTable, eq(donationItem.userId, userTable.id))
+    .leftJoin(organization, eq(donationItem.organizationId, organization.id))
     .where(eq(donationItem.id, c.req.param("id")));
   if (!item) return c.json({ error: "Item não encontrado" }, 404);
   return c.json(item);
@@ -117,6 +121,7 @@ donationItemRoutes.post("/", async (c) => {
       { error: "Revise os campos da doação", details: parsed.error.flatten() },
       400,
     );
+  if (parsed.data.organizationId && !await canPublishForOrganization(parsed.data.organizationId, currentUser.id)) return c.json({ error: "Sem permissão para publicar por esta organização" }, 403);
 
   const today = new Date().toISOString().slice(0, 10);
   if (parsed.data.availableUntil && parsed.data.availableUntil < today)
@@ -146,7 +151,7 @@ donationItemRoutes.put("/:id", async (c) => {
     .from(donationItem)
     .where(eq(donationItem.id, id));
   if (!existing) return c.json({ error: "Item não encontrado" }, 404);
-  if (existing.userId !== currentUser.id)
+  if (existing.userId !== currentUser.id && (!existing.organizationId || !await canPublishForOrganization(existing.organizationId, currentUser.id)))
     return c.json({ error: "Sem permissão" }, 403);
 
   const updateSchema = itemSchema
@@ -158,6 +163,7 @@ donationItemRoutes.put("/:id", async (c) => {
       { error: "Revise os campos da doação", details: parsed.error.flatten() },
       400,
     );
+  if (parsed.data.organizationId && !await canPublishForOrganization(parsed.data.organizationId, currentUser.id)) return c.json({ error: "Sem permissão para esta organização" }, 403);
   if (!Object.keys(parsed.data).length)
     return c.json({ error: "Nenhum campo para atualizar" }, 400);
 
@@ -178,7 +184,7 @@ donationItemRoutes.delete("/:id", async (c) => {
     .from(donationItem)
     .where(eq(donationItem.id, id));
   if (!existing) return c.json({ error: "Item não encontrado" }, 404);
-  if (existing.userId !== currentUser.id)
+  if (existing.userId !== currentUser.id && (!existing.organizationId || !await canPublishForOrganization(existing.organizationId, currentUser.id)))
     return c.json({ error: "Sem permissão" }, 403);
   await db.delete(donationItem).where(eq(donationItem.id, id));
   return c.json({ success: true });

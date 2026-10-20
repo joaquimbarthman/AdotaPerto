@@ -17,6 +17,7 @@ export default function RegisterPage() {
   const [isFirstUser, setIsFirstUser] = useState(false);
   const [registrationCheck, setRegistrationCheck] = useState<"loading" | "ready" | "error">("loading");
   const [checkAttempt, setCheckAttempt] = useState(0);
+  const [accountType, setAccountType] = useState<"PERSON" | "ORGANIZATION">("PERSON");
 
   useEffect(() => {
     let controller: AbortController;
@@ -57,7 +58,7 @@ export default function RegisterPage() {
     setErrorMessage(null);
 
     const formData = new FormData(event.currentTarget);
-    const name = formData.get("name") as string;
+    const responsibleName = formData.get("name") as string;
     const email = formData.get("email") as string;
     const password = formData.get("password") as string;
     const confirmPassword = formData.get("confirmPassword") as string;
@@ -70,19 +71,34 @@ export default function RegisterPage() {
     setLoading(true);
 
     const { error } = await authClient.signUp.email({
-      name,
+      name: responsibleName,
       email,
       password,
-    });
-
-    setLoading(false);
+      accountType,
+    } as Parameters<typeof authClient.signUp.email>[0] & { accountType: "PERSON" | "ORGANIZATION" });
 
     if (error) {
       setErrorMessage(authErrorMessage(error, "Erro ao criar conta. Tente novamente."));
       return;
     }
 
-    router.replace("/");
+    if (accountType === "ORGANIZATION") {
+      try {
+        const apiUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:4000";
+        const response = await fetch(`${apiUrl}/api/organizations/bootstrap`, { method: "POST", credentials: "include" });
+        const result = await response.json();
+        if (!response.ok) throw new Error(result.error || "Não foi possível criar o perfil institucional.");
+        localStorage.setItem("adotaperto-active-organization", result.id);
+      } catch (cause) {
+        const apiUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:4000";
+        await fetch(`${apiUrl}/api/users/me`, { method: "DELETE", credentials: "include" }).catch(() => undefined);
+        setLoading(false); setErrorMessage(cause instanceof Error ? `${cause.message} A conta incompleta foi desfeita; revise os dados e tente novamente.` : "Não foi possível concluir o cadastro institucional."); return;
+      }
+    }
+
+    setLoading(false);
+
+    router.replace(accountType === "ORGANIZATION" ? "/perfil" : "/");
     router.refresh();
   }
 
@@ -111,10 +127,36 @@ export default function RegisterPage() {
       )}
 
       <form onSubmit={handleSubmit} className="space-y-3 sm:space-y-4">
-        <AuthField label="Nome Completo" icon="/icons/user.svg" name="name" placeholder="Seu nome completo" autoComplete="name" required />
+        <AuthField label={accountType === "ORGANIZATION" ? "Responsável legal" : "Nome Completo"} icon="/icons/user.svg" name="name" placeholder={accountType === "ORGANIZATION" ? "Nome do responsável legal" : "Seu nome completo"} autoComplete="name" required />
         <AuthField label="E-mail" icon="/icons/email.svg" name="email" type="email" placeholder="exemplo@email.com" autoComplete="email" required />
         <AuthField label="Senha" icon="/icons/password.svg" name="password" type="password" placeholder="Mínimo 8 caracteres" autoComplete="new-password" minLength={8} required />
         <AuthField label="Confirmar Senha" icon="/icons/password.svg" name="confirmPassword" type="password" placeholder="Digite a senha novamente" autoComplete="new-password" minLength={8} required />
+
+        <fieldset>
+          <legend className="mb-2 text-xs font-bold text-[#253129] sm:text-sm">Como pretende utilizar o AdotaPerto?</legend>
+          <div className="grid grid-cols-2 gap-2.5 sm:gap-3">
+            <label className="group relative cursor-pointer">
+              <input type="radio" name="usageIntent" value="person" checked={accountType === "PERSON"} onChange={() => setAccountType("PERSON")} className="peer sr-only" />
+              <span className="registration-account-card flex h-full min-h-32 flex-col rounded-xl border-2 border-[#d7e6da] bg-white p-3 text-left transition hover:border-[#86a590] hover:bg-[#f7fcf8] peer-focus-visible:ring-2 peer-focus-visible:ring-[#0f5d39] peer-focus-visible:ring-offset-2 peer-checked:border-[#0f5d39] peer-checked:bg-[#edf7ef] peer-checked:shadow-[0_0_0_3px_rgba(15,93,57,0.08)] sm:min-h-36 sm:p-4">
+                <span className="registration-account-icon mb-3 grid size-9 place-items-center rounded-lg bg-[#e8f7eb] text-[#256441] transition group-has-[:checked]:bg-[#0f5d39] group-has-[:checked]:text-white sm:size-10">
+                  <svg viewBox="0 0 24 24" className="size-5" fill="none" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><circle cx="12" cy="8" r="4" /><path d="M4 21a8 8 0 0 1 16 0" /></svg>
+                </span>
+                <strong className="text-xs leading-4 text-[#253129] sm:text-sm">Pessoa física</strong>
+                <span className="mt-1 text-[10px] leading-4 text-[#68766d] sm:text-xs sm:leading-5">Quero adotar, doar ou publicar animais.</span>
+              </span>
+            </label>
+            <label className="group relative cursor-pointer">
+              <input type="radio" name="usageIntent" value="organization" checked={accountType === "ORGANIZATION"} onChange={() => setAccountType("ORGANIZATION")} className="peer sr-only" />
+              <span className="registration-account-card flex h-full min-h-32 flex-col rounded-xl border-2 border-[#d7e6da] bg-white p-3 text-left transition hover:border-[#86a590] hover:bg-[#f7fcf8] peer-focus-visible:ring-2 peer-focus-visible:ring-[#0f5d39] peer-focus-visible:ring-offset-2 peer-checked:border-[#0f5d39] peer-checked:bg-[#edf7ef] peer-checked:shadow-[0_0_0_3px_rgba(15,93,57,0.08)] sm:min-h-36 sm:p-4">
+                <span className="registration-account-icon mb-3 grid size-9 place-items-center rounded-lg bg-[#e8f7eb] text-[#256441] transition group-has-[:checked]:bg-[#0f5d39] group-has-[:checked]:text-white sm:size-10">
+                  <svg viewBox="0 0 24 24" className="size-5" fill="none" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M4 21V9l8-5 8 5v12M8 21v-6h8v6" /><path d="M8 10h.01M12 10h.01M16 10h.01" /></svg>
+                </span>
+                <strong className="text-xs leading-4 text-[#253129] sm:text-sm">ONG ou protetor</strong>
+                <span className="mt-1 text-[10px] leading-4 text-[#68766d] sm:text-xs sm:leading-5">Quero representar um projeto de proteção animal.</span>
+              </span>
+            </label>
+          </div>
+        </fieldset>
 
         <label className="flex cursor-pointer items-start gap-2 py-0.5 text-[11px] leading-4 text-[#4d5b53] sm:gap-3 sm:py-1 sm:text-sm sm:leading-5">
           <input type="checkbox" required className="mt-0.5 size-4 shrink-0 accent-[#0f5d39]" />

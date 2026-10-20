@@ -10,8 +10,10 @@ import { uploadRoutes } from "./uploads.ts";
 import { userRoutes } from "./users.ts";
 import { registrationRoutes } from "./registration.ts";
 import { adminRoutes } from "./admin.ts";
+import { organizationNeedRoutes } from "./organizationNeeds.ts";
+import { organizationInvitationRoutes, organizationRoutes } from "./organizations.ts";
 import {
-  hasCompleteAddress,
+  hasCompleteAccountAddress,
   PROFILE_ADDRESS_REQUIRED,
 } from "../services/profile-completion.ts";
 
@@ -49,7 +51,7 @@ apiRoutes.use("*", async (c, next) => {
     c.req.method === "POST" &&
     session?.user &&
     addressRequiredPostRoutes.has(normalizedPath) &&
-    !(await hasCompleteAddress(session.user.id))
+    !(await hasCompleteAccountAddress(session.user.id))
   ) {
     return c.json(
       {
@@ -74,3 +76,6 @@ apiRoutes.route("/uploads", uploadRoutes);
 apiRoutes.route("/donation-items", donationItemRoutes);
 apiRoutes.route("/donation-item-requests", donationItemRequestRoutes);
 apiRoutes.route("/map", mapRoutes);
+apiRoutes.route("/organization-needs", organizationNeedRoutes);
+apiRoutes.route("/organizations", organizationRoutes);
+apiRoutes.route("/organization-invitations", organizationInvitationRoutes);

@@ -142,6 +142,7 @@ export default function AnimalDonationPage() {
       image,
       images,
       status: String(editData?.status || "Disponível"),
+      organizationId: editId ? (editData?.organizationId || null) : (localStorage.getItem("adotaperto-active-organization") || null),
       };
 
       const res = await fetch(`${API_BASE_URL}/api/animals${editId ? `/${editId}` : ""}`, {

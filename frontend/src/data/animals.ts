@@ -12,7 +12,7 @@ export type Animal = {
   weight?: string;
   traits: string[];
   status: "Disponível" | "Em Processo" | "Adotado";
-  organization: string;
+  organization?: string | { id: string; name: string; slug: string; logoUrl?: string | null; city?: string | null; state?: string | null; verificationStatus: string } | null;
   distance: string;
   neutered?: "Sim" | "Não" | "Não sei";
   vaccination?: string;

@@ -8,4 +8,5 @@ export const tabs = [
   { id: "dados", label: "Dados pessoais" },
   { id: "endereco", label: "Endereço" },
   { id: "acesso", label: "Acesso à conta" },
+  { id: "organizacao", label: "Perfil de ONG" },
 ] as const;

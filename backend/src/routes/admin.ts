@@ -1,7 +1,8 @@
 import { count, desc, eq, gte } from "drizzle-orm";
 import { Hono } from "hono";
 import { db } from "../../lib/db/index.ts";
-import { adoptionRequest, animal, donationItem, donationItemRequest, session, user } from "../../lib/db/schemas/index.ts";
+import { adoptionRequest, animal, donationItem, donationItemRequest, organization, session, user } from "../../lib/db/schemas/index.ts";
+import { z } from "zod";
 import type { AuthContext } from "./index.ts";
 
 export const adminRoutes = new Hono<AuthContext>();
@@ -35,4 +36,15 @@ adminRoutes.get("/overview", async (c) => {
   } catch {
     return c.json({ error: "Não foi possível carregar os dados do painel." }, 503);
   }
+});
+
+adminRoutes.get("/organizations", async (c) => c.json(await db.select({ id: organization.id, name: organization.name, slug: organization.slug, type: organization.type, cnpj: organization.cnpj, status: organization.verificationStatus, reason: organization.verificationReason, createdAt: organization.createdAt, creator: { id: user.id, name: user.name, email: user.email } }).from(organization).innerJoin(user, eq(organization.createdBy, user.id)).orderBy(desc(organization.createdAt))));
+
+adminRoutes.patch("/organizations/:id/verification", async (c) => {
+  const current = c.get("user")!;
+  const parsed = z.object({ status: z.enum(["PENDING", "VERIFIED", "REJECTED", "SUSPENDED"]), reason: z.string().trim().max(1000).nullable().optional() }).safeParse(await c.req.json().catch(() => null));
+  if (!parsed.success) return c.json({ error: "Revisão inválida" }, 400);
+  if (["REJECTED", "SUSPENDED"].includes(parsed.data.status) && !parsed.data.reason) return c.json({ error: "Informe uma justificativa" }, 400);
+  const [updated] = await db.update(organization).set({ verificationStatus: parsed.data.status, verificationReason: parsed.data.reason || null, verificationReviewedBy: current.id, verificationReviewedAt: new Date(), updatedAt: new Date() }).where(eq(organization.id, c.req.param("id"))).returning();
+  return updated ? c.json(updated) : c.json({ error: "Organização não encontrada" }, 404);
 });

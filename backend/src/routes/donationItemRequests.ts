@@ -9,6 +9,7 @@ import {
   user as userTable,
 } from "../../lib/db/schemas/index.ts";
 import type { AuthContext } from "./index.ts";
+import { canDecideForOrganization } from "../services/organization-access.ts";
 
 export const donationItemRequestRoutes = new Hono<AuthContext>();
 const createSchema = z.object({
@@ -131,7 +132,7 @@ donationItemRequestRoutes.patch("/:id/status", async (c) => {
     const [item] = await tx.select().from(donationItem)
       .where(eq(donationItem.id, reference.itemId)).for("update");
     if (!item) return { error: "Item não encontrado", status: 404 as const };
-    if (item.userId !== user.id) return { error: "Sem permissão", status: 403 as const };
+    if (item.userId !== user.id && (!item.organizationId || !await canDecideForOrganization(item.organizationId, user.id))) return { error: "Sem permissão", status: 403 as const };
     const [request] = await tx.select().from(donationItemRequest)
       .where(eq(donationItemRequest.id, id)).for("update");
     if (!request) return { error: "Solicitação não encontrada", status: 404 as const };

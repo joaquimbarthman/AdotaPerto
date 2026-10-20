@@ -6,9 +6,11 @@ import { db } from "../../lib/db/index.ts";
 import {
   adoptionRequest,
   animal,
+  organization,
   user as userTable,
 } from "../../lib/db/schemas/index.ts";
 import type { AuthContext } from "./index.ts";
+import { canPublishForOrganization } from "../services/organization-access.ts";
 
 export const animalRoutes = new Hono<AuthContext>();
 
@@ -62,6 +64,7 @@ const animalPayloadSchema = z.object({
   fotos: z.array(z.string()).optional(),
   traits: z.array(z.string()).optional(),
   status: z.string().trim().min(1).optional(),
+  organizationId: z.string().uuid().nullable().optional(),
 });
 
 type AnimalPayload = z.infer<typeof animalPayloadSchema>;
@@ -98,6 +101,7 @@ function animalValues(body: AnimalPayload) {
     images: body.images ?? body.fotos,
     traits: body.traits,
     status: body.status,
+    organizationId: body.organizationId,
   };
 }
 
@@ -146,9 +150,11 @@ animalRoutes.get("/:id", async (c) => {
         state: userTable.state,
         verified: userTable.emailVerified,
       },
+      organization: { id: organization.id, name: organization.name, slug: organization.slug, logoUrl: organization.logoUrl, city: organization.city, state: organization.state, verificationStatus: organization.verificationStatus },
     })
     .from(animal)
     .innerJoin(userTable, eq(animal.userId, userTable.id))
+    .leftJoin(organization, eq(animal.organizationId, organization.id))
     .where(eq(animal.id, id));
 
   if (!result) {
@@ -189,6 +195,7 @@ animalRoutes.post("/", async (c) => {
   }
 
   const values = animalValues(parsed.data);
+  if (values.organizationId && !await canPublishForOrganization(values.organizationId, user.id)) return c.json({ error: "Sem permissão para publicar por esta organização" }, 403);
   if (
     !values.name ||
     !values.species ||
@@ -233,9 +240,7 @@ animalRoutes.put("/:id", async (c) => {
     return c.json({ error: "Animal não encontrado" }, 404);
   }
 
-  if (existing.userId !== user.id) {
-    return c.json({ error: "Sem permissão" }, 403);
-  }
+  if (existing.userId !== user.id && (!existing.organizationId || !await canPublishForOrganization(existing.organizationId, user.id))) return c.json({ error: "Sem permissão" }, 403);
 
   const parsed = animalPayloadSchema.safeParse(
     await c.req.json().catch(() => null),
@@ -248,6 +253,7 @@ animalRoutes.put("/:id", async (c) => {
   }
 
   const values = animalValues(parsed.data);
+  if (values.organizationId && !await canPublishForOrganization(values.organizationId, user.id)) return c.json({ error: "Sem permissão para esta organização" }, 403);
   if (!Object.values(values).some((value) => value !== undefined)) {
     return c.json({ error: "Nenhum campo válido para atualizar" }, 400);
   }
@@ -277,9 +283,7 @@ animalRoutes.delete("/:id", async (c) => {
     return c.json({ error: "Animal não encontrado" }, 404);
   }
 
-  if (existing.userId !== user.id) {
-    return c.json({ error: "Sem permissão" }, 403);
-  }
+  if (existing.userId !== user.id && (!existing.organizationId || !await canPublishForOrganization(existing.organizationId, user.id))) return c.json({ error: "Sem permissão" }, 403);
 
   await db.delete(animal).where(eq(animal.id, id));
   return c.json({ success: true, message: "Animal excluído com sucesso" });

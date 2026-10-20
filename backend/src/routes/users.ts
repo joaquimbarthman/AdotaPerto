@@ -2,7 +2,7 @@ import { eq } from "drizzle-orm";
 import { Hono } from "hono";
 import { z } from "zod";
 import { db } from "../../lib/db/index.ts";
-import { user } from "../../lib/db/schemas/index.ts";
+import { organization, organizationMember, user } from "../../lib/db/schemas/index.ts";
 import { removeStorageObjects } from "../../lib/storage/index.ts";
 import type { AuthContext } from "./index.ts";
 
@@ -28,6 +28,7 @@ const updateUserSchema = z.object({
   estado: z.string().trim().max(120).nullable().optional(),
 });
 
+
 userRoutes.get("/me", async (c) => {
   const currentUser = c.get("user");
   if (!currentUser) {
@@ -42,6 +43,10 @@ userRoutes.get("/me", async (c) => {
     return c.json({ error: "Usuário não encontrado" }, 404);
   }
 
+  if (userData.accountType === "ORGANIZATION") {
+    const [primaryOrganization] = await db.select({ id: organization.id, name: organization.name, slug: organization.slug, description: organization.description, logoUrl: organization.logoUrl, coverUrl: organization.coverUrl, city: organization.city, state: organization.state, contactEmail: organization.contactEmail, whatsapp: organization.whatsapp, verificationStatus: organization.verificationStatus }).from(organizationMember).innerJoin(organization, eq(organizationMember.organizationId, organization.id)).where(eq(organizationMember.userId, currentUser.id)).limit(1);
+    return c.json({ ...userData, primaryOrganization: primaryOrganization || null });
+  }
   return c.json(userData);
 });
 

@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 
-const options = [{ label: "Animais", href: "/adocao" }, { label: "Itens", href: "/itens" }];
+const options = [{ label: "Animais", href: "/adocao" }, { label: "Itens", href: "/itens" }, { label: "ONGs", href: "/necessidades" }];
 
 export function ExploreTabs() {
   const pathname = usePathname();

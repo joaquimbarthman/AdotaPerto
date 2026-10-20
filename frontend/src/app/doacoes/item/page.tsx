@@ -108,6 +108,7 @@ export default function ItemDonationPage() {
           unit: String(form.get("unit")), condition: String(form.get("condition")), expirationDate: String(form.get("expirationDate") || "") || null,
           description: String(form.get("description")), mainImage, images, deliveryMethod: String(form.get("deliveryMethod")),
           availableUntil: availableUntil || null,
+          organizationId: editId ? (editData?.organizationId || null) : (localStorage.getItem("adotaperto-active-organization") || null),
         }),
       });
       const result = await response.json().catch(() => ({}));

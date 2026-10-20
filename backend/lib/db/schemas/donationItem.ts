@@ -1,5 +1,6 @@
 import { index, integer, pgTable, text, timestamp } from "drizzle-orm/pg-core";
 import { user } from "./user.ts";
+import { organization } from "./organization.ts";
 
 export const donationItem = pgTable("donation_item", {
   id: text("id").primaryKey(),
@@ -17,6 +18,7 @@ export const donationItem = pgTable("donation_item", {
   availableUntil: text("available_until"),
   status: text("status").default("Disponível").notNull(),
   userId: text("user_id").notNull().references(() => user.id, { onDelete: "cascade" }),
+  organizationId: text("organization_id").references(() => organization.id, { onDelete: "set null" }),
   createdAt: timestamp("created_at").defaultNow().notNull(),
   updatedAt: timestamp("updated_at").defaultNow().$onUpdate(() => new Date()).notNull(),
-}, (table) => [index("donation_item_userId_idx").on(table.userId)]);
+}, (table) => [index("donation_item_userId_idx").on(table.userId), index("donation_item_organizationId_idx").on(table.organizationId)]);
