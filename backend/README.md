@@ -48,6 +48,8 @@ em cache. O painel permite consultar e atualizar os indicadores.
 
 ## Instalação
 
+Para instalar e executar o projeto completo a partir da raiz, use `npm run setup` e depois `npm run dev`. Esse fluxo prepara o `.env`, inicia os serviços locais e aplica as migrations. As instruções abaixo servem para executar somente a API ou configurar os serviços manualmente.
+
 Entre na pasta do backend:
 
 ```powershell

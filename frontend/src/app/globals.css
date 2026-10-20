@@ -895,7 +895,7 @@ html[data-theme="dark"] .mobile-bottom-nav { border-color: #304438; background: 
 .admin-refresh-button:hover { background: rgb(255 255 255 / 20%); transform: translateY(-1px); }
 .admin-refresh-button:disabled { opacity: .55; }
 .admin-card { border: 1px solid #dce7df; border-radius: .7rem; padding: 1.35rem; background: #fff; box-shadow: 0 8px 28px rgb(34 70 47 / 5%); }
-.admin-metrics-grid { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 1rem; margin-top: -1.25rem; padding-inline: 1.25rem; position: relative; z-index: 3; }
+.admin-metrics-grid { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 1rem; margin-top: -1.25rem; padding-inline: 1.25rem; position: relative; z-index: 3; }
 .admin-metric-card { min-width: 0; border: 1px solid #dce7df; border-radius: .7rem; padding: 1.2rem; background: #fff; box-shadow: 0 10px 30px rgb(34 70 47 / 7%); }
 .admin-metric-featured { border-color: #a8d3b5; background: #eef8f1; }
 .admin-metric-label { color: #68776e; font-size: .75rem; font-weight: 750; }
@@ -970,6 +970,7 @@ html[data-theme="dark"] .admin-loader { border-color: #32483a; border-top-color:
 html[data-theme="dark"] .admin-error-icon { background: #44272a; color: #ff9ca9; }
 html[data-theme="dark"] .admin-secondary-link { border-color: #3b5142; color: #b8c7bd; }
 
+@media (max-width: 1100px) { .admin-metrics-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); } }
 @media (max-width: 900px) { .admin-metrics-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
 @media (max-width: 640px) {
   .admin-back-button { margin-bottom: 1rem; }

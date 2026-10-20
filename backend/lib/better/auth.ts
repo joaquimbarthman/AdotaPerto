@@ -1,5 +1,5 @@
 import { betterAuth } from "better-auth";
-import { admin, emailOTP } from "better-auth/plugins";
+import { admin, emailOTP, organization as organizationPlugin } from "better-auth/plugins";
 import { drizzleAdapter } from "better-auth/adapters/drizzle";
 import { sql } from "drizzle-orm";
 import { db } from "../db/index.ts";
@@ -17,6 +17,9 @@ import {
   animalRelations,
   favorite,
   favoriteRelations,
+  invitation,
+  member,
+  organization,
   session,
   sessionRelations,
   user,
@@ -38,9 +41,20 @@ const schema = {
   animalRelations,
   adoptionRequestRelations,
   favoriteRelations,
+  organization,
+  member,
+  invitation,
 };
 
 export function createAuth(database = db) {
+  const trustedOrigins = [
+    "http://localhost:3000",
+    ...(process.env.CORS_ORIGINS || process.env.FRONTEND_URL || "")
+      .split(",")
+      .map((origin) => origin.trim())
+      .filter(Boolean),
+  ];
+
   const authDatabase: ReturnType<typeof drizzleAdapter> = (options) => {
     const config = { provider: "pg" as const, schema };
     const adapter = drizzleAdapter(database, config)(options);
@@ -95,8 +109,22 @@ export function createAuth(database = db) {
         await sendTransactionalEmail({ to: email, ...message });
       },
     }),
+    organizationPlugin({
+      allowUserToCreateOrganization: true,
+      schema: {
+        organization: {
+          additionalFields: {
+            cnpj: { type: "string", required: false, input: true },
+            phone: { type: "string", required: false, input: true },
+            website: { type: "string", required: false, input: true },
+            instagram: { type: "string", required: false, input: true },
+            description: { type: "string", required: false, input: true },
+          },
+        },
+      },
+    }),
   ],
-  trustedOrigins: ["http://localhost:3000"],
+  trustedOrigins,
 });
 }
 

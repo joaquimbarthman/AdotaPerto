@@ -9,6 +9,7 @@
     "build": "tsc",
     "start": "tsx src/index.ts",
     "startup": "tsx lib/db/startup.ts",
+    "db:setup": "npm run startup",
     "typecheck": "tsc --noEmit",
     "db:seed": "tsx lib/db/seed.ts",
     "db:reset-content": "tsx inserts/reset-content.ts"
@@ -17,8 +18,6 @@
     "@types/node": "^26.2.0",
     "@types/pg": "^8.23.1",
     "drizzle-kit": "^0.31.10",
-    "drizzle-orm": "^0.45.2",
-    "tsx": "^4.23.13",
     "typescript": "latest"
   },
   "dependencies": {
@@ -26,9 +25,11 @@
     "@hono/zod-validator": "^0.9.0",
     "better-auth": "^1.6.30",
     "dotenv": "^17.4.2",
+    "drizzle-orm": "^0.45.2",
     "hono": "^4.13.1",
     "minio": "^8.0.7",
     "pg": "^8.23.0",
+    "tsx": "^4.23.13",
     "zod": "^4.4.3"
   },
   "allowScripts": {

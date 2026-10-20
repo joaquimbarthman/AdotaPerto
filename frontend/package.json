@@ -4,7 +4,7 @@
   "private": true,
   "scripts": {
     "predev": "node scripts/prepare-map-worker.mjs",
-    "dev": "next dev",
+    "dev": "next dev --webpack",
     "prebuild": "node scripts/prepare-map-worker.mjs",
     "build": "next build",
     "start": "next start",
@@ -26,7 +26,7 @@
     "@types/react": "latest",
     "@types/react-dom": "latest",
     "eslint": "latest",
-    "eslint-config-next": "latest",
+    "eslint-config-next": "^16.4.2",
     "postcss": "^8.5.26",
     "tailwindcss": "^4.3.3",
     "typescript": "latest"

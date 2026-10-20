@@ -5,7 +5,8 @@ export const organization = pgTable("organization", {
   id: text("id").primaryKey(), name: text("name").notNull(), slug: text("slug").notNull(),
   type: text("type").notNull(), cnpj: text("cnpj"), description: text("description").notNull(),
   legalRepresentativeName: text("legal_representative_name").notNull(),
-  logoUrl: text("logo_url"), coverUrl: text("cover_url"), foundedYear: text("founded_year"),
+  logoUrl: text("logo_url"), logo: text("logo"), metadata: text("metadata"), phone: text("phone"),
+  coverUrl: text("cover_url"), foundedYear: text("founded_year"),
   contactEmail: text("contact_email").notNull(), whatsapp: text("whatsapp").notNull(),
   instagram: text("instagram"), website: text("website"), postalCode: text("postal_code"),
   street: text("street"), number: text("number"), neighborhood: text("neighborhood"),
@@ -36,3 +37,25 @@ export const organizationVerificationDocument = pgTable("organization_verificati
   uploadedBy: text("uploaded_by").notNull().references(() => user.id, { onDelete: "restrict" }), storageKey: text("storage_key").notNull(),
   documentType: text("document_type").notNull(), createdAt: timestamp("created_at").defaultNow().notNull(),
 }, (table) => [index("organization_document_org_idx").on(table.organizationId)]);
+
+// Better Auth's organization plugin uses its own membership and invitation
+// tables while sharing the organization table with the application's richer
+// institutional profile.
+export const member = pgTable("member", {
+  id: text("id").primaryKey(),
+  organizationId: text("organization_id").notNull().references(() => organization.id, { onDelete: "cascade" }),
+  userId: text("user_id").notNull().references(() => user.id, { onDelete: "cascade" }),
+  role: text("role").notNull(),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+}, (table) => [index("member_organizationId_idx").on(table.organizationId), index("member_userId_idx").on(table.userId)]);
+
+export const invitation = pgTable("invitation", {
+  id: text("id").primaryKey(),
+  organizationId: text("organization_id").notNull().references(() => organization.id, { onDelete: "cascade" }),
+  email: text("email").notNull(),
+  role: text("role"),
+  status: text("status").default("pending").notNull(),
+  expiresAt: timestamp("expires_at").notNull(),
+  inviterId: text("inviter_id").notNull().references(() => user.id, { onDelete: "cascade" }),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+}, (table) => [index("invitation_organizationId_idx").on(table.organizationId), index("invitation_email_idx").on(table.email)]);
