@@ -14,6 +14,7 @@ export function PersonalData({
   userBio,
   photoLoading,
   onPhotoCrop,
+  showHeading = true,
 }: {
   profile: UserProfile | null;
   userName: string;
@@ -21,6 +22,7 @@ export function PersonalData({
   userBio: string;
   photoLoading: boolean;
   onPhotoCrop: (file: File, preview: string) => void;
+  showHeading?: boolean;
 }) {
   const birthDate = profile?.birthDate || "";
   const instagram = profile?.instagram || "";
@@ -28,10 +30,10 @@ export function PersonalData({
 
   return (
     <section id="panel-dados" role="tabpanel" aria-labelledby="tab-dados">
-      <SectionHeading
+      {showHeading && <SectionHeading
         title="Dados pessoais"
         description="Consulte e atualize suas informações pessoais de perfil."
-      />
+      />}
       <div className="grid gap-5 sm:gap-8 lg:grid-cols-[180px_1fr] lg:gap-12">
         <div>
           <p className="mb-3 text-sm font-bold text-[#253129]">

@@ -18,7 +18,7 @@ import { uploadImages } from "@/lib/uploads";
 import { ThemeToggle } from "@/components/theme-toggle";
 import type { TabId, UserProfile, AdoptionRequestItem, FavoriteItem, FavoriteDonationItem, DonationItem, EditablePublication, DonationItemRequest } from "@/components/profile/types";
 import { API_BASE_URL, tabs } from "@/components/profile/config";
-import { PageHeading, ProfileNavIcon, SegmentedControl, RequestDirectionTabs, RequestTypePicker, ProfileSearch, ProfilePagination, ProfileLoading, ProfileForm, EmptyTab } from "@/components/profile/profile-ui";
+import { PageHeading, ProfileNavIcon, SegmentedControl, RequestDirectionTabs, RequestTypePicker, ProfileSearch, ProfilePagination, ProfileLoading, ProfileForm, EmptyTab, SectionHeading } from "@/components/profile/profile-ui";
 import { DeletePublicationModal, PublicationsPanel } from "@/components/profile/publications-panel";
 import { ItemRequestSection, RequestSection } from "@/components/profile/request-sections";
 import { PersonalData, AddressData } from "@/components/profile/personal-data";
@@ -456,9 +456,12 @@ export default function ProfilePage() {
               </div>
             )}
             {activeTab === "dados" && (
-              <ProfileForm key={`dados-${profile?.name}-${profile?.bio}-${profile?.birthDate}-${profile?.instagram}-${profile?.whatsapp}`} onSubmit={handleSavePersonalData} loading={savingPersonal}>
-                <PersonalData profile={profile} userName={userName} userImage={photoPreview || userImage} userBio={userBio} photoLoading={savingPersonal && Boolean(croppedPhoto)} onPhotoCrop={(file, preview) => { if (photoPreview) URL.revokeObjectURL(photoPreview); setCroppedPhoto(file); setPhotoPreview(preview); }} />
-              </ProfileForm>
+              <div className="space-y-4 sm:space-y-6">
+                <SectionHeading title="Dados pessoais" description="Consulte e atualize suas informações pessoais de perfil." />
+                <ProfileForm key={`dados-${profile?.name}-${profile?.bio}-${profile?.birthDate}-${profile?.instagram}-${profile?.whatsapp}`} onSubmit={handleSavePersonalData} loading={savingPersonal}>
+                  <PersonalData showHeading={false} profile={profile} userName={userName} userImage={photoPreview || userImage} userBio={userBio} photoLoading={savingPersonal && Boolean(croppedPhoto)} onPhotoCrop={(file, preview) => { if (photoPreview) URL.revokeObjectURL(photoPreview); setCroppedPhoto(file); setPhotoPreview(preview); }} />
+                </ProfileForm>
+              </div>
             )}
             {activeTab === "endereco" && (
               <ProfileForm key={`endereco-${profile?.zipCode}-${profile?.street}-${profile?.city}-${profile?.state}`} onSubmit={handleSaveAddressData} loading={savingAddress}>

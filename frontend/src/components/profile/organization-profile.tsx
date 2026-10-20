@@ -119,16 +119,16 @@ export function OrganizationProfile({ section, profile, onUpdated }: { section: 
     <div className="space-y-4 sm:space-y-6">
       {notice && <Notification {...notice} />}
 
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+        <SectionHeading
+          title={section === "profile" ? "Perfil da sua ONG" : "Endereço"}
+          description={section === "profile" ? "Consulte e atualize as informações públicas da organização." : "Essas informações ajudam as pessoas a encontrar sua organização e suas iniciativas."}
+        />
+        {!draft && <Link href={`/ongs/${organization.slug}`} className="shrink-0 rounded-lg border border-[#86a590] px-4 py-2.5 text-center text-sm font-bold text-[#256441] transition hover:bg-[#e8f7eb]">Ver página pública</Link>}
+      </div>
+
       <form key={`${organization.id}-${section}`} onSubmit={submit} className="overflow-hidden rounded-xl bg-white shadow-[0_4px_12px_rgba(38,51,43,0.05)]">
         <div className="min-h-0 p-4 sm:min-h-[420px] sm:p-7">
-          <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
-            <SectionHeading
-              title={section === "profile" ? "Perfil da sua ONG" : "Endereço"}
-              description={section === "profile" ? "Consulte e atualize as informações públicas da organização." : "Essas informações ajudam as pessoas a encontrar sua organização e suas iniciativas."}
-            />
-            {!draft && <Link href={`/ongs/${organization.slug}`} className="shrink-0 rounded-lg border border-[#86a590] px-4 py-2.5 text-center text-sm font-bold text-[#256441] transition hover:bg-[#e8f7eb]">Ver página pública</Link>}
-          </div>
-
           <div className={`mb-6 rounded-xl border px-4 py-3 text-sm ${verified ? "border-[#b8dbc2] bg-[#edf8f0] text-[#256441]" : "border-[#ecd9ac] bg-[#fff9ea] text-[#765315]"}`}>
             <strong>{verified ? "ONG verificada" : draft ? "Complete o perfil institucional" : "Verificação institucional em análise"}</strong>
             <p className="mt-1 text-xs leading-5 text-[#5b675f]">{draft ? "Preencha os dados para enviar a organização para análise." : "A confirmação do e-mail não concede automaticamente o selo institucional."}</p>
