@@ -107,7 +107,7 @@ export default function ProfilePage() {
             if (data.accountType === "ORGANIZATION" && (!window.location.hash || window.location.hash === "#dados" || window.location.hash === "#endereco")) {
               setActiveTab("organizacao");
               window.history.replaceState(null, "", "#organizacao");
-            } else if (data.accountType !== "ORGANIZATION" && window.location.hash === "#organizacao") {
+            } else if (data.accountType !== "ORGANIZATION" && ["#organizacao", "#endereco-organizacao"].includes(window.location.hash)) {
               setActiveTab("dados");
               window.history.replaceState(null, "", "#dados");
             }
@@ -209,7 +209,7 @@ export default function ProfilePage() {
   const userBio = profile?.primaryOrganization?.description || profile?.bio || "";
   const visibleTabs = profile?.accountType === "ORGANIZATION"
     ? tabs.filter((item) => !["dados", "endereco"].includes(item.id))
-    : tabs.filter((item) => item.id !== "organizacao");
+    : tabs.filter((item) => !["organizacao", "endereco-organizacao"].includes(item.id));
   const userCity = profile?.primaryOrganization?.city || profile?.city || "";
   const userState = profile?.primaryOrganization?.state || profile?.state || "";
   const userLocation = userCity && userState ? `${userCity}, ${userState}` : userCity || userState || "";
@@ -465,7 +465,8 @@ export default function ProfilePage() {
                 <AddressData profile={profile} />
               </ProfileForm>
             )}
-            {activeTab === "organizacao" && <OrganizationProfile profile={profile} onUpdated={(updated) => setProfile(updated)} />}
+            {activeTab === "organizacao" && <OrganizationProfile section="profile" profile={profile} onUpdated={(updated) => setProfile(updated)} />}
+            {activeTab === "endereco-organizacao" && <OrganizationProfile section="address" profile={profile} onUpdated={(updated) => setProfile(updated)} />}
             {activeTab === "acesso" && <ProfileForm showActions={false}><AccountAccess userEmail={userEmail} /></ProfileForm>}
           </section>
         </div>

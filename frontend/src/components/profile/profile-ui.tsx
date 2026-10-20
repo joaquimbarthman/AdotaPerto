@@ -71,7 +71,7 @@ export function ProfileNavIcon({ id }: { id: TabId }) {
         <path d="M4 21a8 8 0 0 1 16 0" />
       </svg>
     );
-  if (id === "endereco")
+  if (id === "endereco" || id === "endereco-organizacao")
     return (
       <svg {...common}>
         <path d="M20 10c0 5-8 11-8 11S4 15 4 10a8 8 0 1 1 16 0Z" />
