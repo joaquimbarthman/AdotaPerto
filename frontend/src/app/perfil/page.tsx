@@ -457,7 +457,7 @@ export default function ProfilePage() {
             )}
             {activeTab === "dados" && (
               <div className="space-y-4 sm:space-y-6">
-                <SectionHeading title="Dados pessoais" description="Consulte e atualize suas informações pessoais de perfil." />
+                <SectionHeading eyebrow="Perfil pessoal" title="Dados pessoais" description="Consulte e atualize suas informações pessoais de perfil." />
                 <ProfileForm key={`dados-${profile?.name}-${profile?.bio}-${profile?.birthDate}-${profile?.instagram}-${profile?.whatsapp}`} onSubmit={handleSavePersonalData} loading={savingPersonal}>
                   <PersonalData showHeading={false} profile={profile} userName={userName} userImage={photoPreview || userImage} userBio={userBio} photoLoading={savingPersonal && Boolean(croppedPhoto)} onPhotoCrop={(file, preview) => { if (photoPreview) URL.revokeObjectURL(photoPreview); setCroppedPhoto(file); setPhotoPreview(preview); }} />
                 </ProfileForm>

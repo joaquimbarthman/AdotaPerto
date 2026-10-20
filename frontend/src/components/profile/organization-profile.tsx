@@ -121,6 +121,7 @@ export function OrganizationProfile({ section, profile, onUpdated }: { section: 
 
       <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
         <SectionHeading
+          eyebrow={section === "profile" ? "Perfil institucional" : "Localização institucional"}
           title={section === "profile" ? "Perfil da sua ONG" : "Endereço"}
           description={section === "profile" ? "Consulte e atualize as informações públicas da organização." : "Essas informações ajudam as pessoas a encontrar sua organização e suas iniciativas."}
         />

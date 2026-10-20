@@ -355,12 +355,15 @@ export function EmptyTab({
 export function SectionHeading({
   title,
   description,
+  eyebrow,
 }: {
   title: string;
   description: string;
+  eyebrow?: string;
 }) {
   return (
     <header className="mb-5 sm:mb-7">
+      {eyebrow && <p className="mb-2 text-xs font-bold uppercase tracking-[0.14em] text-[#3f7d58]">{eyebrow}</p>}
       <h2 className="text-xl font-bold tracking-[-0.01em] sm:text-2xl">
         {title}
       </h2>
