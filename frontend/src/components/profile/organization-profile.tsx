@@ -242,7 +242,7 @@ export function OrganizationProfile({ section, profile, onUpdated }: { section: 
                     setCepStatus("idle");
                   }} className={`h-10 w-full rounded-lg border bg-[#f7fcf8] px-3 pr-10 text-sm text-[#121e17] outline-none transition placeholder:text-[#879188] focus:border-[#3f7d58] focus:ring-2 focus:ring-[#3f7d58]/15 sm:h-12 sm:rounded-xl sm:px-4 ${cepStatus === "error" ? "border-red-300" : "border-[#c0c9bf]"}`} />
                   {cepStatus === "loading" && <span className="absolute right-3 top-1/2 size-4 -translate-y-1/2 animate-spin rounded-full border-2 border-[#b8d8c1] border-t-[#256441]" aria-label="Buscando CEP" />}
-                  {cepStatus === "success" && <span className="absolute right-3 top-1/2 -translate-y-1/2 text-lg font-bold text-[#256441]" aria-label="CEP encontrado">✓</span>}
+                  {cepStatus === "success" && <svg viewBox="0 0 24 24" className="absolute right-3 top-1/2 size-5 -translate-y-1/2 text-[#256441]" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round" aria-label="CEP encontrado"><circle cx="12" cy="12" r="9" /><path d="m8 12 2.6 2.6L16.5 9" /></svg>}
                 </span>
               </label>
               <div className="hidden sm:block" />

@@ -1,7 +1,7 @@
-import { eq } from "drizzle-orm";
+import { and, eq, inArray } from "drizzle-orm";
 import { Hono } from "hono";
 import { db } from "../../lib/db/index.ts";
-import { animal, donationItem, user } from "../../lib/db/schemas/index.ts";
+import { animal, donationItem, organization, organizationNeed, user } from "../../lib/db/schemas/index.ts";
 import {
   approximatePoint,
   geocode,
@@ -61,6 +61,30 @@ mapRoutes.get("/listings", async (c) => {
       .from(donationItem)
       .innerJoin(user, eq(donationItem.userId, user.id))
       .where(eq(donationItem.status, "Disponível"));
+    const needs = await db.select({
+      id: organizationNeed.id, name: organizationNeed.title, image: organizationNeed.mainImage,
+      description: organizationNeed.description, itemCategory: organizationNeed.category,
+      zipCode: organization.postalCode, city: organization.city, state: organization.state,
+    }).from(organizationNeed).innerJoin(organization, eq(organizationNeed.organizationId, organization.id))
+      .where(and(eq(organizationNeed.status, "Ativa"), eq(organization.verificationStatus, "VERIFIED")));
+    const organizations = await db
+      .select({
+        id: organization.id,
+        name: organization.name,
+        image: organization.logoUrl,
+        description: organization.description,
+        postalCode: organization.postalCode,
+        street: organization.street,
+        number: organization.number,
+        neighborhood: organization.neighborhood,
+        city: organization.city,
+        state: organization.state,
+        phone: organization.whatsapp,
+        email: organization.contactEmail,
+        website: organization.website,
+      })
+      .from(organization)
+      .where(inArray(organization.verificationStatus, ["PENDING", "VERIFIED"]));
 
     const rows = [
       ...animals.map((entry) => ({
@@ -72,6 +96,11 @@ mapRoutes.get("/listings", async (c) => {
         ...entry,
         category: "donation" as const,
         href: `/itens/${entry.id}`,
+      })),
+      ...needs.map((entry) => ({
+        ...entry,
+        category: "donation" as const,
+        href: `/necessidades/${entry.id}`,
       })),
     ].filter((entry) => entry.zipCode || entry.city || entry.state);
     const regions = new Map<string, Awaited<ReturnType<typeof geocode>>>();
@@ -88,8 +117,7 @@ mapRoutes.get("/listings", async (c) => {
         regions.set(region, await geocode(region).catch(() => null)),
       ),
     );
-    return c.json(
-      rows.flatMap((entry) => {
+    const listingPoints = rows.flatMap((entry) => {
         const privateRegionQuery = [
           entry.zipCode,
           entry.city,
@@ -114,8 +142,32 @@ mapRoutes.get("/listings", async (c) => {
             approximate: true,
           },
         ];
-      }),
-    );
+      });
+    const organizationPoints = await Promise.all(organizations.filter((org) => org.city && org.state).map(async (org) => {
+      const address = [org.street, org.number, org.neighborhood, org.city, org.state].filter(Boolean).join(", ");
+      const cityQuery = [org.city, org.state, "Brasil"].join(", ");
+      const precise = Boolean(org.street && org.number);
+      const point = precise ? await geocode(`${address}, Brasil`).catch(() => null) : null;
+      const location = point || (org.postalCode ? await geocode(org.postalCode).catch(() => null) : null) || await geocode(cityQuery).catch(() => null);
+      if (!location) return null;
+      const coordinates = point ? { lat: point.lat, lng: point.lng } : approximatePoint(location.lat, location.lng, org.id);
+      return {
+        id: `organization-${org.id}`,
+        category: "shelter" as const,
+        name: org.name,
+        image: org.image,
+        description: org.description,
+        ...coordinates,
+        address: point ? address : null,
+        region: [org.city, org.state].join(" - "),
+        approximate: !point,
+        phone: org.phone || null,
+        email: org.email,
+        website: org.website,
+        mapsUrl: point ? `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(`${address}, Brasil`)}` : null,
+      };
+    }));
+    return c.json([...listingPoints, ...organizationPoints.filter((point) => point !== null)]);
   } catch (error) {
     const cause = error instanceof Error && error.cause ? error.cause : error;
     const code =

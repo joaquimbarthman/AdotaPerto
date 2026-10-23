@@ -44,7 +44,7 @@ userRoutes.get("/me", async (c) => {
   }
 
   if (userData.accountType === "ORGANIZATION") {
-    const [primaryOrganization] = await db.select({ id: organization.id, name: organization.name, slug: organization.slug, description: organization.description, logoUrl: organization.logoUrl, coverUrl: organization.coverUrl, city: organization.city, state: organization.state, contactEmail: organization.contactEmail, whatsapp: organization.whatsapp, verificationStatus: organization.verificationStatus }).from(organizationMember).innerJoin(organization, eq(organizationMember.organizationId, organization.id)).where(eq(organizationMember.userId, currentUser.id)).limit(1);
+    const [primaryOrganization] = await db.select({ id: organization.id, name: organization.name, slug: organization.slug, description: organization.description, logoUrl: organization.logoUrl, coverUrl: organization.coverUrl, postalCode: organization.postalCode, street: organization.street, number: organization.number, neighborhood: organization.neighborhood, city: organization.city, state: organization.state, contactEmail: organization.contactEmail, whatsapp: organization.whatsapp, verificationStatus: organization.verificationStatus }).from(organizationMember).innerJoin(organization, eq(organizationMember.organizationId, organization.id)).where(eq(organizationMember.userId, currentUser.id)).limit(1);
     return c.json({ ...userData, primaryOrganization: primaryOrganization || null });
   }
   return c.json(userData);

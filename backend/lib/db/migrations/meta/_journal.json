@@ -64,6 +64,20 @@
       "when": 1792533600000,
       "tag": "0008_repair_institutional_profiles",
       "breakpoints": true
+    },
+    {
+      "idx": 9,
+      "version": "7",
+      "when": 1792620000000,
+      "tag": "0009_expand_organization_needs",
+      "breakpoints": true
+    },
+    {
+      "idx": 10,
+      "version": "7",
+      "when": 1792630800000,
+      "tag": "0010_repair_organization_need_foreign_key",
+      "breakpoints": true
     }
   ]
 }

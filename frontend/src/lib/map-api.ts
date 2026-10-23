@@ -19,5 +19,5 @@ async function getJson<T>(path: string, signal?: AbortSignal): Promise<T> {
 export const mapApi = {
   listings: (signal?: AbortSignal) => getJson<MapResult[]>("/api/map/listings", signal),
   geocode: (query: string, signal?: AbortSignal) => getJson<Coordinates & { label: string }>(`/api/map/geocode?q=${encodeURIComponent(query)}`, signal),
-  places: (category: Extract<MapCategory, "veterinary" | "pet_shop" | "shelter">, center: Coordinates, signal?: AbortSignal) => getJson<MapResult[]>(`/api/map/places?category=${category}&lat=${center.lat}&lng=${center.lng}`, signal),
+  places: (category: Extract<MapCategory, "veterinary" | "pet_shop" | "shelter">, center: Coordinates, signal?: AbortSignal) => getJson<MapResult[]>(`/api/map/places?category=${category}&lat=${center.lat.toFixed(2)}&lng=${center.lng.toFixed(2)}`, signal),
 };

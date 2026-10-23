@@ -107,7 +107,7 @@ export async function nearbyPlaces(category: MapCategory, lat: number, lng: numb
   const tag = overpassTags[category];
   const radii = category === "veterinary" || category === "pet_shop"
     ? [20_000, 50_000]
-    : [12_000];
+    : [20_000];
 
   const mainPublicEndpoint = "https://overpass-api.de/api/interpreter";
   const lz4Endpoint = "https://lz4.overpass-api.de/api/interpreter";
@@ -123,45 +123,45 @@ export async function nearbyPlaces(category: MapCategory, lat: number, lng: numb
 
   for (const radius of radii) {
     const query = `[out:json][timeout:60];nwr${tag}(around:${radius},${lat},${lng});out tags center 40;`;
-    let data: OverpassResponse | null = null;
+    let places: Array<{ id: string; category: MapCategory; name: string; lat: number; lng: number; address: string | null; phone: string | null; email: string | null; website: string | null; description: string | null; image: string | null; mapsUrl: string }> | null = null;
     try {
-      data = await Promise.any(endpoints.map(async (endpoint) => {
+      places = await Promise.any(endpoints.map(async (endpoint) => {
         try {
-          return await fetchJson<OverpassResponse>(
+          const data = await fetchJson<OverpassResponse>(
             endpoint,
             { method: "POST", headers: { "Content-Type": "application/x-www-form-urlencoded;charset=UTF-8" }, body: new URLSearchParams({ data: query }).toString() },
-            65_000,
-            `overpass:${category}:${lat.toFixed(4)}:${lng.toFixed(4)}:${radius}`,
+            30_000,
+            `overpass:${endpoint}:${category}:${lat.toFixed(2)}:${lng.toFixed(2)}:${radius}`,
             0,
           );
+          receivedValidResponse = true;
+          const found = data.elements.flatMap((element) => {
+            const point = element.lat != null && element.lon != null ? { lat: element.lat, lng: element.lon } : element.center ? { lat: element.center.lat, lng: element.center.lon } : null;
+            if (!point || !element.tags?.name) return [];
+            const tags = element.tags;
+            const address = [tags["addr:street"], tags["addr:housenumber"], tags["addr:suburb"], tags["addr:city"]].filter(Boolean).join(", ");
+            return [{
+              id: `osm-${element.type ?? "element"}-${element.id}`, category, name: tags.name, ...point,
+              address: address || null,
+              phone: tags["contact:phone"] || tags.phone || null,
+              email: tags["contact:email"] || tags.email || null,
+              website: tags["contact:website"] || tags.website || null,
+              description: tags.description || tags["description:pt"] || null,
+              image: placeImage(tags),
+              mapsUrl: `${serviceUrl("GOOGLE_MAPS_SEARCH_URL")}/?api=1&query=${point.lat},${point.lng}`,
+            }];
+          });
+          if (!found.length) throw new Error("Nenhum local encontrado neste provedor.");
+          return found;
         } catch (error) {
           const reason = error instanceof Error ? error.message : String(error);
           throw new Error(`${new URL(endpoint).host}: ${reason}`, { cause: error });
         }
       }));
-      receivedValidResponse = true;
     } catch (error) {
       lastError = error;
     }
-    if (!data) continue;
-    const places = data.elements.flatMap((element) => {
-      const point = element.lat != null && element.lon != null ? { lat: element.lat, lng: element.lon } : element.center ? { lat: element.center.lat, lng: element.center.lon } : null;
-      if (!point || !element.tags?.name) return [];
-      const tags = element.tags;
-      const address = [tags["addr:street"], tags["addr:housenumber"], tags["addr:suburb"], tags["addr:city"]].filter(Boolean).join(", ");
-      const image = placeImage(tags);
-      return [{
-        id: `osm-${element.type ?? "element"}-${element.id}`, category, name: tags.name, ...point,
-        address: address || null,
-        phone: tags["contact:phone"] || tags.phone || null,
-        email: tags["contact:email"] || tags.email || null,
-        website: tags["contact:website"] || tags.website || null,
-        description: tags.description || tags["description:pt"] || null,
-        image,
-        mapsUrl: `${serviceUrl("GOOGLE_MAPS_SEARCH_URL")}/?api=1&query=${point.lat},${point.lng}`,
-      }];
-    });
-    if (places.length > 0) return places;
+    if (places?.length) return places;
   }
 
   if (!receivedValidResponse && lastError instanceof AggregateError) {

@@ -25,6 +25,7 @@ import { PersonalData, AddressData } from "@/components/profile/personal-data";
 import { AccountAccess } from "@/components/profile/account-access";
 import { useDebouncedValue } from "@/components/profile/use-debounced-value";
 import { OrganizationProfile } from "@/components/profile/organization-profile";
+import { OrganizationNeedsPanel } from "@/components/profile/organization-needs-panel";
 
 function formatMemberSince(date?: string | Date) {
   if (!date) return "Membro recente";
@@ -209,7 +210,7 @@ export default function ProfilePage() {
   const userBio = profile?.primaryOrganization?.description || profile?.bio || "";
   const visibleTabs = profile?.accountType === "ORGANIZATION"
     ? tabs.filter((item) => !["dados", "endereco"].includes(item.id))
-    : tabs.filter((item) => !["organizacao", "endereco-organizacao"].includes(item.id));
+    : tabs.filter((item) => !["organizacao", "endereco-organizacao", "necessidades"].includes(item.id));
   const userCity = profile?.primaryOrganization?.city || profile?.city || "";
   const userState = profile?.primaryOrganization?.state || profile?.state || "";
   const userLocation = userCity && userState ? `${userCity}, ${userState}` : userCity || userState || "";
@@ -470,6 +471,7 @@ export default function ProfilePage() {
             )}
             {activeTab === "organizacao" && <OrganizationProfile section="profile" profile={profile} onUpdated={(updated) => setProfile(updated)} />}
             {activeTab === "endereco-organizacao" && <OrganizationProfile section="address" profile={profile} onUpdated={(updated) => setProfile(updated)} />}
+            {activeTab === "necessidades" && <OrganizationNeedsPanel />}
             {activeTab === "acesso" && (profile?.accountType === "ORGANIZATION" ? (
               <div className="space-y-6">
                 <header>

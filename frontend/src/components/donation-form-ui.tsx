@@ -1,6 +1,6 @@
 "use client";
 
-import { ReactNode, useEffect, useMemo } from "react";
+import { ReactNode, useEffect, useState } from "react";
 
 export const donationInputClass = "donation-input min-h-11 w-full rounded-lg border border-[#8b958e] bg-white px-3 text-sm text-[#121e17] outline-none transition placeholder:text-[#7d8580] hover:border-[#66746a] focus:border-[#256441] focus:ring-2 focus:ring-[#256441]/15 disabled:cursor-not-allowed disabled:opacity-60 sm:min-h-12 sm:px-3.5 sm:text-base";
 
@@ -24,12 +24,16 @@ export function DonationSelect({ name, children, required = true, onChange }: { 
 }
 
 export function DonationPhotoPreview({ file, label, onRemove, featured = false }: { file: File; label: string; onRemove: () => void; featured?: boolean }) {
-  const url = useMemo(() => URL.createObjectURL(file), [file]);
-  useEffect(() => () => URL.revokeObjectURL(url), [url]);
+  const [url, setUrl] = useState("");
+  useEffect(() => {
+    const nextUrl = URL.createObjectURL(file);
+    queueMicrotask(() => setUrl(nextUrl));
+    return () => URL.revokeObjectURL(nextUrl);
+  }, [file]);
   return <div className={`group relative aspect-square overflow-hidden rounded-xl border bg-[#e3f2e6] ${featured ? "border-2 border-[#256441] shadow-[0_6px_18px_rgba(37,100,65,0.15)]" : "border-[#86a590]"}`}>
     {/* URLs blob: são previews locais e devem aparecer imediatamente, sem o pipeline do Next Image. */}
     {/* eslint-disable-next-line @next/next/no-img-element */}
-    <img src={url} alt={label} className="absolute inset-0 size-full object-cover" />
+    {url && <img src={url} alt={label} className="absolute inset-0 size-full object-cover" />}
     <button type="button" onClick={onRemove} className="absolute right-2 top-2 grid size-9 place-items-center rounded-full bg-black/70 text-lg font-bold text-white shadow transition hover:bg-red-600 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white" aria-label={`Remover ${label}`}>×</button>{featured && <span className="absolute left-2 top-2 rounded-full bg-[#256441] px-2.5 py-1 text-[10px] font-bold uppercase tracking-wide text-white">Principal</span>}<span className="absolute inset-x-0 bottom-0 truncate bg-black/65 px-2 py-1.5 text-xs font-medium text-white">{file.name}</span>
   </div>;
 }

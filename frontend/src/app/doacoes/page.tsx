@@ -1,12 +1,12 @@
+"use client";
+
 import Link from "next/link";
 import { SiteFooter } from "@/components/site-footer";
 import { SiteHeader } from "@/components/site-header";
-import type { Metadata } from "next";
+import { useEffect, useState } from "react";
+import { useSession } from "@/lib/auth-client";
 
-export const metadata: Metadata = {
-  title: "Ajudar",
-  description: "Publique um animal ou doe itens para ajudar pessoas e pets perto de você.",
-};
+const API = process.env.NEXT_PUBLIC_API_URL || "http://localhost:4000";
 
 function AnimalIcon() {
   return (
@@ -27,16 +27,33 @@ function BoxIcon() {
   );
 }
 
+function NeedIcon() {
+  return <svg viewBox="0 0 32 32" className="size-9" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M27.1 8.2a6.5 6.5 0 0 0-9.2 0L16 10.1l-1.9-1.9a6.5 6.5 0 0 0-9.2 9.2L16 28.5l11.1-11.1a6.5 6.5 0 0 0 0-9.2Z" /></svg>;
+}
+
 export default function DonationsPage() {
+  const { data: session, isPending } = useSession();
+  const [isOrganization, setIsOrganization] = useState(false);
+
+  useEffect(() => {
+    if (isPending || !session) return;
+    const controller = new AbortController();
+    fetch(`${API}/api/users/me`, { credentials: "include", signal: controller.signal })
+      .then((response) => response.ok ? response.json() : null)
+      .then((profile: { accountType?: string } | null) => setIsOrganization(profile?.accountType === "ORGANIZATION"))
+      .catch(() => setIsOrganization(false));
+    return () => controller.abort();
+  }, [isPending, session]);
+
   return (
     <div className="min-h-screen bg-[#eefdf1] text-[#121e17]">
       <SiteHeader />
       <main className="mx-auto flex w-full max-w-[1200px] flex-col items-center px-3 py-7 text-center sm:px-10 sm:py-20 lg:px-20">
         <div className="max-w-2xl">
-          <h1 className="text-2xl font-extrabold tracking-[-0.02em] text-[#256441] sm:text-4xl lg:text-[40px]">O que você deseja doar?</h1>
-          <p className="mt-2 text-sm leading-5 text-[#404942] sm:mt-3 sm:text-lg sm:leading-7">Sua generosidade transforma vidas. Escolha uma categoria para iniciar o processo de forma simples e segura.</p>
+          <h1 className="text-2xl font-extrabold tracking-[-0.02em] text-[#256441] sm:text-4xl lg:text-[40px]">Como você quer ajudar?</h1>
+          <p className="mt-2 text-sm leading-5 text-[#404942] sm:mt-3 sm:text-lg sm:leading-7">Publique animais ou itens para doação. ONGs também podem informar o que precisam receber.</p>
         </div>
-        <div className="mt-6 grid w-full max-w-[700px] grid-cols-1 gap-3 sm:mt-12 sm:grid-cols-2 sm:gap-6">
+        <div className={`mt-6 grid w-full max-w-[1000px] grid-cols-1 gap-3 sm:mt-12 sm:gap-6 ${isOrganization ? "sm:grid-cols-3" : "sm:max-w-[660px] sm:grid-cols-2"}`}>
           <Link href="/doacoes/animal" className="group relative grid min-h-[118px] min-w-0 grid-cols-[56px_minmax(0,1fr)_auto] items-center gap-3 overflow-hidden rounded-xl border border-[#d7e6da] bg-white p-3 text-left transition-all duration-300 hover:-translate-y-1 hover:border-[#86c99c] hover:shadow-[0_14px_35px_rgba(37,100,65,0.12)] focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-[#256441] sm:flex sm:min-h-[330px] sm:flex-col sm:justify-center sm:rounded-2xl sm:p-8 sm:text-center">
             <span className="pointer-events-none absolute -right-6 -top-8 size-20 rounded-full bg-[#aff1c4]/20 sm:-right-10 sm:-top-10 sm:size-32" />
             <span className="relative z-10 grid size-14 place-items-center rounded-full bg-[#e3f2e6] text-[#256441] transition-transform group-hover:scale-105 sm:size-20"><AnimalIcon /></span>
@@ -58,6 +75,9 @@ export default function DonationsPage() {
             </span>
             <span className="relative z-10 inline-flex items-center gap-1 whitespace-nowrap text-[11px] font-bold text-[#256441] transition sm:mt-6 sm:gap-1.5 sm:text-sm sm:opacity-0 sm:group-hover:opacity-100 sm:group-focus-visible:opacity-100">Começar <span aria-hidden="true">›</span></span>
           </Link>
+          {isOrganization && <Link href="/doacoes/necessidade" className="group relative grid min-h-[118px] min-w-0 grid-cols-[56px_minmax(0,1fr)_auto] items-center gap-3 overflow-hidden rounded-xl border border-[#d7e6da] bg-white p-3 text-left transition-all duration-300 hover:-translate-y-1 hover:border-[#86c99c] hover:shadow-[0_14px_35px_rgba(37,100,65,0.12)] focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-[#256441] sm:flex sm:min-h-[330px] sm:flex-col sm:justify-center sm:rounded-2xl sm:p-8 sm:text-center">
+            <span className="pointer-events-none absolute -right-6 -top-8 size-20 rounded-full bg-[#b8d9ff]/25 sm:-right-10 sm:-top-10 sm:size-32" /><span className="relative z-10 grid size-14 place-items-center rounded-full bg-[#e3f2e6] text-[#256441] transition-transform group-hover:scale-105 sm:size-20"><NeedIcon /></span><span className="relative z-10 min-w-0 sm:contents"><h2 className="text-base font-semibold sm:mt-7 sm:text-2xl">Necessidades da ONG</h2><p className="mt-1 line-clamp-2 max-w-[245px] text-[11px] leading-4 text-[#404942] sm:mt-2 sm:line-clamp-3 sm:text-base sm:leading-6">Publique itens e recursos que a sua organização precisa receber.</p></span><span className="relative z-10 inline-flex items-center gap-1 whitespace-nowrap text-[11px] font-bold text-[#256441] transition sm:mt-6 sm:gap-1.5 sm:text-sm sm:opacity-0 sm:group-hover:opacity-100 sm:group-focus-visible:opacity-100">Publicar <span aria-hidden="true">›</span></span>
+          </Link>}
         </div>
       </main>
       <SiteFooter />

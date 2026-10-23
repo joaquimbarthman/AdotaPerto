@@ -75,7 +75,7 @@ export function MapExplorer() {
   }, [beginLoading, category, center.lat, center.lng, finishLoading]);
 
   const results = useMemo(() => {
-    const source = category === "adoption" || category === "donation" ? listings.filter((item) => item.category === category) : external;
+    const source = category === "adoption" || category === "donation" ? listings.filter((item) => item.category === category) : category === "shelter" ? [...listings.filter((item) => item.category === "shelter"), ...external] : external;
     return source.map((item) => ({ ...item, distanceKm: distanceInKm(center, item) })).filter((item) => item.distanceKm <= 100).sort((a, b) => a.distanceKm - b.distanceKm);
   }, [category, center, external, listings]);
 
@@ -90,5 +90,5 @@ export function MapExplorer() {
     finally { if (!controller.signal.aborted) finishLoading(loadingOwner); }
   }
 
-  return <div className="flex h-[calc(100dvh-68px)] min-h-0 flex-col overflow-hidden lg:h-[calc(100dvh-80px)] lg:flex-row"><MapSidebar category={category} results={results} selectedId={selectedId} loading={loading} search={search} onSearchChange={setSearch} onSearch={runSearch} onCategory={(value) => { setCategory(value); setSelectedId(null); }} onSelect={select} /><MapCanvas center={center} results={results} selectedId={selectedId} userLocation={userLocation} onSelect={select} onLocate={locate} /></div>;
+  return <div className="flex h-[calc(100dvh-68px)] min-h-0 flex-col overflow-hidden lg:h-[calc(100dvh-80px)] lg:flex-row"><MapSidebar category={category} results={results} selectedId={selectedId} loading={loading && !(category === "shelter" && listings.some((item) => item.category === "shelter"))} search={search} onSearchChange={setSearch} onSearch={runSearch} onCategory={(value) => { setCategory(value); setSelectedId(null); }} onSelect={select} /><MapCanvas center={center} results={results} selectedId={selectedId} userLocation={userLocation} onSelect={select} onLocate={locate} /></div>;
 }

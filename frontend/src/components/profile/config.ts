@@ -10,4 +10,5 @@ export const tabs = [
   { id: "acesso", label: "Acesso à conta" },
   { id: "organizacao", label: "Perfil de ONG" },
   { id: "endereco-organizacao", label: "Endereço da ONG" },
+  { id: "necessidades", label: "Necessidades da ONG" },
 ] as const;

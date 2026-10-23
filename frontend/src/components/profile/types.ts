@@ -26,6 +26,7 @@ export type UserProfile = {
   organizationVerifiedAt?: string | null;
   primaryOrganization?: {
     id: string; name: string; slug: string; description: string; logoUrl?: string | null; coverUrl?: string | null;
+    postalCode?: string | null; street?: string | null; number?: string | null; neighborhood?: string | null;
     city: string; state: string; contactEmail: string; whatsapp: string; verificationStatus: string;
   } | null;
 };

@@ -46,7 +46,7 @@ export function ProfileNavIcon({ id }: { id: TabId }) {
     strokeLinejoin: "round" as const,
     "aria-hidden": true,
   };
-  if (id === "publicacoes")
+  if (id === "publicacoes" || id === "necessidades")
     return (
       <svg {...common}>
         <path d="M20.8 4.7a5.2 5.2 0 0 0-7.4 0L12 6.1l-1.4-1.4a5.2 5.2 0 0 0-7.4 7.4L12 21l8.8-8.9a5.2 5.2 0 0 0 0-7.4Z" />

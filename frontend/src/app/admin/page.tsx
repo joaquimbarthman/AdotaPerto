@@ -12,7 +12,15 @@ type Overview = {
   animals: StatusCount[]; items: StatusCount[]; adoptions: StatusCount[]; donations: StatusCount[];
   recentUsers: { id: string; name: string; role: string | null; city: string | null; state: string | null; createdAt: string }[];
 };
-type AdminOrganization = { id: string; name: string; type: string; cnpj?: string | null; status: string; createdAt: string; creator: { name: string; email: string } };
+type OrganizationStatus = "PENDING" | "VERIFIED" | "REJECTED" | "SUSPENDED";
+type AdminOrganization = { id: string; name: string; type: string; cnpj?: string | null; status: OrganizationStatus; createdAt: string; creator: { name: string; email: string } };
+
+const organizationStatus: Record<OrganizationStatus, { label: string; className: string }> = {
+  PENDING: { label: "Em análise", className: "border-amber-200 bg-amber-50 text-amber-800" },
+  VERIFIED: { label: "Aprovada", className: "border-emerald-200 bg-emerald-50 text-emerald-700" },
+  REJECTED: { label: "Recusada", className: "border-red-200 bg-red-50 text-red-700" },
+  SUSPENDED: { label: "Suspensa", className: "border-orange-200 bg-orange-50 text-orange-800" },
+};
 
 const number = new Intl.NumberFormat("pt-BR");
 const total = (rows: StatusCount[]) => rows.reduce((sum, row) => sum + row.total, 0);
@@ -76,6 +84,10 @@ export default function AdminPage() {
   const [loading, setLoading] = useState(true);
   const [version, setVersion] = useState(0);
   const [organizations, setOrganizations] = useState<AdminOrganization[]>([]);
+  const [review, setReview] = useState<{ id: string; status: "REJECTED" | "SUSPENDED" } | null>(null);
+  const [reason, setReason] = useState("");
+  const [updatingOrganization, setUpdatingOrganization] = useState<string | null>(null);
+  const [organizationError, setOrganizationError] = useState<string | null>(null);
 
   useEffect(() => {
     const controller = new AbortController();
@@ -95,7 +107,25 @@ export default function AdminPage() {
   }, [version]);
 
   function refresh() { setLoading(true); setData(null); setError(null); setVersion((value) => value + 1); }
-  async function reviewOrganization(id: string, status: "VERIFIED" | "REJECTED" | "SUSPENDED") { const reason = status === "VERIFIED" ? null : window.prompt("Informe a justificativa:"); if (status !== "VERIFIED" && !reason) return; const base = process.env.NEXT_PUBLIC_API_URL || "http://localhost:4000"; const response = await fetch(`${base}/api/admin/organizations/${id}/verification`, { method: "PATCH", headers: { "Content-Type": "application/json" }, credentials: "include", body: JSON.stringify({ status, reason }) }); if (response.ok) setOrganizations((items) => items.map((item) => item.id === id ? { ...item, status } : item)); }
+  async function reviewOrganization(id: string, status: "VERIFIED" | "REJECTED" | "SUSPENDED", reviewReason: string | null = null) {
+    const base = process.env.NEXT_PUBLIC_API_URL || "http://localhost:4000";
+    setUpdatingOrganization(id);
+    setOrganizationError(null);
+    try {
+      const response = await fetch(`${base}/api/admin/organizations/${id}/verification`, { method: "PATCH", headers: { "Content-Type": "application/json" }, credentials: "include", body: JSON.stringify({ status, reason: reviewReason }) });
+      if (!response.ok) {
+        const body = await response.json().catch(() => null) as { error?: string } | null;
+        throw new Error(body?.error || "Não foi possível atualizar a organização.");
+      }
+      setOrganizations((items) => items.map((item) => item.id === id ? { ...item, status } : item));
+      setReview(null);
+      setReason("");
+    } catch (cause) {
+      setOrganizationError(cause instanceof Error ? cause.message : "Não foi possível atualizar a organização.");
+    } finally {
+      setUpdatingOrganization(null);
+    }
+  }
 
   return <div className="admin-shell min-h-screen"><SiteHeader />
     <main className="mx-auto max-w-[1200px] px-4 pb-28 pt-7 sm:px-6 lg:px-12 lg:pb-14 lg:pt-10">
@@ -110,9 +140,9 @@ export default function AdminPage() {
         <div className="mb-4 mt-10 flex items-end justify-between gap-4"><div><p className="admin-section-kicker">Distribuição</p><h2 className="admin-section-title">Atividade da plataforma</h2></div><p className="admin-muted hidden max-w-sm text-right text-xs sm:block">Uma leitura rápida da situação atual de anúncios e pedidos.</p></div>
         <div className="grid gap-5 md:grid-cols-2"><StatusPanel title="Animais" description="Situação das publicações" rows={data.animals} icon={<AnimalAdminIcon />} /><StatusPanel title="Itens para doação" description="Situação dos anúncios" rows={data.items} icon={<DashboardIcon name="gift" />} /><StatusPanel title="Solicitações de adoção" description="Distribuição por situação" rows={data.adoptions} icon={<DashboardIcon name="users" />} /><StatusPanel title="Solicitações de itens" description="Distribuição por situação" rows={data.donations} icon={<DashboardIcon name="session" />} /></div>
         <section className="admin-card mt-6 overflow-hidden p-0"><div className="flex items-center justify-between gap-4 px-5 py-5 sm:px-6"><div><p className="admin-section-kicker">Comunidade</p><h2 className="admin-card-title mt-1">Cadastros recentes</h2><p className="admin-muted mt-1 text-xs">As últimas oito contas cadastradas.</p></div><span className="admin-panel-icon hidden sm:grid"><DashboardIcon name="users" /></span></div>{data.recentUsers.length === 0 ? <p className="admin-muted px-6 pb-6 text-sm">Nenhum usuário cadastrado.</p> : <div className="admin-table-wrap overflow-x-auto"><table className="admin-table w-full text-left text-sm"><caption className="sr-only">Usuários cadastrados recentemente</caption><thead><tr>{["Nome", "Localização", "Perfil", "Cadastro"].map((label) => <th scope="col" key={label}>{label}</th>)}</tr></thead><tbody>{data.recentUsers.map((person) => <tr key={person.id}><td data-label="Nome"><span className="admin-avatar">{person.name.charAt(0).toUpperCase()}</span><strong>{person.name}</strong></td><td data-label="Localização" className="admin-muted">{[person.city, person.state].filter(Boolean).join(" / ") || "Não informada"}</td><td data-label="Perfil"><span className={person.role?.split(",").includes("admin") ? "admin-role-badge admin-role-manager" : "admin-role-badge"}>{person.role?.split(",").includes("admin") ? "Administrador" : "Usuário"}</span></td><td data-label="Cadastro" className="admin-muted whitespace-nowrap">{new Date(person.createdAt).toLocaleDateString("pt-BR")}</td></tr>)}</tbody></table></div>}</section>
-        <section className="admin-card mt-6"><p className="admin-section-kicker">Moderação</p><h2 className="admin-card-title mt-1">Organizações cadastradas</h2><div className="mt-5 space-y-3">{organizations.length === 0 ? <p className="admin-muted text-sm">Nenhuma organização cadastrada.</p> : organizations.map((org) => <article key={org.id} className="flex flex-col gap-3 rounded-xl border border-[#d7e6da] p-4 sm:flex-row sm:items-center sm:justify-between"><div><div className="flex flex-wrap items-center gap-2"><strong>{org.name}</strong><span className="admin-role-badge">{org.status}</span></div><p className="admin-muted mt-1 text-xs">{org.type === "NGO" ? "ONG" : "Protetor independente"} · Responsável: {org.creator.name} ({org.creator.email})</p>{org.cnpj && <p className="admin-muted mt-1 text-xs">CNPJ: {org.cnpj}</p>}</div><div className="flex flex-wrap gap-2"><button onClick={() => reviewOrganization(org.id, "VERIFIED")} className="rounded-lg bg-[#256441] px-3 py-2 text-xs font-bold text-white">Aprovar</button><button onClick={() => reviewOrganization(org.id, "REJECTED")} className="rounded-lg border border-red-200 px-3 py-2 text-xs font-bold text-red-700">Rejeitar</button><button onClick={() => reviewOrganization(org.id, "SUSPENDED")} className="rounded-lg border border-amber-300 px-3 py-2 text-xs font-bold text-amber-800">Suspender</button></div></article>)}</div></section>
+        <section className="admin-card mt-6"><p className="admin-section-kicker">Moderação</p><h2 className="admin-card-title mt-1">Organizações cadastradas</h2>{organizationError && <p role="alert" className="mt-4 rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700">{organizationError}</p>}<div className="mt-5 space-y-3">{organizations.length === 0 ? <p className="admin-muted text-sm">Nenhuma organização cadastrada.</p> : organizations.map((org) => { const status = organizationStatus[org.status]; const updating = updatingOrganization === org.id; return <article key={org.id} className="flex flex-col gap-3 rounded-xl border border-[#d7e6da] p-4 sm:flex-row sm:items-center sm:justify-between"><div><div className="flex flex-wrap items-center gap-2"><strong>{org.name}</strong><span className={`rounded-md border px-2 py-1 text-[10px] font-extrabold uppercase tracking-wide ${status.className}`}>{status.label}</span></div><p className="admin-muted mt-1 text-xs">{org.type === "NGO" ? "ONG" : "Protetor independente"} · Responsável: {org.creator.name} ({org.creator.email})</p>{org.cnpj && <p className="admin-muted mt-1 text-xs">CNPJ: {org.cnpj}</p>}</div><div className="flex flex-wrap gap-2">{org.status !== "VERIFIED" && <button type="button" disabled={updating} onClick={() => void reviewOrganization(org.id, "VERIFIED")} className="rounded-lg bg-[#256441] px-3 py-2 text-xs font-bold text-white disabled:cursor-wait disabled:opacity-60">{updating ? "Salvando..." : "Aprovar"}</button>}{org.status !== "REJECTED" && <button type="button" disabled={updating} onClick={() => { setOrganizationError(null); setReason(""); setReview({ id: org.id, status: "REJECTED" }); }} className="rounded-lg border border-red-200 px-3 py-2 text-xs font-bold text-red-700 disabled:opacity-60">Recusar</button>}</div></article>; })}</div></section>
         <p className="admin-updated"><DashboardIcon name="clock" />Atualizado em {new Date(data.generatedAt).toLocaleString("pt-BR")}</p>
       </>}
-    </main><SiteFooter />
+    </main>{review && <div className="fixed inset-0 z-[100] grid place-items-center bg-[#0d1c13]/60 p-4" role="presentation"><section role="dialog" aria-modal="true" aria-labelledby="review-title" className="w-full max-w-md rounded-2xl bg-white p-6 shadow-2xl"><p className="text-xs font-bold uppercase tracking-wider text-red-700">Recusar organização</p><h2 id="review-title" className="mt-2 text-xl font-extrabold">Informe a justificativa</h2><p className="mt-2 text-sm text-[#526057]">A organização receberá este motivo na análise do cadastro.</p><textarea value={reason} onChange={(event) => setReason(event.target.value)} autoFocus rows={4} placeholder="Descreva o motivo..." className="mt-5 w-full resize-none rounded-xl border border-[#c6d5ca] px-3 py-3 text-sm outline-none focus:border-[#256441]" /><div className="mt-5 flex justify-end gap-3"><button type="button" disabled={updatingOrganization === review.id} onClick={() => setReview(null)} className="rounded-lg px-4 py-2 text-sm font-bold text-[#526057] hover:bg-[#eefdf1] disabled:opacity-50">Cancelar</button><button type="button" disabled={!reason.trim() || updatingOrganization === review.id} onClick={() => void reviewOrganization(review.id, review.status, reason.trim())} className="rounded-lg bg-red-700 px-4 py-2 text-sm font-bold text-white hover:bg-red-800 disabled:opacity-50">{updatingOrganization === review.id ? "Salvando..." : "Recusar ONG"}</button></div></section></div>}<SiteFooter />
   </div>;
 }

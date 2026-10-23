@@ -1,0 +1,15 @@
+ALTER TABLE "organization_need" ADD COLUMN IF NOT EXISTS "item_name" text;
+ALTER TABLE "organization_need" ADD COLUMN IF NOT EXISTS "condition" text;
+ALTER TABLE "organization_need" ADD COLUMN IF NOT EXISTS "expiration_date" text;
+ALTER TABLE "organization_need" ADD COLUMN IF NOT EXISTS "main_image" text;
+ALTER TABLE "organization_need" ADD COLUMN IF NOT EXISTS "images" text[] DEFAULT '{}' NOT NULL;
+ALTER TABLE "organization_need" ADD COLUMN IF NOT EXISTS "delivery_method" text;
+ALTER TABLE "organization_need" ADD COLUMN IF NOT EXISTS "available_until" text;
+UPDATE "organization_need" SET "item_name" = "title" WHERE "item_name" IS NULL;
+UPDATE "organization_need" SET "condition" = 'Qualquer condição' WHERE "condition" IS NULL;
+UPDATE "organization_need" SET "main_image" = '' WHERE "main_image" IS NULL;
+UPDATE "organization_need" SET "delivery_method" = 'A combinar' WHERE "delivery_method" IS NULL;
+ALTER TABLE "organization_need" ALTER COLUMN "item_name" SET NOT NULL;
+ALTER TABLE "organization_need" ALTER COLUMN "condition" SET NOT NULL;
+ALTER TABLE "organization_need" ALTER COLUMN "main_image" SET NOT NULL;
+ALTER TABLE "organization_need" ALTER COLUMN "delivery_method" SET NOT NULL;

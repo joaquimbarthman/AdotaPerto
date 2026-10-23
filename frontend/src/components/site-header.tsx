@@ -31,6 +31,7 @@ const organizationProfileLinks = [
   { label: "Solicitações", href: "/perfil#solicitacoes", icon: "bell" },
   { label: "Perfil da ONG", href: "/perfil#organizacao", icon: "user" },
   { label: "Endereço da ONG", href: "/perfil#endereco-organizacao", icon: "pin" },
+  { label: "Necessidades da ONG", href: "/perfil#necessidades", icon: "heart" },
   { label: "Acesso à conta", href: "/perfil#acesso", icon: "lock" },
 ] as const;
 

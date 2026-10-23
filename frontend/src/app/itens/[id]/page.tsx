@@ -14,9 +14,7 @@ import { SiteHeader } from "@/components/site-header";
 import { useSession } from "@/lib/auth-client";
 import { useApproximateDistance } from "@/hooks/use-approximate-distance";
 import {
-  fetchProfileAddressCompletion,
-  PROFILE_ADDRESS_MESSAGE,
-  PROFILE_ADDRESS_PATH,
+  fetchProfileAddressStatus,
 } from "@/lib/profile-address";
 import type { DonationItem } from "../page";
 
@@ -73,9 +71,10 @@ export default function ItemDetailsPage() {
     const form = new FormData(event.currentTarget);
     setSending(true); setNotice(null);
     try {
-    if (!(await fetchProfileAddressCompletion())) {
-      notify(PROFILE_ADDRESS_MESSAGE, "warning");
-      router.push(PROFILE_ADDRESS_PATH);
+    const addressStatus = await fetchProfileAddressStatus();
+    if (!addressStatus.complete) {
+      notify(addressStatus.message, "warning");
+      router.push(addressStatus.path);
       return;
     }
     const response = await fetch(`${API_BASE_URL}/api/donation-item-requests`, { method: "POST", headers: { "Content-Type": "application/json" }, credentials: "include", body: JSON.stringify({ itemId: item.id, quantity: Number(form.get("quantity")), message: String(form.get("message") || "") || null }) });
@@ -116,7 +115,7 @@ export default function ItemDetailsPage() {
         </div>
         <aside className="detail-sidebar min-w-0">
           <div className="space-y-3 sm:space-y-6 lg:sticky lg:top-28">
-          <section className="rounded-xl bg-white p-6 shadow-[0_4px_6px_rgba(38,51,43,0.05)]"><h2 className="text-sm font-semibold uppercase tracking-[0.05em] text-[#404942]">Doado por</h2><div className="mt-4 flex items-center gap-4"><div className="relative grid size-16 shrink-0 place-items-center overflow-hidden rounded-full bg-[#e3f2e6]">{item.owner?.image ? <Image src={item.owner.image} alt={ownerName} fill className="object-cover" /> : <span className="text-xl font-bold text-[#256441]">{ownerName.charAt(0).toUpperCase()}</span>}</div><div><h3 className="text-xl font-semibold">{ownerName}</h3>{ownerLocation && <p className="mt-1 text-xs text-[#526057]">{ownerLocation}</p>}<p className="mt-1 text-xs text-[#404942]">Responsável cadastrado</p>{approximateDistance && <p className="mt-1.5 flex items-center gap-1 text-xs font-semibold text-[#256441]"><Image src="/icons/location.svg" alt="" width={13} height={13} />Aproximadamente {approximateDistance} de distância</p>}</div></div></section>
+          <section className="rounded-xl bg-white p-6 shadow-[0_4px_6px_rgba(38,51,43,0.05)]"><h2 className="text-sm font-semibold uppercase tracking-[0.05em] text-[#404942]">Doado por</h2><div className="mt-4 flex items-center gap-4"><div className="relative grid size-16 shrink-0 place-items-center overflow-hidden rounded-full bg-[#e3f2e6]">{ownerImage ? <Image src={ownerImage} alt={ownerName} fill className="object-cover" /> : <span className="text-xl font-bold text-[#256441]">{ownerName.charAt(0).toUpperCase()}</span>}</div><div><h3 className="text-xl font-semibold">{ownerName}</h3>{ownerLocation && <p className="mt-1 text-xs text-[#526057]">{ownerLocation}</p>}<p className="mt-1 text-xs text-[#404942]">Responsável cadastrado</p>{approximateDistance && <p className="mt-1.5 flex items-center gap-1 text-xs font-semibold text-[#256441]"><Image src="/icons/location.svg" alt="" width={13} height={13} />Aproximadamente {approximateDistance} de distância</p>}</div></div></section>
           {notice && <Notification text={notice.text} type={notice.type} />}
           <div className="detail-primary-actions flex gap-2"><form onSubmit={requestItem} className="min-w-0 flex-1"><input type="hidden" name="quantity" value="1" /><button type="submit" disabled={sending || unavailable} className="h-full w-full rounded-xl bg-[#256441] px-6 py-4 text-sm font-semibold text-white shadow-sm transition hover:-translate-y-0.5 hover:bg-[#194b30] disabled:cursor-not-allowed disabled:opacity-60">{unavailable ? "Item indisponível" : sending ? "Enviando..." : "Solicitar este item"}</button></form><button type="button" disabled={favoriteLoading} onClick={toggleFavorite} className={`detail-favorite-button grid size-[52px] shrink-0 place-items-center rounded-xl border transition active:scale-95 disabled:opacity-60 ${favorite ? "border-[#ef9aaa] bg-[#fff0f3] text-[#d33f56]" : "border-[#86a590] bg-white text-[#526057] hover:bg-[#e8f7eb] hover:text-[#256441]"}`} aria-label={favorite ? "Remover dos favoritos" : "Adicionar aos favoritos"} aria-pressed={favorite}><svg viewBox="0 0 24 24" className="size-5" fill={favorite ? "currentColor" : "none"} stroke="currentColor" strokeWidth="2.2" aria-hidden="true"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78L12 21.23l8.84-8.84a5.5 5.5 0 0 0 0-7.78Z" strokeLinecap="round" strokeLinejoin="round" /></svg></button></div>
           <section className="rounded-xl border border-[#d7e6da] bg-[#f7fcf8] p-6 text-sm leading-6 text-[#404942]"><h2 className="mb-2 font-bold text-[#256441]">Privacidade e segurança</h2><p>Os dados de contato são liberados somente após a aprovação da solicitação pelo responsável.</p></section>

@@ -312,16 +312,6 @@ export default function PetDetailsPage() {
               </div>
             </section>
 
-            <section className="rounded-xl border border-[#d7e6da] bg-[#f7fcf8] p-6 text-sm leading-6 text-[#404942]">
-              <h2 className="mb-2 font-bold text-[#256441]">
-                Privacidade e segurança
-              </h2>
-              <p>
-                Os meios de contato do responsável não são exibidos no anúncio.
-                Eles serão liberados somente após a aprovação do pedido de adoção.
-              </p>
-            </section>
-
             <div className="detail-primary-actions flex gap-2"><button
               type="button"
               disabled={isPending || Boolean(animal.viewerRequestStatus) || animal.status !== "Disponível"}
@@ -340,6 +330,7 @@ export default function PetDetailsPage() {
                         ? "Animal já adotado"
                         : "Tenho interesse em adotar"}
             </button><button type="button" disabled={favoriteLoading} onClick={toggleFavorite} className={`detail-favorite-button grid size-[52px] shrink-0 place-items-center rounded-xl border transition active:scale-95 disabled:opacity-60 ${favorite ? "border-[#ef9aaa] bg-[#fff0f3] text-[#d33f56]" : "border-[#86a590] bg-white text-[#526057] hover:bg-[#e8f7eb] hover:text-[#256441]"}`} aria-label={favorite ? "Remover dos favoritos" : "Adicionar aos favoritos"} aria-pressed={favorite}><svg viewBox="0 0 24 24" className="size-5" fill={favorite ? "currentColor" : "none"} stroke="currentColor" strokeWidth="2.2" aria-hidden="true"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78L12 21.23l8.84-8.84a5.5 5.5 0 0 0 0-7.78Z" strokeLinecap="round" strokeLinejoin="round" /></svg></button></div>
+            <section className="rounded-xl border border-[#d7e6da] bg-[#f7fcf8] p-6 text-sm leading-6 text-[#404942]"><h2 className="mb-2 font-bold text-[#256441]">Privacidade e segurança</h2><p>Os meios de contato do responsável não são exibidos no anúncio. Eles serão liberados somente após a aprovação do pedido de adoção.</p></section>
             </div>
           </aside>
         </div>
